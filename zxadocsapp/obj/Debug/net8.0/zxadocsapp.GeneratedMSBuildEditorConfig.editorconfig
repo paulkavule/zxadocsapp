@@ -1,0 +1,63 @@
+is_global = true
+build_property.TargetFramework = net8.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = zxadocsapp
+build_property.RootNamespace = zxadocsapp
+build_property.ProjectDir = /Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsapp/
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 8.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = /Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsapp
+build_property._RazorSourceGeneratorDebug = 
+
+[/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsapp/Components/App.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9BcHAucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsapp/Components/Pages/CreateDocument.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9DcmVhdGVEb2N1bWVudC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsapp/Components/Pages/Dashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9EYXNoYm9hcmQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsapp/Components/Pages/Error.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9FcnJvci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsapp/Components/Pages/MailBox.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9NYWlsQm94LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsapp/Components/Pages/Weather.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9XZWF0aGVyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsapp/Components/Routes.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9Sb3V0ZXMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsapp/Components/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9fSW1wb3J0cy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsapp/Components/Custom/DocumentEditor.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9DdXN0b20vRG9jdW1lbnRFZGl0b3IucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-73njxcc0n0
+
+[/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsapp/Components/Layout/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvTWFpbkxheW91dC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-kzjh5435k4
+
+[/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsapp/Components/Layout/NavMenu.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvTmF2TWVudS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-5axkuhvu28

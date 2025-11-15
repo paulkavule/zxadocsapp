@@ -1,0 +1,55 @@
+﻿@rendermode InteractiveServer
+
+@page "/new-document"
+
+<div class="flex gap-2">
+    <div class="w-[20%]">
+        <div>
+            <lable>Title</lable>
+            <input type="text" class="border border-gray-300 rounded-md p-2 w-full" placeholder="Document Title" />
+        </div>
+        <div>
+            <lable>Subject</lable>
+            <input type="text" class="border border-gray-300 rounded-md p-2 w-full" placeholder="Subject" />
+        </div>
+        <div>
+            <lable>Priority</lable>
+            <select type="text" class="border border-gray-300 rounded-md p-2 w-full"></select>
+        </div>
+        <div>
+            <lable>Document Type</lable>
+            <select type="text" class="border border-gray-300 rounded-md p-2 w-full"></select>
+        </div>
+        <div>
+            <lable>Document Category</lable>
+            <select type="text" class="border border-gray-300 rounded-md p-2 w-full"></select>
+        </div>
+
+        <div>
+            <lable>Upload File</lable>
+            <InputFile OnChange="@UploadDocument" class="border border-gray-300 rounded-md p-2 w-full" />
+
+            @* <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                <div class="bg-blue-600 rounded-full transition-all duration-300" style="width: 55%; height: 10px;">
+                </div>
+            </div> *@
+            @if (UploadProgress > 0 && UploadProgress < 100)
+            {
+                <div class="w-[98%] bg-gray-200 rounded-full h-2.5 mt-0 mx-auto">
+                    <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                        style="width: @UploadProgress%; height: 10px;">
+                    </div>
+                </div>
+                <div class="text-sm text-gray-600 mt-1">
+                    Uploading: @UploadProgress.ToString("0.0")%
+                </div>
+            }
+
+        </div>
+
+
+    </div>
+    <div class="flex-1">
+        <DocumentEditor FileUrl=@fileBase64 />
+    </div>
+</div>
