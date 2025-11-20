@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "2oDLWW87dCk=",
+  "dgSpecHash": "eR7abh0cvL0=",
   "success": true,
   "projectFilePath": "/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsfe/zxadocsfe.csproj",
   "expectedPackageFiles": [
@@ -19,7 +19,7 @@
     "/Users/pkavule/.nuget/packages/microsoft.extensions.primitives/9.0.10/microsoft.extensions.primitives.9.0.10.nupkg.sha512",
     "/Users/pkavule/.nuget/packages/microsoft.netcore.platforms/1.1.1/microsoft.netcore.platforms.1.1.1.nupkg.sha512",
     "/Users/pkavule/.nuget/packages/microsoft.netcore.targets/1.1.0/microsoft.netcore.targets.1.1.0.nupkg.sha512",
-    "/Users/pkavule/.nuget/packages/pkavule.zxadocslib/1.0.0/pkavule.zxadocslib.1.0.0.nupkg.sha512",
+    "/Users/pkavule/.nuget/packages/pkavule.zxadocslib/1.0.1/pkavule.zxadocslib.1.0.1.nupkg.sha512",
     "/Users/pkavule/.nuget/packages/runtime.debian.8-x64.runtime.native.system.security.cryptography.openssl/4.3.2/runtime.debian.8-x64.runtime.native.system.security.cryptography.openssl.4.3.2.nupkg.sha512",
     "/Users/pkavule/.nuget/packages/runtime.fedora.23-x64.runtime.native.system.security.cryptography.openssl/4.3.2/runtime.fedora.23-x64.runtime.native.system.security.cryptography.openssl.4.3.2.nupkg.sha512",
     "/Users/pkavule/.nuget/packages/runtime.fedora.24-x64.runtime.native.system.security.cryptography.openssl/4.3.2/runtime.fedora.24-x64.runtime.native.system.security.cryptography.openssl.4.3.2.nupkg.sha512",

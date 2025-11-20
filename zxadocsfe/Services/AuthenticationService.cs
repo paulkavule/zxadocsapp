@@ -24,9 +24,9 @@ public class AuthService : IAuthService
             username,
             password
         };
-        var (status, result, _) = await httpService.ExecuteRequestAsync<AuthToken>(HttpVerb.Post, $"/api/user/login", data);
+        var (status, result, _) = await httpService.ExecuteRequestAsync<ApiResponse<AuthToken>>(HttpVerb.Post, $"/api/user/login", data);
 
-        return (status, result)!;
+        return (status, result?.Data)!;
     }
 
     public async Task<(bool, AuthToken)> GenerateNewCoreToken(string refreshToken)

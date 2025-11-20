@@ -1,52 +1,47 @@
 using System;
 using System.Net.Http.Headers;
 using Microsoft.JSInterop;
+using zxadocsapp.State;
+using zxadocsapp.States;
 using zxadocsfe.Services;
+using static zxadocsfe.Helpers.AppConstants;
 
 namespace zxadocsapp.Infrastructure.Http;
 
 public class HttpCoreIntercetpor : DelegatingHandler
 {
     private readonly ILogger<HttpCoreIntercetpor> logger;
-    private readonly IJSRuntime jsRuntime;
     private IAuthService authSvc;
-    private string token = "", refreshToken = "";
-    public HttpCoreIntercetpor(ILogger<HttpCoreIntercetpor> logger, IJSRuntime jsRuntime,
-    IAuthService authSvc)
+    private readonly RequestContext session;
+
+    public HttpCoreIntercetpor(ILogger<HttpCoreIntercetpor> logger,
+        IAuthService authSvc, RequestContext session)
     {
         this.logger = logger;
-        this.jsRuntime = jsRuntime;
         this.authSvc = authSvc;
+        this.session = session;
     }
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Sending request to {Url}", request.RequestUri);
         request.Headers.TryAddWithoutValidation("X-Correlation-Id", Guid.NewGuid().ToString());
-        // Attempt to read a bearer token from browser storage (try common keys)
-        try
-        {
-            // try a few common keys
-            token ??= await jsRuntime.InvokeAsync<string>("localStorage.getItem", "token");
-            refreshToken ??= await jsRuntime.InvokeAsync<string>("localStorage.getItem", "access_token");
+        // token = session.GetItem<string>("token");
+        // refreshToken = session.GetItem<string>("refreshToken");
+        var data = session.TenantId;
+        var token = session.Token;
+        var refreshToken = session.RefreshToken;
 
-            if (!string.IsNullOrWhiteSpace(token))
-            {
-                // if the stored value is a JSON object (e.g. { token: '...' }) the caller should store raw token string
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                logger.LogDebug("Added Authorization header to request");
-            }
-        }
-        catch (JSException jsEx)
+        if (!string.IsNullOrWhiteSpace(token))
         {
-            // If JS interop fails (e.g. server-side), ignore gracefully
-            logger.LogDebug(jsEx, "Could not read token from localStorage");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            logger.LogDebug("Added Authorization header to request");
         }
 
         var response = await base.SendAsync(request, cancellationToken);
 
         logger.LogInformation("⬅️ {StatusCode} for {Url}", (int)response.StatusCode, request.RequestUri);
 
-        if (!response.IsSuccessStatusCode)
+        if (!response.IsSuccessStatusCode && !string.IsNullOrEmpty(refreshToken))
         {
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
@@ -63,11 +58,4 @@ public class HttpCoreIntercetpor : DelegatingHandler
         }
         return response;
     }
-
-
-    private void GenerateToken()
-    {
-
-    }
-
 }

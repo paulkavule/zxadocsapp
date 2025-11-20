@@ -5,17 +5,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    @* <link rel="stylesheet" href="bootstrap/bootstrap.min.css" /> *@
-    @* <link rel="stylesheet" href="app.css" /> *@
-    <link rel="stylesheet" href="ctailwindcss.css" />
-    <link rel="stylesheet" href="zxadocsapp.styles.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
+
+    <link rel="stylesheet" href="zxadocsapp.styles.css" />
+    <link rel="stylesheet" href="ctailwindcss.css" />
+
     <link rel="icon" type="image/png" href="favicon.png" />
-    <HeadOutlet />
+    <HeadOutlet @rendermode="InteractiveAuto" />
 </head>
 
 <body>
-    <Routes />
+    <Routes @rendermode="InteractiveServer" />
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
     <!-- Set worker to the matching CDN file -->
@@ -27,10 +30,43 @@
         }
     </script>
     <script src="/pdfjs/pdfinterpolator.js"></script>
-    <script src="/js/resizablehandler.js"></script>
+    @* <script src="/js/resizablehandler.js"></script>
     <script src="/js/dragablehandler.js"></script>
-    <script src="/js/dragoverlay.js"></script>
+    <script src="/js/dragoverlay.js"></script> *@
+    <script src="/js/dragandresizehandler.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="_framework/blazor.web.js"></script>
+
+
 </body>
 
 </html>
+@* <!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="app.css" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="zxadocsapp.styles.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet @rendermode="InteractiveAuto" />
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveServer" />
+
+    <script src="/pdfjs/pdfinterpolator.js"></script>
+    <script src="/js/resizablehandler.js"></script>
+    <script src="/js/dragablehandler.js"></script>
+    <script src="/js/dragoverlay.js"></script>
+
+    <script src="_framework/blazor.web.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+
+</body>
+
+</html> *@

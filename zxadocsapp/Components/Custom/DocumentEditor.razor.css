@@ -2,11 +2,10 @@
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 10000;
+  z-index: 10;
   width: auto;
   height: auto;
   border: 1px solid red;
-  padding: 20px 30px;
   background-color: beige;
   cursor: grabbing;
   user-select: none;
@@ -26,7 +25,7 @@
   top: 0; /* moved via transform */
   width: 220px;
   height: 140px;
-  background: rgba(25, 118, 210, 0.9);
+  background: rgb(199, 199, 199);
   color: #fff;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);

@@ -2,24 +2,41 @@
 
 
 <div class="pdf-toolbar">
-    <button @onclick="AddSign">Add Signature</button>
+    <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" OverrideStyles="false">
+        <MudIconButton Icon="@Icons.Material.Filled.ModeEdit" OnClick="AddSign"></MudIconButton>
+        <MudIconButton Icon="@Icons.Material.Filled.Comment" OnClick="AddComment"></MudIconButton>
+
+        <MudIconButton Icon="@Icons.Material.Filled.ZoomOut" OnClick="ZoomOut" />
+        <MudIconButton Icon="@Icons.Material.Filled.ZoomIn" OnClick="ZoomIn" />
+        <MudIconButton style="max-width: 50px;" Icon="@Icons.Material.Filled.SkipPrevious" OnClick="Prev" />
+        <div class="flex items-center">
+            <input type="number" min="1" max="@PageCount" value="@CurrentPage" @onchange="GoTo"
+                class="border-2 text-center" style="width:4rem; height:2rem" />
+        </div>
+
+        <MudIconButton Icon="@Icons.Material.Filled.SkipNext" OnClick="Next" />
+        <div class="flex items-center">Page @CurrentPage of @PageCount</div>
+    </MudButtonGroup>
+    @* <button class="bg-amber-600" @onclick="AddSign">Add Signature</button>
     <button @onclick="Prev">Prev</button>
     <button @onclick="Next">Next</button>
     <button @onclick="ZoomOut">-</button>
     <span>Page @CurrentPage of @PageCount</span>
     <button @onclick="ZoomIn">+</button>
     <input type="number" min="1" max="@PageCount" value="@CurrentPage" @onchange="GoTo"
-        style="width:4rem;margin-left:0.5rem;" />
+        style="width:4rem;margin-left:0.5rem;" /> *@
 </div>
 
 <div @ref="pdfCanvas" id="@_containerId"
     style="width:100%;max-width:100%;border:1px solid #ddd;min-height:60vh; position:relative">
+
     @for (int item = 0; item < divCount; item++)
     {
         var itemRef = "draggable" + item;
-        <div class="signBox resizable" id="@itemRef" @onclick="() => InitializeDrag(itemRef)">
-            this is the representation of a signature
-
+        <div class="signBox resizable gentals" id="@itemRef" @onclick="() => InitializeDrag(itemRef)">
+            <button class="text-red-600" @onclick="() => EditComment(item)">Edit</button>
+            <label>@commentList?[item]</label>
+            @* <img src="/images/signature-2.png" style="width:100%; height:100% ; position:relative" /> *@
             <div class="rh rh-n" data-handle="n"></div>
             <div class="rh rh-e" data-handle="e"></div>
             <div class="rh rh-s" data-handle="s"></div>
