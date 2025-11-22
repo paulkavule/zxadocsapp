@@ -1,9 +1,5 @@
-using System;
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.JSInterop;
 using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
@@ -15,7 +11,7 @@ public partial class CreateDocument
 {
     [Inject] ILogger<CreateDocument>? logger { set; get; }
     [Inject] private IHttpService httpSvc { get; set; } = default!;
-    string fileBase64 = string.Empty, docType = string.Empty, userId = string.Empty, fileName = string.Empty, docRef = string.Empty;
+    string fileBase64 = string.Empty, docType = string.Empty, userId = string.Empty, fileName = "File Name", docRef = string.Empty, organisationId = string.Empty;
     private double UploadProgress { get; set; }
 
     private List<ListOption> priorityList = new(), doctypeList = new(), docCatList = new();
@@ -28,6 +24,7 @@ public partial class CreateDocument
     protected override void OnInitialized()
     {
         userId = "1";
+        organisationId = "1";
         httpSvc!.Initialize(AppConstants.HttpSchemes.Core);
     }
 
@@ -115,7 +112,7 @@ public partial class CreateDocument
             });
 
             Console.WriteLine($"File size: {file.Size}\n");
-
+            fileName = file.Name;
             var stream = file.OpenReadStream(maxAllowedSize: 10485760);
             using var ms = new MemoryStream();
             int counter = 0;
@@ -196,13 +193,26 @@ public partial class CreateDocument
     {
         try
         {
-            if (string.IsNullOrEmpty(docRef))
+            var (uploaded, uploadResult) = await UploadDocumentToServer();
+            if (uploaded == false || string.IsNullOrEmpty(docRef))
             {
                 // show toaster, message = "Document reference has not yet been generated"
                 return;
             }
-
-
+            document.AuthorId = int.Parse(userId);
+            document.DocumentReference = docRef;
+            document.Path = uploadResult;
+            document.Amendments = attachmentList.Select(dd => new DocumentAmendment
+            {
+                Content = dd.Type == AppConstants.AttachmentType.Signature ? "" : dd.Content,
+                Height = dd.Height,
+                Width = dd.Width,
+                PositionX = dd.PositionX,
+                PositionY = dd.PositionY,
+                Page = dd.Page - 1,
+                Type = dd.Type,
+                OrganisationId = int.Parse(organisationId),
+            }).ToArray();
             var (status, result, message) = await httpSvc!.ExecuteRequestAsync<ApiResponse<string>>(HttpVerb.Post, $"api/document", document);
             if (status == false || result?.Data == null)
             {
@@ -218,25 +228,35 @@ public partial class CreateDocument
         }
     }
 
-    private async Task UploadDocumentToServer()
+    private async Task<(bool, string)> UploadDocumentToServer()
     {
         try
         {
-
-            var _docRef = Guid.NewGuid().ToString();
-            var (status, result, message) = await httpSvc!.UploadDocumentAsync<ApiResponse<List<string>>>($"api/upload", fileBytes, userId, docRef, fileName, $"store_{document.TypeId}");
-            if (status == false || result?.Data == null)
+            if (fileBytes == null || fileBytes.Length <= 0)
             {
-                //show dialog at this point
-                return;
+                // show toaster, message = "Document reference has not yet been generated"
+                logger!.LogInformation("Couldn't proceed with the upload");
+                return (false, "Couldn't proceed with the upload");
+            }
+
+            logger!.LogInformation("Proceeding to send to the server");
+            var _docRef = Guid.NewGuid().ToString();
+            var (status, result, message) = await httpSvc!.UploadDocumentAsync<DocUploadResult>($"api/upload", fileBytes, userId, _docRef, fileName, $"store_{document.TypeId}");
+            if (status == false || result?.Name == null)
+            {
+                logger!.LogInformation(message);
+                return (false, message!);
             }
 
             docRef = _docRef;
+            return (true, result?.Name!);
         }
         catch (Exception ex)
         {
             logger!.LogDebug(ex.Message);
+            return (false, ex.Message);
         }
+
     }
 
 }

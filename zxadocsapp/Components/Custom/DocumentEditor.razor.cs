@@ -152,7 +152,8 @@ public partial class DocumentEditor
         {
             ElementId = $"comment{attachments.Count}",
             Content = "user base64 signature",
-            Type = AppConstants.AttachmentType.Signature
+            Type = AppConstants.AttachmentType.Signature,
+            Page = CurrentPage
         });
     }
 
@@ -172,7 +173,8 @@ public partial class DocumentEditor
         {
             ElementId = $"comment{attachments.Count}",
             Content = comment,
-            Type = AppConstants.AttachmentType.Comment
+            Type = AppConstants.AttachmentType.Comment,
+            Page = CurrentPage
         });
         addComment = true;
         divCount++;
