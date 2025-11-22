@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
+using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
@@ -14,16 +15,19 @@ public partial class CreateDocument
 {
     [Inject] ILogger<CreateDocument>? logger { set; get; }
     [Inject] private IHttpService httpSvc { get; set; } = default!;
-    string fileBase64 = string.Empty, docType = string.Empty;
+    string fileBase64 = string.Empty, docType = string.Empty, userId = string.Empty, fileName = string.Empty, docRef = string.Empty;
     private double UploadProgress { get; set; }
 
     private List<ListOption> priorityList = new(), doctypeList = new(), docCatList = new();
+    private List<DocAttachment> attachmentList = new();
 
     Document document = new();
+    private byte[] fileBytes = default!;
     // bool success;
     // string[] errors = { };
     protected override void OnInitialized()
     {
+        userId = "1";
         httpSvc!.Initialize(AppConstants.HttpSchemes.Core);
     }
 
@@ -128,8 +132,8 @@ public partial class CreateDocument
                 await Task.Delay(20);
                 counter++;
             }
-            ms.ToArray();
-            fileBase64 = Convert.ToBase64String(ms.ToArray());
+            fileBytes = ms.ToArray();
+            fileBase64 = Convert.ToBase64String(fileBytes);
             Console.WriteLine($"string length from uploadfiledocument is {fileBase64.Length}");
             StateHasChanged();
         }
@@ -174,28 +178,64 @@ public partial class CreateDocument
             ms.ToArray();
             fileBase64 = Convert.ToBase64String(ms.ToArray());
             Console.WriteLine($"string length from uploaddocument is {fileBase64.Length}");
-            // Create form data
-            // var content = new MultipartFormDataContent();
-            // var fileContent = new ByteArrayContent(ms.ToArray());
-            // fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-            // content.Add(fileContent, "file", file.Name);
-            // content.Add(new StringContent("1"), "userId");
-            // content.Add(new StringContent(new Guid().ToString()), "documentReference");
-            // content.Add(new StringContent("General"), "folder");
-
-
-            // // Upload the file using your HttpService
-            // var (success, response, error) = await httpService.ExecuteRequestAsync<ApiResponse<string>>(
-            //     HttpVerb.Post,
-            //     "api/upload",
-            //     content
-            // );
 
 
         }
         catch (Exception ex)
         {
 
+        }
+    }
+
+    private void InitializeDocumentAttachements(List<DocAttachment> attachments)
+    {
+        attachmentList = attachments;
+        Console.WriteLine($"InitializeDocumentAttachements <~><~><~><~><~> {attachments?.Count}");
+    }
+    private async Task SubmitDocument()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(docRef))
+            {
+                // show toaster, message = "Document reference has not yet been generated"
+                return;
+            }
+
+
+            var (status, result, message) = await httpSvc!.ExecuteRequestAsync<ApiResponse<string>>(HttpVerb.Post, $"api/document", document);
+            if (status == false || result?.Data == null)
+            {
+                //show dialog at this point
+                return;
+            }
+
+            Console.WriteLine("Document has successfully been uploaded to the remote sever");
+        }
+        catch (Exception ex)
+        {
+            logger!.LogDebug(ex.Message);
+        }
+    }
+
+    private async Task UploadDocumentToServer()
+    {
+        try
+        {
+
+            var _docRef = Guid.NewGuid().ToString();
+            var (status, result, message) = await httpSvc!.UploadDocumentAsync<ApiResponse<List<string>>>($"api/upload", fileBytes, userId, docRef, fileName, $"store_{document.TypeId}");
+            if (status == false || result?.Data == null)
+            {
+                //show dialog at this point
+                return;
+            }
+
+            docRef = _docRef;
+        }
+        catch (Exception ex)
+        {
+            logger!.LogDebug(ex.Message);
         }
     }
 

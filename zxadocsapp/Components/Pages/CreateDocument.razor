@@ -1,5 +1,6 @@
 ﻿@rendermode InteractiveAuto
 @page "/new-document"
+@using System.Net.Mail
 <div class="flex mx-3 my-3 gap-2" style="font-size:14px; ">
     <div class="w-[20%] flex flex-col gap-3">
 
@@ -46,15 +47,13 @@
                 </MudSelect>
             </div>
 
-            <div>
+            <div class="border-2 py-2 px-2 border-gray-500 rounded-2xl mt-3 border-b-gray-100">
                 <lable>Upload File</lable>
 
                 <MudFileUpload T="IBrowserFile" FilesChanged="@UploadFileDocument">
                     <ActivatorContent>
-                        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.CloudUpload"
-                            Color="Color.Success">
-                            Upload Files
-                        </MudButton>
+                        <MudIconButton Icon="@Icons.Custom.FileFormats.FilePdf" Color="Color.Error" />
+                        <lable>File Name</lable>
                     </ActivatorContent>
                 </MudFileUpload>
 
@@ -75,13 +74,18 @@
                 }
 
             </div>
+            <div class="mt-5 text-center">
+                <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Send" FullWidth="true" style=""
+                    @onclick="SubmitDocument">Send
+                </MudButton>
+            </div>
         </MudForm>
 
 
 
     </div>
     <div class="flex-1">
-        <DocumentEditor FileUrl=@fileBase64 />
+        <DocumentEditor FileUrl=@fileBase64 InitializeAttachments="InitializeDocumentAttachements" />
     </div>
 </div>
 

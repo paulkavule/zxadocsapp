@@ -2,8 +2,6 @@ function initializeDrag(containerId, divId, dotnetRef) {
   const target = document.getElementById(divId);
   const stage = document.getElementById(containerId);
 
-  console.log("Element to initializeDrag = ", target);
-
   let pointerId = null;
   let offsetX = 0,
     offsetY = 0;
@@ -75,9 +73,10 @@ function initializeDrag(containerId, divId, dotnetRef) {
       const r = target.getBoundingClientRect();
       const x = r.left - s.left;
       const y = r.top - s.top;
-
-      if (dotnetRef) dotnetRef.invokeMethodAsync("OnDragEnd", x, y);
-
+      console.log("executing on drag " + divId, x, y);
+      if (dotnetRef) {
+        dotnetRef.invokeMethodAsync("OnDragEnd", divId, x, y);
+      }
       target.releasePointerCapture(pointerId);
       pointerId = null;
     }
@@ -102,6 +101,7 @@ function initializeDrag(containerId, divId, dotnetRef) {
 
 function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
   // options: { x, y, w, h, minW, minH, maxW, maxH, keepAspect, contain }
+
   const state = {
     x: options.x ?? 40,
     y: options.y ?? 40,
@@ -234,11 +234,18 @@ function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
     state.pointerId = null;
     state.active = null;
     state.startBox = null;
-    // if (dotNetRef) {
-    //   dotNetRef
-    //     .invokeMethodAsync("OnResizeEnd", state.x, state.y, state.w, state.h)
-    //     .catch(() => {});
-    // }
+    if (dotNetRef) {
+      dotNetRef
+        .invokeMethodAsync(
+          "OnResizeEnd",
+          targetEl.id,
+          state.x,
+          state.y,
+          state.w,
+          state.h
+        )
+        .catch(() => {});
+    }
   }
 
   // Attach listeners to all handles inside targetEl

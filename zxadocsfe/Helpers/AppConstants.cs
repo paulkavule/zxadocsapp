@@ -15,4 +15,11 @@ public class AppConstants
         public const string Core = "Api";
     }
 
+    public record AttachmentType
+    {
+        public const string Signature = "Signature";
+        public const string Comment = "Comment";
+    }
+   
+
 }
