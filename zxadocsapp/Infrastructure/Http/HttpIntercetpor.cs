@@ -1,6 +1,7 @@
 using System;
 using System.Net.Http.Headers;
 using Microsoft.JSInterop;
+using MudBlazor;
 using zxadocsapp.State;
 using zxadocsapp.States;
 using zxadocsfe.Services;
@@ -13,13 +14,15 @@ public class HttpCoreIntercetpor : DelegatingHandler
     private readonly ILogger<HttpCoreIntercetpor> logger;
     private IAuthService authSvc;
     private readonly RequestContext session;
+    private readonly ISnackbar snackbar;
 
-    public HttpCoreIntercetpor(ILogger<HttpCoreIntercetpor> logger,
-        IAuthService authSvc, RequestContext session)
+    public HttpCoreIntercetpor(RequestContext session, ILogger<HttpCoreIntercetpor> logger,
+        IAuthService authSvc, ISnackbar snackbar)
     {
         this.logger = logger;
         this.authSvc = authSvc;
         this.session = session;
+        this.snackbar = snackbar;
     }
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -43,6 +46,7 @@ public class HttpCoreIntercetpor : DelegatingHandler
 
         if (!response.IsSuccessStatusCode && !string.IsNullOrEmpty(refreshToken))
         {
+
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
                 var (status, newToken) = await authSvc.GenerateNewCoreToken(refreshToken);
@@ -55,6 +59,12 @@ public class HttpCoreIntercetpor : DelegatingHandler
                 logger.LogWarning("Unauthorized request to {Url}", request.RequestUri);
             }
             // central error handling/logging
+        }
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorMessage = $"Error {(int)response.StatusCode}: {response.ReasonPhrase}";
+            snackbar.Add(errorMessage, Severity.Error);
+            logger.LogError("Request to {Url} failed with {StatusCode}", request.RequestUri, (int)response.StatusCode);
         }
         return response;
     }

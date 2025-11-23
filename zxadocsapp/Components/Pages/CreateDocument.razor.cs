@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using MudBlazor;
 using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
@@ -9,6 +10,7 @@ namespace zxadocsapp.Components.Pages;
 
 public partial class CreateDocument
 {
+    [Inject] ISnackbar? Snackbar { get; set; } = default;
     [Inject] ILogger<CreateDocument>? logger { set; get; }
     [Inject] private IHttpService httpSvc { get; set; } = default!;
     string fileBase64 = string.Empty, docType = string.Empty, userId = string.Empty, fileName = "File Name", docRef = string.Empty, organisationId = string.Empty;
@@ -45,6 +47,8 @@ public partial class CreateDocument
             if (status == false || result?.Data == null)
             {
                 //show dialog at this point
+                Snackbar?.Clear();
+                Snackbar?.Add(message!, Severity.Normal);
                 return;
             }
 
