@@ -81,6 +81,9 @@ public interface IHttpService
         Dictionary<string, string> additionalFields,
         IProgress<double> progress,
         CancellationToken cancellationToken = default);
+    IAsyncEnumerable<byte[]> DownloadDocumentFileAsync(int docId, int bufferSize = 81920, CancellationToken ct = default);
+
+
 }
 
 public class HttpService : IHttpService
@@ -102,7 +105,7 @@ public class HttpService : IHttpService
 
     public void Initialize(string scheme)
     {
-        _client = _httpClientFactory.CreateClient(scheme);
+        _client = _httpClientFactory?.CreateClient(scheme);
     }
     public Task<(bool success, T? data, string? error)> GetAsync<T>(string endpoint, List<fedtos.KeyValues>? headers = null)
     {
@@ -271,4 +274,25 @@ public class HttpService : IHttpService
             return (false, default, ex.Message);
         }
     }
+
+    public async IAsyncEnumerable<byte[]> DownloadDocumentFileAsync(int docId, int bufferSize = 81920, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var response = await _client!.GetAsync($"/documents/{docId}", HttpCompletionOption.ResponseHeadersRead, ct);
+
+        response.EnsureSuccessStatusCode();
+
+        await using var responseStream = await response.Content.ReadAsStreamAsync(ct);
+        var buffer = new byte[bufferSize];
+
+        int bytesRead;
+        while ((bytesRead = await responseStream.ReadAsync(buffer.AsMemory(0, bufferSize), ct)) > 0)
+        {
+            // copy exact-sized chunk
+            var chunk = new byte[bytesRead];
+            Buffer.BlockCopy(buffer, 0, chunk, 0, bytesRead);
+            yield return chunk;
+        }
+    }
+
+
 }

@@ -1,6 +1,7 @@
 using System;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using MudBlazor;
 using zxadocsapp.State;
 using zxadocsapp.States;
 using zxadocsfe.Helpers;
@@ -11,6 +12,7 @@ namespace zxadocsapp.Components.Pages;
 
 public partial class Home
 {
+    [Inject] ISnackbar? snackbar { set; get; }
     [Inject] RequestContext? context { set; get; }
     [Inject] AppState? state { set; get; }
     [Inject] IUserSession? session { get; set; }
@@ -26,6 +28,9 @@ public partial class Home
     {
         if (firstRender)
         {
+
+            // httpSvc?.Initialize(AppConstants.HttpSchemes.Core);
+
             string token = await jsSvc!.InvokeAsync<string>("localStorage.getItem", "token");
             string refreshToken = await jsSvc!.InvokeAsync<string>("localStorage.getItem", "refresh_token");
 
@@ -43,7 +48,14 @@ public partial class Home
 
     protected override async Task OnInitializedAsync()
     {
-        httpSvc!.Initialize("Api");
+        try
+        {
+            httpSvc?.Initialize(AppConstants.HttpSchemes.Core);
+        }
+        catch (Exception ee)
+        {
+            snackbar?.Add(ee.Message, Severity.Error);
+        }
 
         // await LoadDocuments();
         await Task.CompletedTask;
@@ -57,7 +69,7 @@ public partial class Home
     {
         context!.TenantId = Guid.NewGuid().ToString();
 
-        var (status, token) = await authSvc!.UserLogin("pkavule", "1234..34");
+        var (status, token) = await authSvc!.UserLogin("dkavule", "2344..98");
         if (status)
         {
             session!.AddItem("token", token.Token);

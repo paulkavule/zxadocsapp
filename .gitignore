@@ -4,8 +4,9 @@
 ## Get latest from `dotnet new gitignore`
 
 # dotenv files
+*.AssemblyInfo.cs
 *.cache
-.env
+*.env
 *.dll
 *.pdb
 # User-specific files

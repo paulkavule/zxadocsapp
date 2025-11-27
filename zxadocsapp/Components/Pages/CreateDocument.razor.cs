@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
@@ -13,23 +14,73 @@ public partial class CreateDocument
     [Inject] ISnackbar? Snackbar { get; set; } = default;
     [Inject] ILogger<CreateDocument>? logger { set; get; }
     [Inject] private IHttpService httpSvc { get; set; } = default!;
+    [Parameter] public string DocId { set; get; } = string.Empty;
     string fileBase64 = string.Empty, docType = string.Empty, userId = string.Empty, fileName = "File Name", docRef = string.Empty, organisationId = string.Empty;
     private double UploadProgress { get; set; }
 
-    private List<ListOption> priorityList = new(), doctypeList = new(), docCatList = new();
+    private List<ListOption> priorityList = new(), doctypeList = new(), docCatList = new(), usersList = new();
     private List<DocAttachment> attachmentList = new();
 
     Document document = new();
     private byte[] fileBytes = default!;
-    // bool success;
+
+    private ListOption ForwardTo = new();
+    bool editMode;
     // string[] errors = { };
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         userId = "1";
         organisationId = "1";
         httpSvc!.Initialize(AppConstants.HttpSchemes.Core);
+
+        if (string.IsNullOrWhiteSpace(DocId) == false)
+        {
+            editMode = true;
+            await FetchDocumentDetails(DocId);
+        }
     }
 
+    public async Task FetchDocumentDetails(string docId)
+    {
+        try
+        {
+            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<Document>>($"api/documents/{docId}");
+            if (status == false || result?.Data == null)
+            {
+                //show dialog at this point
+                Snackbar?.Clear();
+                Snackbar?.Add(message!, Severity.Normal);
+                return;
+            }
+            await loadPriorities();
+            await loadDocumentTypes();
+            await DocTypeChanged(document.TypeId + "");
+            await DocCategoryChanged(document.CategoryId + "");
+            document = result.Data;
+            Snackbar?.Clear();
+            Snackbar?.Add("Downloading file. Please wait....", Severity.Info);
+            fileName = $"doc_{docId}.pdf";
+            await using var fileStream = File.Create(fileName);
+            await foreach (var chunk in httpSvc.DownloadDocumentFileAsync(docId: int.Parse(docId)))
+            {
+                await fileStream.WriteAsync(chunk, 0, chunk.Length);
+
+            }
+            Snackbar?.Clear();
+            Snackbar?.Add("Downloading complete. Please proceed....", Severity.Info);
+
+            fileStream.Flush();
+            fileStream.Close();
+
+            fileBase64 = Convert.ToBase64String(File.ReadAllBytes(fileName));
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            logger!.LogDebug(ex.Message);
+        }
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -89,7 +140,7 @@ public partial class CreateDocument
                 //show dialog at this point
                 return;
             }
-
+            document.TypeId = int.Parse(value);
             docCatList = result.Data;
         }
         catch (Exception ex)
@@ -97,6 +148,26 @@ public partial class CreateDocument
             logger!.LogDebug(ex.Message);
         }
     }
+    private async Task DocCategoryChanged(string value)
+    {
+        try
+        {
+            document.CategoryId = int.Parse(value);
+            var (exists, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=documentworkflow&category={value}");
+            if (exists)
+            {
+                usersList = result?.Data ?? new List<ListOption>();
+                //show dialog at this point
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger!.LogDebug(ex.Message);
+        }
+    }
+
+    private async Task OnForwardToChanged(ListOption option) => document.NextActor = option.Id + "";
     private async Task UploadFileDocument(IBrowserFile file)
     {
         try
@@ -261,6 +332,29 @@ public partial class CreateDocument
             return (false, ex.Message);
         }
 
+    }
+
+    // This controls the type-to-search filtering
+    private async Task<IEnumerable<ListOption>> SearchCountries(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 3)
+            return usersList.AsEnumerable();
+
+        var (_, result, _) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=usersearch&category={value}");
+
+        var userList = result?.Data ?? new List<ListOption>();
+
+        return userList;
+    }
+
+    void Dispose()
+    {
+        attachmentList.Clear();
+        attachmentList = null!;
+        if (File.Exists(fileName))
+        {
+            File.Delete(fileName);
+        }
     }
 
 }
