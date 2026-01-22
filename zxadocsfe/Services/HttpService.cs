@@ -277,7 +277,7 @@ public class HttpService : IHttpService
 
     public async IAsyncEnumerable<byte[]> DownloadDocumentFileAsync(int docId, int bufferSize = 81920, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
     {
-        var response = await _client!.GetAsync($"/documents/{docId}", HttpCompletionOption.ResponseHeadersRead, ct);
+        var response = await _client!.GetAsync($"api/documents/content/{docId}", HttpCompletionOption.ResponseHeadersRead, ct);
 
         response.EnsureSuccessStatusCode();
 

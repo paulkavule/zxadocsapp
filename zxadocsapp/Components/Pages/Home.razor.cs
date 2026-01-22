@@ -2,6 +2,7 @@ using System;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
+using zxadocsapp.Helpers;
 using zxadocsapp.State;
 using zxadocsapp.States;
 using zxadocsfe.Helpers;
@@ -19,6 +20,7 @@ public partial class Home
     [Inject] IHttpService? httpSvc { get; set; }
     [Inject] IAuthService? authSvc { get; set; }
     [Inject] IJSRuntime? jsSvc { set; get; }
+    [Inject] NavigationManager? navigationManager { set; get; }
     string userId = "1";
     List<QueryDto.DocumentQuery> docList = new();
 
@@ -76,7 +78,7 @@ public partial class Home
             session!.AddItem("refreshToken", token.Token);
             context.RefreshToken = token.RefereshToken;
             context.Token = token.Token;
-
+            context.Claims = TokenProvider.GetTokenClaims(token.Token);
             await jsSvc!.InvokeVoidAsync("localStorage.setItem", "token", token.Token);
             await jsSvc!.InvokeVoidAsync("localStorage.setItem", "refresh_token", token.RefereshToken);
 
@@ -105,5 +107,18 @@ public partial class Home
 
         Console.WriteLine("Access Token: " + docList.Count);
     }
+    private async Task ViewDocument(int docId)
+    {
+        navigationManager!.NavigateTo($"/new-document/{docId}");
+        Console.WriteLine("View document clicked");
+        await Task.CompletedTask;
 
+    }
+
+    private async Task ActionDocument(QueryDto.DocumentQuery doc)
+    {
+        Console.WriteLine("Action document clicked");
+        await Task.CompletedTask;
+
+    }
 }

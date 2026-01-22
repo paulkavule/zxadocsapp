@@ -69,8 +69,13 @@
                     <td class="py-4 px-6">@doc.DueDate</td>
                     <td class="py-4 px-6">@doc.RecieveDate</td>
                     <td class="py-4 px-6 flex items-center gap-3">
-                        <button class="text-2xl text-green-500"><i class="fa fa-arrow-circle-o-up"></i></button>
-                        <button class="text-2xl text-red-500"><i class="fa fa-window-close-o"></i></button>
+                        <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.Edit" FullWidth="true" style=""
+                            @onclick="() => ViewDocument(doc.RecordId)">
+                        </MudIconButton>
+
+                        <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.AddAlert" FullWidth="true"
+                            style="" @onclick="() =>ActionDocument(doc)">
+                        </MudIconButton>
                         @* <button class="text-blue-600 hover:underline">View</button> *@
                     </td>
                 </tr>

@@ -10,6 +10,7 @@ public class RequestContext
     public string? TenantId { get; set; }
     public bool SkipAuthForNextCall { get; set; }
     public bool IsBusy { get; set; }
+    public Dictionary<string, string> Claims { get; set; } = default!;
 }
 
 public class AppState

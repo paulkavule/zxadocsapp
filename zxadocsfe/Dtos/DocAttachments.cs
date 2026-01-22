@@ -12,3 +12,8 @@ public record DocUploadResult
 {
     public string Name { get; set; } = string.Empty;
 }
+
+public record DocCategoryField : CategoryField
+{
+    public string SelectedValue { get; set; } = string.Empty;
+}

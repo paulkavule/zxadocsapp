@@ -1,7 +1,10 @@
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
+using Newtonsoft.Json;
+using zxadocsapp.State;
 using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
@@ -9,17 +12,20 @@ using zxadocslib.Dtos;
 
 namespace zxadocsapp.Components.Pages;
 
-public partial class CreateDocument
+public partial class CreateDocument : IDisposable
 {
     [Inject] ISnackbar? Snackbar { get; set; } = default;
     [Inject] ILogger<CreateDocument>? logger { set; get; }
     [Inject] private IHttpService httpSvc { get; set; } = default!;
+    [Inject] private NavigationManager navManager { get; set; } = default!;
+    [Inject] private RequestContext userContext { get; set; } = default!;
     [Parameter] public string DocId { set; get; } = string.Empty;
     string fileBase64 = string.Empty, docType = string.Empty, userId = string.Empty, fileName = "File Name", docRef = string.Empty, organisationId = string.Empty;
     private double UploadProgress { get; set; }
 
     private List<ListOption> priorityList = new(), doctypeList = new(), docCatList = new(), usersList = new();
     private List<DocAttachment> attachmentList = new();
+    private List<DocCategoryField> extraFields = new();
 
     Document document = new();
     private byte[] fileBytes = default!;
@@ -29,7 +35,7 @@ public partial class CreateDocument
     // string[] errors = { };
     protected override async Task OnInitializedAsync()
     {
-        userId = "1";
+        userId = userContext.Claims?["UserId"] ?? "0";
         organisationId = "1";
         httpSvc!.Initialize(AppConstants.HttpSchemes.Core);
 
@@ -44,7 +50,7 @@ public partial class CreateDocument
     {
         try
         {
-            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<Document>>($"api/documents/{docId}");
+            var (status, result, message) = await httpSvc!.ExecuteRequestAsync<ApiResponse<List<Document>>>(HttpVerb.Get, $"api/documents/{docId}");
             if (status == false || result?.Data == null)
             {
                 //show dialog at this point
@@ -56,16 +62,17 @@ public partial class CreateDocument
             await loadDocumentTypes();
             await DocTypeChanged(document.TypeId + "");
             await DocCategoryChanged(document.CategoryId + "");
-            document = result.Data;
+
+            document = result.Data.Where(dd => dd.Id == int.Parse(docId)).FirstOrDefault()!;
             Snackbar?.Clear();
             Snackbar?.Add("Downloading file. Please wait....", Severity.Info);
             fileName = $"doc_{docId}.pdf";
             await using var fileStream = File.Create(fileName);
+
             await foreach (var chunk in httpSvc.DownloadDocumentFileAsync(docId: int.Parse(docId)))
-            {
                 await fileStream.WriteAsync(chunk, 0, chunk.Length);
 
-            }
+
             Snackbar?.Clear();
             Snackbar?.Add("Downloading complete. Please proceed....", Severity.Info);
 
@@ -78,6 +85,8 @@ public partial class CreateDocument
         }
         catch (Exception ex)
         {
+            Snackbar?.Clear();
+            Snackbar?.Add("An error occured while fetching document details. " + ex.Message, Severity.Error);
             logger!.LogDebug(ex.Message);
         }
     }
@@ -134,13 +143,17 @@ public partial class CreateDocument
     {
         try
         {
+            if (value == "0")
+                return;
+            document.TypeId = int.Parse(value);
             var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=documentcategory&category={value}");
             if (status == false || result?.Data == null)
             {
                 //show dialog at this point
+                Snackbar!.Add(message!, Severity.Error);
                 return;
             }
-            document.TypeId = int.Parse(value);
+
             docCatList = result.Data;
         }
         catch (Exception ex)
@@ -153,13 +166,21 @@ public partial class CreateDocument
         try
         {
             document.CategoryId = int.Parse(value);
-            var (exists, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=documentworkflow&category={value}");
-            if (exists)
+            var (exists, data, message) = await httpSvc!.GetAsync<ApiResponse<List<DocumentCategory>>>($"api/doccategory/{value}");
+            if (!exists)
             {
-                usersList = result?.Data ?? new List<ListOption>();
-                //show dialog at this point
+                Snackbar!.Add("Selected document category does not exist" + message, Severity.Error);
                 return;
             }
+            extraFields = data?.Data[0].ExtraFields.Select(dd => new DocCategoryField { FieldName = dd.FieldName, FieldId = dd.FieldId, Options = dd.Options, CategoryId = dd.CategoryId }).ToList() ?? new List<DocCategoryField>();
+
+            (exists, var result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=documentworkflow&category={value}");
+            if (!exists)
+                usersList = result?.Data ?? new List<ListOption>();
+            //show dialog at this point
+
+
+
         }
         catch (Exception ex)
         {
@@ -172,8 +193,6 @@ public partial class CreateDocument
     {
         try
         {
-
-
             var buffer = new byte[4096];
             long totalBytes = file.Size;
             long bytesRead = 0;
@@ -268,39 +287,82 @@ public partial class CreateDocument
     {
         try
         {
-            var (uploaded, uploadResult) = await UploadDocumentToServer();
-            if (uploaded == false || string.IsNullOrEmpty(docRef))
+
+            if (editMode && userId == document.NextActor)
             {
-                // show toaster, message = "Document reference has not yet been generated"
-                return;
+                await ProcessDocumentSigning();
             }
-            document.AuthorId = int.Parse(userId);
-            document.DocumentReference = docRef;
-            document.Path = uploadResult;
-            document.Amendments = attachmentList.Select(dd => new DocumentAmendment
+            else
             {
-                Content = dd.Type == AppConstants.AttachmentType.Signature ? "" : dd.Content,
-                Height = dd.Height,
-                Width = dd.Width,
-                PositionX = dd.PositionX,
-                PositionY = dd.PositionY,
-                Page = dd.Page - 1,
-                Type = dd.Type,
-                OrganisationId = int.Parse(organisationId),
-            }).ToArray();
-            var (status, result, message) = await httpSvc!.ExecuteRequestAsync<ApiResponse<string>>(HttpVerb.Post, $"api/document", document);
-            if (status == false || result?.Data == null)
-            {
-                //show dialog at this point
-                return;
+                await ProcessDocumentUpload();
             }
 
-            Console.WriteLine("Document has successfully been uploaded to the remote sever");
         }
         catch (Exception ex)
         {
             logger!.LogDebug(ex.Message);
         }
+    }
+
+    private async Task ProcessDocumentSigning()
+    {
+
+        var docAttachments = attachmentList.Select(dd => new DocumentAmendment
+        {
+            Content = dd.Type == AppConstants.AttachmentType.Signature ? "" : dd.Content,
+            Height = dd.Height,
+            Width = dd.Width,
+            PositionX = dd.PositionX,
+            PositionY = dd.PositionY,
+            Page = dd.Page - 1,
+            Type = dd.Type,
+            CreatedBy = int.Parse(userId),
+            OrganisationId = int.Parse(organisationId),
+        }).ToArray();
+        string jsonrequest = JsonConvert.SerializeObject(docAttachments);
+        var (status, result, message) = await httpSvc!.ExecuteRequestAsync<ApiResponse<string>>(HttpVerb.Post, $"api/documents/sign/{document.Id}/{document.NextActor}", docAttachments);
+        if (status == false)
+        {
+            Snackbar!.Clear();
+            Snackbar!.Add("An error occured while signing the document. " + message, Severity.Error);
+            return;
+        }
+
+        Snackbar!.Clear();
+        Snackbar!.Add($"Document signed successfully. {result?.Data}", Severity.Success);
+        await Task.Delay(2000);
+        navManager.NavigateTo("/new-documents");
+    }
+
+    private async Task ProcessDocumentUpload()
+    {
+        var (uploaded, uploadResult) = await UploadDocumentToServer();
+        if (uploaded == false || string.IsNullOrEmpty(docRef))
+        {
+            // show toaster, message = "Document reference has not yet been generated"
+            return;
+        }
+        document.AuthorId = int.Parse(userId);
+        document.DocumentReference = docRef;
+        document.Path = uploadResult;
+        document.Amendments = attachmentList.Select(dd => new DocumentAmendment
+        {
+            Content = dd.Type == AppConstants.AttachmentType.Signature ? "" : dd.Content,
+            Height = dd.Height,
+            Width = dd.Width,
+            PositionX = dd.PositionX,
+            PositionY = dd.PositionY,
+            Page = dd.Page - 1,
+            Type = dd.Type,
+            OrganisationId = int.Parse(organisationId),
+        }).ToArray();
+        var (status, result, message) = await httpSvc!.ExecuteRequestAsync<ApiResponse<string>>(HttpVerb.Post, $"api/document", document);
+        if (status == false || result?.Data == null)
+        {
+            //show dialog at this point
+            return;
+        }
+
     }
 
     private async Task<(bool, string)> UploadDocumentToServer()
@@ -347,7 +409,7 @@ public partial class CreateDocument
         return userList;
     }
 
-    void Dispose()
+    public void Dispose()
     {
         attachmentList.Clear();
         attachmentList = null!;
