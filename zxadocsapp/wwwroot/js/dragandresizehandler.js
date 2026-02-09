@@ -1,4 +1,10 @@
-function initializeDrag(containerId, divId, dotnetRef) {
+function initializeDrag(
+  containerId,
+  divId,
+  dotnetRef,
+  defWeight = 220,
+  defHeight = 60,
+) {
   const target = document.getElementById(divId);
   const stage = document.getElementById(containerId);
 
@@ -9,17 +15,21 @@ function initializeDrag(containerId, divId, dotnetRef) {
   function stageRect() {
     return stage.getBoundingClientRect();
   }
-
+  console.log("Intialize drag completed successfull");
   // Create the resizable controller first
   const resizable = initResizable(
     stage,
     target,
     {
+      x: 0,
+      y: 0,
+      w: defWeight,
+      h: defHeight,
       maxW: 400,
       maxH: 300,
       contain: true, // keep inside stage for both drag & resize
     },
-    dotnetRef
+    dotnetRef,
   );
 
   function onPointerDown(e) {
@@ -44,7 +54,7 @@ function initializeDrag(containerId, divId, dotnetRef) {
 
   function onPointerMove(e) {
     if (pointerId === null || e.pointerId !== pointerId) return;
-
+    e.preventDefault();
     const s = stageRect();
 
     // Compute desired top-left of target within the stage
@@ -69,13 +79,31 @@ function initializeDrag(containerId, divId, dotnetRef) {
 
   function onPointerUp(e) {
     if (e.pointerId === pointerId) {
+      e.preventDefault();
       const s = stageRect();
       const r = target.getBoundingClientRect();
       const x = r.left - s.left;
-      const y = r.top - s.top;
-      console.log("executing on drag " + divId, x, y);
+      const y = r.top - s.top; // adjust for btns height
+      console.log(
+        "executing on drag " + divId,
+        x,
+        y,
+        r.width,
+        r.height,
+        s.width,
+        s.height,
+      );
       if (dotnetRef) {
-        dotnetRef.invokeMethodAsync("OnDragEnd", divId, x, y);
+        dotnetRef.invokeMethodAsync(
+          "OnDragEnd",
+          divId,
+          x,
+          y,
+          r.width,
+          r.height,
+          s.width,
+          s.height,
+        );
       }
       target.releasePointerCapture(pointerId);
       pointerId = null;
@@ -99,6 +127,12 @@ function initializeDrag(containerId, divId, dotnetRef) {
   };
 }
 
+function getTargetBtnsHeight(target) {
+  if (!target) return 40;
+  const targetBtns = target.querySelector("#target_btns");
+  return targetBtns ? targetBtns.offsetHeight : 40;
+}
+
 function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
   // options: { x, y, w, h, minW, minH, maxW, maxH, keepAspect, contain }
 
@@ -106,7 +140,7 @@ function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
     x: options.x ?? 40,
     y: options.y ?? 40,
     w: options.w ?? 220,
-    h: options.h ?? 140,
+    h: options.h ?? 60,
     minW: options.minW ?? 60,
     minH: options.minH ?? 40,
     maxW: options.maxW ?? Number.POSITIVE_INFINITY,
@@ -128,7 +162,7 @@ function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
   function applyStyle() {
     if (targetEl === undefined || targetEl == null) return;
     targetEl.style.transform = `translate(${Math.round(
-      state.x
+      state.x,
     )}px, ${Math.round(state.y)}px)`;
     targetEl.style.width = `${Math.round(state.w)}px`;
     targetEl.style.height = `${Math.round(state.h)}px`;
@@ -235,14 +269,24 @@ function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
     state.active = null;
     state.startBox = null;
     if (dotNetRef) {
+      console.log(
+        "The positioning is x:" +
+          state.x +
+          " y:" +
+          state.y +
+          " w:" +
+          state.w +
+          " h:" +
+          state.h,
+      );
       dotNetRef
         .invokeMethodAsync(
           "OnResizeEnd",
           targetEl.id,
           state.x,
-          state.y,
+          state.y, // adjust for btns height
           state.w,
-          state.h
+          state.h, // adjust for btns height
         )
         .catch(() => {});
     }
@@ -271,5 +315,30 @@ function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
         h.removeEventListener("pointerup", onPointerUp);
       });
     },
+  };
+}
+
+function getBoxRelativeToContainer(containerId, divId) {
+  const container = document.getElementById(containerId);
+  const target = document.getElementById(divId);
+  if (!container || !target) return null;
+
+  const cRect = container.getBoundingClientRect();
+  const tRect = target.getBoundingClientRect();
+  console.log(
+    "Original values for target x: " +
+      tRect.left +
+      " y: " +
+      tRect.top +
+      " width: " +
+      tRect.width +
+      " height: " +
+      tRect.height,
+  );
+  return {
+    positionX: tRect.left - cRect.left,
+    positionY: tRect.top - cRect.top,
+    width: tRect.width,
+    height: tRect.height,
   };
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
 using zxadocsapp.Components.Custom.Dialogs;
+using zxadocsapp.Dtos;
 using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
@@ -38,8 +39,11 @@ public partial class DocumentEditor
     private IJSObjectReference? _dragHandle;
     private double _upX, _upY, width, height;
     private int divCount = 0;
+    private double maxCanvasWidth = 300, maxCanvasHeight = 500;
+
     public int CurrentPage { get; private set; } = 1;
     public int PageCount { get; private set; } = 0;
+    public double Scale { get; private set; } = 1;
     private bool hasInitialized = false, addSignature, addComment, shouldRender;
     private List<string> commentList = new List<string>();
     [Parameter] public EventCallback<List<DocAttachment>> InitializeAttachments { set; get; }
@@ -63,11 +67,12 @@ public partial class DocumentEditor
                 if (string.IsNullOrEmpty(FileUrl))
                     return;
                 var _ = Convert.FromBase64String(FileUrl);
-                Console.WriteLine($"OnAfterRenderAsync =================> 2 ");
 
                 // Console.WriteLine($"OnAfterRenderAsync =================> 2 {FileUrl}");
                 var meta = await JS.InvokeAsync<InitResult>("blazorPdf.init", _containerId, FileUrl, _dotRef);
                 PageCount = meta.pageCount;
+                Console.WriteLine("meta data ====> " + meta.pageCount + " - " + meta.scale + " - " + meta.width + " - " + meta.height);
+                // Scale = meta.scale;
                 CurrentPage = 1;
                 StateHasChanged();
                 hasInitialized = true;
@@ -127,18 +132,28 @@ public partial class DocumentEditor
 
 
     [JSInvokable]
-    public async Task OnPdfPageChanged(int page)
+    public async Task OnPdfPageChanged(int page, double scale, double width, double height)
     {
+        Console.WriteLine($"OnPdfPageChanged =======> Page: {page}, Scale: {scale}, Width: {width}, Height: {height}");
+        maxCanvasWidth = width;
+        maxCanvasHeight = height;
         CurrentPage = page;
-        await OnPageChanged.InvokeAsync(page);
-        StateHasChanged();
+        Scale = scale;
+        // var attachment = attachments?.Where(at => at.Page == CurrentPage).FirstOrDefault();
+        // if (attachment != null)
+        // {
+        //     attachment.PageWidth = maxCanvasWidth;
+        //     attachment.PageHeight = maxCanvasHeight;
+        // }
+        // await OnPageChanged.InvokeAsync(page);
+        // StateHasChanged();
     }
 
     private Task Next() => JS.InvokeVoidAsync("blazorPdf.nextPage").AsTask();
     private Task Prev() => JS.InvokeVoidAsync("blazorPdf.prevPage").AsTask();
     private Task ZoomIn() => JS.InvokeVoidAsync("blazorPdf.zoomIn").AsTask();
     private Task ZoomOut() => JS.InvokeVoidAsync("blazorPdf.zoomOut").AsTask();
-    private record InitResult(int pageCount);
+    private record InitResult(int pageCount, double scale, double width, double height);
     private async Task GoTo(ChangeEventArgs e)
     {
         if (int.TryParse(Convert.ToString(e.Value), out var n))
@@ -148,13 +163,26 @@ public partial class DocumentEditor
     }
     private async Task AddSign()
     {
+        Console.WriteLine("AddSign ====> Clicked page: " + CurrentPage);
+        addSignature = true;
+        divCount++;
+        var elementId = $"signature_{attachments.Count}";
         attachments.Add(new DocAttachment
         {
-            ElementId = $"comment{attachments.Count}",
+            ElementId = elementId,
             Content = "user base64 signature",
             Type = AppConstants.AttachmentType.Signature,
-            Page = CurrentPage
+            Page = CurrentPage,
+            PositionX = 0,
+            PositionY = 0,
+            Width = 220,
+            Height = 60
         });
+        // StateHasChanged();
+        await Task.Delay(100);
+
+        await JS.InvokeVoidAsync("initializeDrag", _containerId, elementId, _dotRef);
+
     }
 
     private async Task AddComment()
@@ -180,7 +208,19 @@ public partial class DocumentEditor
         divCount++;
         // await JS.InvokeVoidAsync("initializeDrag", _containerId, "userComment", _dotRef);
     }
-
+    private async Task SaveDocument()
+    {
+        foreach (var att in attachments)
+        {
+            var attributes = await JS.InvokeAsync<TargetAttribute>(
+                "getBoxRelativeToContainer",
+                _containerId,
+                att.ElementId
+            );
+            Console.WriteLine($"Attributes for {att.ElementId} : {attributes.PositionX}, {attributes.PositionY}, {attributes.Width}, {attributes.Height}");
+            // att.PositionX = (int)attributes.PositionX;
+        }
+    }
     private async Task EditComment(DocAttachment attachment)
     {
         Console.WriteLine("EditComment ====> Clicked");
@@ -208,6 +248,7 @@ public partial class DocumentEditor
     }
     private async Task DeleteItem(DocAttachment attachment)
     {
+        attachments.Remove(attachment);
         Console.WriteLine($"This item should be deleted now now now {attachment.ElementId}");
     }
 
@@ -223,21 +264,29 @@ public partial class DocumentEditor
         Console.WriteLine($"InitializeDrag ====> {elementId}");
         if (activeSignatures.Contains(elementId)) return;
         activeSignatures.Add(elementId);
+        var attachment = attachments.Where(at => at.ElementId == elementId).FirstOrDefault();
+        if (attachment == null || attachment?.StopDragClick == true) return;
+
         Console.WriteLine($"Initializing drag for {elementId}");
+        attachment.StopDragClick = true;
         await JS.InvokeVoidAsync("initializeDrag", _containerId, elementId, _dotRef);
+
     }
 
 
     [JSInvokable]
-    public void OnDragEnd(string elementId, double x, double y)
+    public void OnDragEnd(string elementId, double x, double y, double w, double h, double pw, double ph)
     {
-        Console.WriteLine($"OnDragEnd {x} - {y}");
-        var attachment = attachments.Where(at => at.ElementId == elementId).FirstOrDefault();
+        Console.WriteLine($"OnDragEnd x: {x} - y: {y} || w: {w} - h:{h}|| {pw} for {ph}");
+        var attachment = attachments?.Where(at => at.ElementId == elementId).FirstOrDefault();
         if (attachment == null) return;
         attachment.PositionX = (int)x;
         attachment.PositionY = (int)y;
-
-        InitializeAttachments.InvokeAsync(attachments);
+        attachment.Width = (int)w;
+        attachment.Height = (int)h;
+        attachment.PageWidth = pw;
+        attachment.PageHeight = ph;
+        // InitializeAttachments.InvokeAsync(attachments);
     }
 
     // [JSInvokable]
@@ -245,7 +294,7 @@ public partial class DocumentEditor
     // => OnResizeInit.HasDelegate ? OnResizeInit.InvokeAsync(new BoxRect(x, y, w, h)) : Task.CompletedTask;
 
     [JSInvokable]
-    public void OnResizeEnd(string elementId, double x, double y, double w, double h)
+    public void OnResizeEnd(string elementId, double x, double y, double w, double h, double pw, double ph)
     {
         Console.WriteLine($"OnResize Ended ======>>>>>>>>> {elementId} : {x}, {y}, {w}, {h}");
         var attachment = attachments.Where(at => at.ElementId == elementId).FirstOrDefault();
@@ -254,8 +303,10 @@ public partial class DocumentEditor
         attachment.PositionY = (int)y;
         attachment.Width = (int)w;
         attachment.Height = (int)h;
+        attachment.PageWidth = (int)pw;
+        attachment.PageHeight = (int)ph;
 
-        InitializeAttachments.InvokeAsync(attachments);
+        // InitializeAttachments.InvokeAsync(attachments);
     }
     // => OnResizeEndInit.HasDelegate ? OnResizeEndInit.InvokeAsync(new BoxRect(x, y, w, h)) : Task.CompletedTask;
 

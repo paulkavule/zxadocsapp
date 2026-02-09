@@ -6,6 +6,7 @@ namespace zxadocsfe.Dtos;
 public record DocAttachment : DocumentAmendment
 {
     public string ElementId { get; set; } = string.Empty;
+    public bool StopDragClick { get; set; }
 }
 
 public record DocUploadResult

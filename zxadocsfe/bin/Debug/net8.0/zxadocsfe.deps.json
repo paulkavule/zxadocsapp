@@ -11,7 +11,7 @@
           "Microsoft.Extensions.Http": "9.0.10",
           "Microsoft.Extensions.Logging.Abstractions": "9.0.10",
           "System.Net.Http": "4.3.4",
-          "pkavule.zxadocslib": "1.0.2"
+          "pkavule.zxadocslib": "1.0.5"
         },
         "runtime": {
           "zxadocsfe.dll": {}
@@ -174,11 +174,11 @@
       },
       "Microsoft.NETCore.Platforms/1.1.1": {},
       "Microsoft.NETCore.Targets/1.1.0": {},
-      "pkavule.zxadocslib/1.0.2": {
+      "pkavule.zxadocslib/1.0.5": {
         "runtime": {
           "lib/net8.0/zxadocslib.dll": {
-            "assemblyVersion": "1.0.2.0",
-            "fileVersion": "1.0.2.0"
+            "assemblyVersion": "1.0.5.0",
+            "fileVersion": "1.0.5.0"
           }
         }
       },
@@ -684,12 +684,12 @@
       "path": "microsoft.netcore.targets/1.1.0",
       "hashPath": "microsoft.netcore.targets.1.1.0.nupkg.sha512"
     },
-    "pkavule.zxadocslib/1.0.2": {
+    "pkavule.zxadocslib/1.0.5": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-diG94gJmRwsTZAF7vzPuLEnOmNUL3yNz+9hKibG6jG1N6fNQlVzzVg5zCIndVdZ5DVLbLSshouUZ9KF3b8cANA==",
-      "path": "pkavule.zxadocslib/1.0.2",
-      "hashPath": "pkavule.zxadocslib.1.0.2.nupkg.sha512"
+      "sha512": "sha512-HIINckkdZLMuhzL6WIN1XfrHYpr5xwXNcF6RbwdSc62N16Qm3+ZpKXZWEYb81zEgN/eeZlAgmpsulafE4O3ssw==",
+      "path": "pkavule.zxadocslib/1.0.5",
+      "hashPath": "pkavule.zxadocslib.1.0.5.nupkg.sha512"
     },
     "runtime.debian.8-x64.runtime.native.System.Security.Cryptography.OpenSsl/4.3.2": {
       "type": "package",

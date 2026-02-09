@@ -69,7 +69,7 @@
                         <div>
                             <lable>@field.FieldName</lable>
                             <MudSelect T="string" SelectedValues="@(new string[] { field.SelectedValue })"
-                                @bind-Value="field.SelectedValue" Label="Document category" Variant="Variant.Outlined">
+                                @bind-Value="field.SelectedValue" Label=@("Select " + field.FieldName) Variant="Variant.Outlined">
                                 @foreach (var item in field.Options)
                                 {
                                     <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>

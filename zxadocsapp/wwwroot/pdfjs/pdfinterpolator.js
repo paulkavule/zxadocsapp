@@ -10,19 +10,66 @@ window.blazorPdf = (function () {
     dotnetRef: null,
   };
 
+  async function renderPage2(num) {
+    if (!state.pdf) return;
+    const page = await state.pdf.getPage(num);
+
+    // Set your desired canvas size
+    const desiredWidth = 800; // for example
+    const desiredHeight = 1000; // for example
+
+    // Get the original PDF page size at scale=1
+    const unscaledViewport = page.getViewport({ scale: state.scale });
+    // Calculate scale to fit width or height
+    const scaleX = desiredWidth / unscaledViewport.width;
+    const scaleY = desiredHeight / unscaledViewport.height;
+    const scale = Math.min(scaleX, scaleY);
+
+    const viewport = page.getViewport({ scale });
+
+    state.canvas.width = viewport.width;
+    state.canvas.height = viewport.height;
+
+    await page.render({ canvasContext: state.ctx, viewport }).promise;
+    state.page = num;
+
+    if (state.dotnetRef)
+      console.log("invoking OnPdfPageChanged", state.page, state.scale);
+    state.dotnetRef
+      .invokeMethodAsync("OnPdfPageChanged", state.page, state.scale)
+      .catch(() => {});
+  }
+
   async function renderPage(num) {
     if (!state.pdf) return;
     const page = await state.pdf.getPage(num);
+
     const viewport = page.getViewport({ scale: state.scale });
+
     state.canvas.width = viewport.width;
     state.canvas.height = viewport.height;
+
     console.log(viewport.height, viewport.width);
     await page.render({ canvasContext: state.ctx, viewport }).promise;
     state.page = num;
     if (state.dotnetRef)
       state.dotnetRef
-        .invokeMethodAsync("OnPdfPageChanged", state.page)
+        .invokeMethodAsync(
+          "OnPdfPageChanged",
+          state.page,
+          state.scale,
+          viewport.width,
+          viewport.height,
+        )
         .catch(() => {});
+
+    console.log(
+      "invoking OnPdfPageChanged",
+      state.page,
+      state.scale,
+      viewport.width,
+      viewport.height,
+    );
   }
   function base64ToUint8Array(base64) {
     const raw = atob(base64);
@@ -65,7 +112,7 @@ window.blazorPdf = (function () {
     init: async function (containerId, fileUrl, dotnetRef) {
       if (!window.pdfjsLib)
         throw new Error(
-          "pdfjsLib not found. Ensure CDN 'pdf.min.js' is loaded before pdfjsInterop.js."
+          "pdfjsLib not found. Ensure CDN 'pdf.min.js' is loaded before pdfjsInterop.js.",
         );
 
       // Only set workerSrc if not set by _Host.cshtml
@@ -82,7 +129,7 @@ window.blazorPdf = (function () {
       canvas.style.maxWidth = "100%";
       canvas.style.height = "auto";
       el.appendChild(canvas);
-
+      state.scale = 1.2;
       state.container = el;
       state.canvas = canvas;
       state.ctx = canvas.getContext("2d");
@@ -99,7 +146,7 @@ window.blazorPdf = (function () {
       // draggable.style.left = "0";
       // draggable.style.position = "absolute";
       // el.appendChild(draggable);
-      return { pageCount: state.pdf.numPages };
+      return { pageCount: state.pdf.numPages, scale: state.scale };
     },
 
     nextPage: () =>

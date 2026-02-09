@@ -1,0 +1,8 @@
+:root {
+  --sidebar-width: 220px; /* or 15%, but px is more predictable */
+}
+
+#side-title,
+#side-menu {
+  width: var(--sidebar-width);
+}

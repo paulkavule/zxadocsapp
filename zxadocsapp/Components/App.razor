@@ -20,13 +20,13 @@
     <Routes @rendermode="InteractiveServer" />
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-
+    @* <script src="/pdfjs/pdf.min.js"></script> *@
     <!-- Set worker to the matching CDN file -->
     <script>
         if (window.pdfjsLib) {
-            console.log("------------------1")
-            pdfjsLib.GlobalWorkerOptions.workerSrc =
-                "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        console.log("------------------1")
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
         }
     </script>
     <script src="/pdfjs/pdfinterpolator.js"></script>

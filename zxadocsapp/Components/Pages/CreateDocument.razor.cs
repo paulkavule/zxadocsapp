@@ -345,15 +345,19 @@ public partial class CreateDocument : IDisposable
         document.AuthorId = int.Parse(userId);
         document.DocumentReference = docRef;
         document.Path = uploadResult;
+        document.ExtraFields = extraFields.Select(dd => new DocumentExtraField { FieldId = dd.FieldId, FieldValue = dd.SelectedValue }).ToArray();
         document.Amendments = attachmentList.Select(dd => new DocumentAmendment
         {
             Content = dd.Type == AppConstants.AttachmentType.Signature ? "" : dd.Content,
             Height = dd.Height,
             Width = dd.Width,
+            PageHeight = dd.PageHeight,
+            PageWidth = dd.PageWidth,
             PositionX = dd.PositionX,
             PositionY = dd.PositionY,
             Page = dd.Page - 1,
             Type = dd.Type,
+
             OrganisationId = int.Parse(organisationId),
         }).ToArray();
         var (status, result, message) = await httpSvc!.ExecuteRequestAsync<ApiResponse<string>>(HttpVerb.Post, $"api/document", document);
