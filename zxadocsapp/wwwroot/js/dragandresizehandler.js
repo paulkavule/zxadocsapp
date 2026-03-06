@@ -6,6 +6,10 @@ function initializeDrag(
   defHeight = 60,
 ) {
   const target = document.getElementById(divId);
+  console.log("Initializing drag for divId: " + divId);
+  console.log("Target element found: ", target);
+
+  if (target === undefined) return;
   const stage = document.getElementById(containerId);
 
   let pointerId = null;
@@ -264,6 +268,7 @@ function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
 
   function onPointerUp(e) {
     if (e.pointerId !== state.pointerId) return;
+    const s = stageRect();
     e.currentTarget.releasePointerCapture(state.pointerId);
     state.pointerId = null;
     state.active = null;
@@ -287,6 +292,8 @@ function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
           state.y, // adjust for btns height
           state.w,
           state.h, // adjust for btns height
+          s.width,
+          s.height,
         )
         .catch(() => {});
     }

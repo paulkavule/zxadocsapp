@@ -1,4 +1,5 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.0.0
 MinimumVisualStudioVersion = 16.0.0.0
@@ -9,6 +10,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "zxadocsapp.Client", "zxadocsapp.Client\zxadocsapp.Client.csproj", "{034B9FA6-3458-4F74-B027-10CAB973177B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "zxadocsuiapp", "zxadocsuiapp\zxadocsuiapp.csproj", "{4D14FB9D-914C-4088-B681-D4FA0EBACBF4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "twapp", "twapp\twapp.csproj", "{8F607F9B-6324-497C-9C41-E46595E420D0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -68,6 +71,18 @@ Global
 		{4D14FB9D-914C-4088-B681-D4FA0EBACBF4}.Release|x64.Build.0 = Release|Any CPU
 		{4D14FB9D-914C-4088-B681-D4FA0EBACBF4}.Release|x86.ActiveCfg = Release|Any CPU
 		{4D14FB9D-914C-4088-B681-D4FA0EBACBF4}.Release|x86.Build.0 = Release|Any CPU
+		{8F607F9B-6324-497C-9C41-E46595E420D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F607F9B-6324-497C-9C41-E46595E420D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F607F9B-6324-497C-9C41-E46595E420D0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8F607F9B-6324-497C-9C41-E46595E420D0}.Debug|x64.Build.0 = Debug|Any CPU
+		{8F607F9B-6324-497C-9C41-E46595E420D0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8F607F9B-6324-497C-9C41-E46595E420D0}.Debug|x86.Build.0 = Debug|Any CPU
+		{8F607F9B-6324-497C-9C41-E46595E420D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F607F9B-6324-497C-9C41-E46595E420D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F607F9B-6324-497C-9C41-E46595E420D0}.Release|x64.ActiveCfg = Release|Any CPU
+		{8F607F9B-6324-497C-9C41-E46595E420D0}.Release|x64.Build.0 = Release|Any CPU
+		{8F607F9B-6324-497C-9C41-E46595E420D0}.Release|x86.ActiveCfg = Release|Any CPU
+		{8F607F9B-6324-497C-9C41-E46595E420D0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

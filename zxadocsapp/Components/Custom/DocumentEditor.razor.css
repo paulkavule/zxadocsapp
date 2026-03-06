@@ -9,6 +9,7 @@
   background-color: beige;
   cursor: grabbing;
   user-select: none;
+  user-select: none;
 }
 .resize-stage {
   position: relative;
@@ -40,6 +41,7 @@
   width: 12px;
   height: 12px;
   border-radius: 3px;
+  /* pointer-events: auto; */
   transform: translate(-50%, -50%);
 }
 

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
 using Newtonsoft.Json;
+using zxadocsapp.Components.Custom;
 using zxadocsapp.State;
 using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
@@ -20,6 +21,7 @@ public partial class CreateDocument : IDisposable
     [Inject] private NavigationManager navManager { get; set; } = default!;
     [Inject] private RequestContext userContext { get; set; } = default!;
     [Parameter] public string DocId { set; get; } = string.Empty;
+    private DocumentEditor? childRef;
     string fileBase64 = string.Empty, docType = string.Empty, userId = string.Empty, fileName = "File Name", docRef = string.Empty, organisationId = string.Empty;
     private double UploadProgress { get; set; }
 
@@ -58,12 +60,16 @@ public partial class CreateDocument : IDisposable
                 Snackbar?.Add(message!, Severity.Normal);
                 return;
             }
+            document = result?.Data?.Where(dd => dd.Id == int.Parse(docId)).FirstOrDefault()!;
+
             await loadPriorities();
             await loadDocumentTypes();
             await DocTypeChanged(document.TypeId + "");
             await DocCategoryChanged(document.CategoryId + "");
 
-            document = result.Data.Where(dd => dd.Id == int.Parse(docId)).FirstOrDefault()!;
+
+
+            //extraFields = document.ExtraFields.Select(dd => new DocCategoryField { FieldId = dd.FieldId, FieldName = dd., SelectedValue = dd.FieldValue }).ToList();
             Snackbar?.Clear();
             Snackbar?.Add("Downloading file. Please wait....", Severity.Info);
             fileName = $"doc_{docId}.pdf";
@@ -172,7 +178,32 @@ public partial class CreateDocument : IDisposable
                 Snackbar!.Add("Selected document category does not exist" + message, Severity.Error);
                 return;
             }
-            extraFields = data?.Data[0].ExtraFields.Select(dd => new DocCategoryField { FieldName = dd.FieldName, FieldId = dd.FieldId, Options = dd.Options, CategoryId = dd.CategoryId }).ToList() ?? new List<DocCategoryField>();
+
+            extraFields = data?.Data[0].ExtraFields.Select((dd) =>
+            {
+                if (editMode)
+                {
+                    var matchingField = document?.ExtraFields?.Where(def => def.FieldId == dd.FieldId).FirstOrDefault();
+                    if (matchingField != null)
+                    {
+                        return new DocCategoryField
+                        {
+                            FieldName = dd.FieldName,
+                            FieldId = dd.FieldId,
+                            Options = dd.Options,
+                            CategoryId = dd.CategoryId,
+                            SelectedValue = matchingField.FieldValue
+                        };
+                    }
+                }
+                return new DocCategoryField
+                {
+                    FieldName = dd.FieldName,
+                    FieldId = dd.FieldId,
+                    Options = dd.Options,
+                    CategoryId = dd.CategoryId
+                };
+            }).ToList() ?? new List<DocCategoryField>();
 
             (exists, var result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=documentworkflow&category={value}");
             if (!exists)
@@ -287,6 +318,7 @@ public partial class CreateDocument : IDisposable
     {
         try
         {
+            attachmentList = childRef?.GetAttchments() ?? new List<DocAttachment>();
 
             if (editMode && userId == document.NextActor)
             {

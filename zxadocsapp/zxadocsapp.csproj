@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="MudBlazor" Version="8.14.0" />
+    <PackageReference Include="MudBlazor.ThemeManager" Version="3.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
     <ProjectReference Include="../zxadocsfe/zxadocsfe.csproj" />

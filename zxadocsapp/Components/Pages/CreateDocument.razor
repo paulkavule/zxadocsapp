@@ -8,7 +8,7 @@
             <div>
                 <lable>Title</lable>
                 <MudTextField Label="Title" @bind-Value="@document.Title" Variant="Variant.Outlined" Required="true"
-                    RequiredError="Provide the document title">
+                              RequiredError="Provide the document title">
                 </MudTextField>
 
             </div>
@@ -29,7 +29,7 @@
             <div>
                 <lable>Document Type</lable>
                 <MudSelect T="string" SelectedValues="@(new string[] { document.TypeId + "" })"
-                    ValueChanged="DocTypeChanged" Label="Document Type" Variant="Variant.Outlined">
+                           ValueChanged="DocTypeChanged" Label="Document Type" Variant="Variant.Outlined">
                     @foreach (var item in doctypeList)
                     {
                         <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
@@ -41,7 +41,7 @@
                 <lable>Document Category</lable>
 
                 <MudSelect T="string" SelectedValues="@(new string[] { document.CategoryId + "" })"
-                    ValueChanged="DocCategoryChanged" Label="Document category" Variant="Variant.Outlined">
+                           ValueChanged="DocCategoryChanged" Label="Document category" Variant="Variant.Outlined">
                     @foreach (var item in docCatList)
                     {
                         <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
@@ -53,9 +53,9 @@
                 <lable>Forward To</lable>
 
                 <MudAutocomplete T="ListOption" Variant="Variant.Outlined" Label="User"
-                    ValueChanged="OnForwardToChanged" Dense="true" Clearable="true" CoerceText="true"
-                    ResetValueOnEmptyText="true" SearchFunc="SearchCountries"
-                    ToStringFunc="@(s => s?.Name ?? string.Empty)">
+                                 ValueChanged="OnForwardToChanged" Dense="true" Clearable="true" CoerceText="true"
+                                 ResetValueOnEmptyText="true" SearchFunc="SearchCountries"
+                                 ToStringFunc="@(s => s?.Name ?? string.Empty)">
                 </MudAutocomplete>
 
             </div>
@@ -69,7 +69,7 @@
                         <div>
                             <lable>@field.FieldName</lable>
                             <MudSelect T="string" SelectedValues="@(new string[] { field.SelectedValue })"
-                                @bind-Value="field.SelectedValue" Label=@("Select " + field.FieldName) Variant="Variant.Outlined">
+                                       @bind-Value="field.SelectedValue" Label=@("Select " + field.FieldName) Variant="Variant.Outlined">
                                 @foreach (var item in field.Options)
                                 {
                                     <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
@@ -90,13 +90,13 @@
                 }
             }
 
-            <div class="border-2 py-2 px-2 border-gray-500 rounded-2xl mt-3 border-b-gray-100">
+            <div class="border-2 py-2 px-2 border-gray-100 rounded-2xl my-3">
                 <lable>Upload File</lable>
 
                 <MudFileUpload T="IBrowserFile" FilesChanged="@UploadFileDocument">
                     <ActivatorContent>
                         <MudIconButton Icon="@Icons.Custom.FileFormats.FilePdf" Color="Color.Error"
-                            Disabled="@editMode" />
+                                       Disabled="@editMode" />
                         <lable> @fileName</lable>
                     </ActivatorContent>
                 </MudFileUpload>
@@ -109,7 +109,7 @@
                 {
                     <div class="w-[98%] bg-gray-200 rounded-full h-2.5 mt-0 mx-auto">
                         <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                            style="width: @UploadProgress%; height: 10px;">
+                             style="width: @UploadProgress%; height: 10px;">
                         </div>
                     </div>
                     <div class="text-sm text-gray-600 mt-1">
@@ -120,7 +120,7 @@
             </div>
             <div class="mt-5 text-center">
                 <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Send" FullWidth="true" style=""
-                    @onclick="SubmitDocument">Send
+                           @onclick="SubmitDocument">Send
                 </MudButton>
             </div>
         </MudForm>
@@ -129,7 +129,7 @@
 
     </div>
     <div class="flex-1">
-        <DocumentEditor FileUrl=@fileBase64 InitializeAttachments="InitializeDocumentAttachements" />
+        <DocumentEditor @ref="childRef" FileUrl=@fileBase64 InitializeAttachments="InitializeDocumentAttachements" />
     </div>
 </div>
 

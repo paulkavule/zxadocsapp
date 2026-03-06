@@ -145,7 +145,7 @@ public partial class DocumentEditor
         //     attachment.PageWidth = maxCanvasWidth;
         //     attachment.PageHeight = maxCanvasHeight;
         // }
-        // await OnPageChanged.InvokeAsync(page);
+        await OnPageChanged.InvokeAsync(page);
         // StateHasChanged();
     }
 
@@ -166,7 +166,7 @@ public partial class DocumentEditor
         Console.WriteLine("AddSign ====> Clicked page: " + CurrentPage);
         addSignature = true;
         divCount++;
-        var elementId = $"signature_{attachments.Count}";
+        var elementId = $"signature_{divCount}";
         attachments.Add(new DocAttachment
         {
             ElementId = elementId,
@@ -197,16 +197,24 @@ public partial class DocumentEditor
             return;
 
         commentList.Add(comment!);
+        divCount++;
+        var elementId = $"comment_{divCount}";
         attachments.Add(new DocAttachment
         {
-            ElementId = $"comment{attachments.Count}",
+            ElementId = elementId,
             Content = comment,
             Type = AppConstants.AttachmentType.Comment,
-            Page = CurrentPage
+            Page = CurrentPage,
+            PositionX = 0,
+            PositionY = 0,
+            Width = 220,
+            Height = 100
         });
         addComment = true;
-        divCount++;
-        // await JS.InvokeVoidAsync("initializeDrag", _containerId, "userComment", _dotRef);
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(100);
+        await JS.InvokeVoidAsync("initializeDrag", _containerId, elementId, _dotRef);
+
     }
     private async Task SaveDocument()
     {
@@ -275,7 +283,7 @@ public partial class DocumentEditor
 
 
     [JSInvokable]
-    public void OnDragEnd(string elementId, double x, double y, double w, double h, double pw, double ph)
+    public async Task OnDragEnd(string elementId, double x, double y, double w, double h, double pw, double ph)
     {
         Console.WriteLine($"OnDragEnd x: {x} - y: {y} || w: {w} - h:{h}|| {pw} for {ph}");
         var attachment = attachments?.Where(at => at.ElementId == elementId).FirstOrDefault();
@@ -286,6 +294,8 @@ public partial class DocumentEditor
         attachment.Height = (int)h;
         attachment.PageWidth = pw;
         attachment.PageHeight = ph;
+
+        await InvokeAsync(StateHasChanged);
         // InitializeAttachments.InvokeAsync(attachments);
     }
 
@@ -294,7 +304,7 @@ public partial class DocumentEditor
     // => OnResizeInit.HasDelegate ? OnResizeInit.InvokeAsync(new BoxRect(x, y, w, h)) : Task.CompletedTask;
 
     [JSInvokable]
-    public void OnResizeEnd(string elementId, double x, double y, double w, double h, double pw, double ph)
+    public async Task OnResizeEnd(string elementId, double x, double y, double w, double h, double pw, double ph)
     {
         Console.WriteLine($"OnResize Ended ======>>>>>>>>> {elementId} : {x}, {y}, {w}, {h}");
         var attachment = attachments.Where(at => at.ElementId == elementId).FirstOrDefault();
@@ -303,10 +313,15 @@ public partial class DocumentEditor
         attachment.PositionY = (int)y;
         attachment.Width = (int)w;
         attachment.Height = (int)h;
-        attachment.PageWidth = (int)pw;
-        attachment.PageHeight = (int)ph;
-
+        attachment.PageWidth = pw;
+        attachment.PageHeight = ph;
+        await InvokeAsync(StateHasChanged);
         // InitializeAttachments.InvokeAsync(attachments);
+    }
+
+    public List<DocAttachment> GetAttchments()
+    {
+        return attachments;
     }
     // => OnResizeEndInit.HasDelegate ? OnResizeEndInit.InvokeAsync(new BoxRect(x, y, w, h)) : Task.CompletedTask;
 
