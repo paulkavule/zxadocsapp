@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsfe/zxadocsfe.csproj": {}
+    "/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/zxadocsfe.csproj": {}
   },
   "projects": {
-    "/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsfe/zxadocsfe.csproj": {
+    "/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/zxadocsfe.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsfe/zxadocsfe.csproj",
+        "projectUniqueName": "/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/zxadocsfe.csproj",
         "projectName": "zxadocsfe",
-        "projectPath": "/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsfe/zxadocsfe.csproj",
+        "projectPath": "/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/zxadocsfe.csproj",
         "packagesPath": "/Users/pkavule/.nuget/packages/",
-        "outputPath": "/Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsfe/obj/",
+        "outputPath": "/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/pkavule/.nuget/NuGet/NuGet.Config"

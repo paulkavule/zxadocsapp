@@ -24,3 +24,16 @@
 /Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsfe/obj/Debug/net8.0/refint/zxadocsfe.dll
 /Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsfe/obj/Debug/net8.0/zxadocsfe.pdb
 /Users/pkavule/Projects/Zxabu/Zxadocs/DocsApp/zxadocsfe/obj/Debug/net8.0/ref/zxadocsfe.dll
+/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/bin/Debug/net8.0/zxadocsfe.deps.json
+/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/bin/Debug/net8.0/zxadocsfe.dll
+/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/bin/Debug/net8.0/zxadocsfe.pdb
+/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/obj/Debug/net8.0/zxadocsfe.csproj.AssemblyReference.cache
+/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/obj/Debug/net8.0/zxadocsfe.GeneratedMSBuildEditorConfig.editorconfig
+/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/obj/Debug/net8.0/zxadocsfe.AssemblyInfoInputs.cache
+/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/obj/Debug/net8.0/zxadocsfe.AssemblyInfo.cs
+/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/obj/Debug/net8.0/zxadocsfe.csproj.CoreCompileInputs.cache
+/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/obj/Debug/net8.0/zxadocsfe.sourcelink.json
+/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/obj/Debug/net8.0/zxadocsfe.dll
+/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/obj/Debug/net8.0/refint/zxadocsfe.dll
+/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/obj/Debug/net8.0/zxadocsfe.pdb
+/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/obj/Debug/net8.0/ref/zxadocsfe.dll
