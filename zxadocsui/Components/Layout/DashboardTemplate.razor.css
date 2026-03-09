@@ -1,0 +1,75 @@
+:root {
+  --bg-main: #f4faf3;
+  --text-primary: #1e3a2f;
+  --accent-green: #1f7b4d;
+  --border-color: rgba(30, 58, 47, 0.1);
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+}
+
+/* Smooth Transitions */
+.sidebar-transition {
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sidebar Shadow and Structure */
+#sidebar {
+  box-shadow: 4px 0 20px rgba(30, 58, 47, 0.06);
+  border-right: 1px solid var(--border-color);
+}
+
+/* Top Bar Shadow */
+header {
+  box-shadow: 0 4px 15px rgba(30, 58, 47, 0.04);
+}
+
+/* Mini Sidebar Logic */
+#sidebar.mini {
+  width: 5rem;
+}
+
+#sidebar.mini .sidebar-menu-text,
+#sidebar.mini .sidebar-menu-label,
+#sidebar.mini .sidebar-logo-text,
+#sidebar.mini .sidebar-badge,
+#sidebar.mini .sidebar-user-info,
+#sidebar.mini .submenu,
+#sidebar.mini #reportsChevron {
+  display: none;
+}
+
+#sidebar.mini .menu-item {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+#sidebar.mini .logo-container {
+  justify-content: center;
+  padding: 1.25rem 0;
+}
+
+/* Submenu Animation */
+.submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: all 0.3s ease-in-out;
+  opacity: 0;
+}
+
+.submenu.open {
+  max-height: 300px;
+  opacity: 1;
+}
+
+/* Scrollbar Styling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

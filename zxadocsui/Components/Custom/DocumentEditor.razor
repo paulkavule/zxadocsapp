@@ -1,0 +1,134 @@
+﻿@rendermode InteractiveServer
+@using zxadocsfe.Helpers;
+
+<div class="pdf-toolbar">
+    <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" OverrideStyles="false">
+        <MudIconButton Icon="@Icons.Material.Filled.ModeEdit" OnClick="AddSign"></MudIconButton>
+        <MudIconButton Icon="@Icons.Material.Filled.Comment" OnClick="AddComment"></MudIconButton>
+
+        <MudIconButton Icon="@Icons.Material.Filled.ZoomOut" OnClick="ZoomOut" />
+        <MudIconButton Icon="@Icons.Material.Filled.ZoomIn" OnClick="ZoomIn" />
+        <MudIconButton style="max-width: 50px;" Icon="@Icons.Material.Filled.SkipPrevious" OnClick="Prev" />
+        <div class="flex items-center">
+            <input type="number" min="1" max="@PageCount" value="@CurrentPage" @onchange="GoTo"
+                   class="border-2 text-center" style="width:4rem; height:2rem" />
+        </div>
+
+        <MudIconButton Icon="@Icons.Material.Filled.SkipNext" OnClick="Next" />
+        <div class="flex items-center">Page @CurrentPage of @PageCount | Zoom @Scale </div>
+        <MudIconButton Icon="@Icons.Material.Filled.Save" OnClick="SaveDocument" />
+    </MudButtonGroup>
+    @* <button class="bg-amber-600" @onclick="AddSign">Add Signature</button>
+    <button @onclick="Prev">Prev</button>
+    <button @onclick="Next">Next</button>
+    <button @onclick="ZoomOut">-</button>
+    <span>Page @CurrentPage of @PageCount</span>
+    <button @onclick="ZoomIn">+</button>
+    <input type="number" min="1" max="@PageCount" value="@CurrentPage" @onchange="GoTo"
+        style="width:4rem;margin-left:0.5rem;" /> *@
+</div>
+
+@* <div @ref="pdfCanvas" id="@_containerId"
+     style="width:@(maxCanvasWidth)px; max-width:100%;border:1px solid #ddd;height:@(maxCanvasHeight)px; position:relative; overflow:auto;">
+
+
+    @foreach (var attachment in attachments)
+    {
+        @if (attachment.Type.Equals(AppConstants.AttachmentType.Signature, StringComparison.InvariantCultureIgnoreCase))
+        {
+            <div class="signBox resizable gentals" id="@attachment.ElementId" style="
+                position:absolute;
+                opacity:@(CurrentPage == attachment.Page ? "1" : "0");
+                pointer-events:@(CurrentPage == attachment.Page ? "auto" : "none");
+                transform: translate(@(attachment.PositionX)px, @(attachment.PositionY)px);
+                width:@(attachment.Width)px;
+                height:@(attachment.Height)px;">
+                <div id="target_btns" class="flex gap-3 px-1 py-1" style="position: absolute; top: 0; right: 0; z-index: 100;">
+                    <button class="px-1 py-1 hover:pointer" style="color: black" @onclick="() => EditComment(attachment)"><i
+                            class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                    </button>
+                    <button class="px-1 py-1 hover:pointer" style="color: red;" @onclick="() => DeleteItem(attachment)"><i
+                        class="fa fa-trash-o" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <img src="/images/signature-2.png" style="width:100%; height:100%; position:relative"
+                     @onclick="() => InitializeDrag(attachment.ElementId)" />
+
+                <div class="rh rh-n" data-handle="n"></div>
+                <div class="rh rh-e" data-handle="e"></div>
+                <div class="rh rh-s" data-handle="s"></div>
+                <div class="rh rh-w" data-handle="w"></div>
+                <div class="rh rh-ne" data-handle="ne"></div>
+                <div class="rh rh-nw" data-handle="nw"></div>
+                <div class="rh rh-se" data-handle="se"></div>
+                <div class="rh rh-sw" data-handle="sw"></div>
+            </div>
+        }
+        else
+        {
+
+            <div class="signBox resizable gentals" id="@attachment.ElementId"
+                 style="display: @(CurrentPage == attachment.Page ? "block" : "none");">
+
+                <div id="target_btns" class="flex gap-3 px-1 py-1" style="position: absolute; top: 0; right: 0;">
+                    <button class="px-1 py-1 hover:pointer" style="color: black" @onclick="() => EditComment(attachment)"><i
+                        class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                    </button>
+                    <button class="px-1 py-1 hover:pointer" style="color: red" @onclick="() => DeleteItem(attachment)"><i
+                        class="fa fa-trash-o" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <label class="px-2 py-1">@attachment.Content</label>
+                <div class="rh rh-n" data-handle="n"></div>
+                <div class="rh rh-e" data-handle="e"></div>
+                <div class="rh rh-s" data-handle="s"></div>
+                <div class="rh rh-w" data-handle="w"></div>
+                <div class="rh rh-ne" data-handle="ne"></div>
+                <div class="rh rh-nw" data-handle="nw"></div>
+                <div class="rh rh-se" data-handle="se"></div>
+                <div class="rh rh-sw" data-handle="sw"></div>
+            </div>
+        }
+    }
+</div> *@
+
+<div @ref="pdfCanvas" id="@_containerId"
+     style="width:@(maxCanvasWidth)px; max-width:100%; border:1px solid #ddd; height:@(maxCanvasHeight)px; position:relative; overflow:auto;">
+
+    @foreach (var attachment in attachments)
+    {
+        <div class="signBox resizable gentals" id="@attachment.ElementId" style="
+            position:absolute;
+            opacity:@(CurrentPage == attachment.Page ? "1" : "0");
+            pointer-events:@(CurrentPage == attachment.Page ? "auto" : "none");
+            transform: translate(@(attachment.PositionX)px, @(attachment.PositionY)px);
+            width:@(attachment.Width)px;
+            height:@(attachment.Height)px;">
+
+            <div id="target_btns" class="flex gap-3 px-1 py-1" style="position:absolute; top:0; right:0; z-index:100;">
+                <button class="px-1 py-1 hover:pointer" style="color:red;" @onclick:stopPropagation="true"
+                        @onclick="() => DeleteItem(attachment)">
+                    <i class="fa fa-trash-o" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            @if (attachment.Type.Equals(AppConstants.AttachmentType.Signature, StringComparison.InvariantCultureIgnoreCase))
+            {
+                <img src="/images/signature-2.png" style="width:100%; height:100%; pointer-events:none;" />
+            }
+            else
+            {
+                <div class="px-2 py-1" style="pointer-events:none;">@attachment.Content</div>
+            }
+
+            <div class="rh rh-n" data-handle="n"></div>
+            <div class="rh rh-e" data-handle="e"></div>
+            <div class="rh rh-s" data-handle="s"></div>
+            <div class="rh rh-w" data-handle="w"></div>
+            <div class="rh rh-ne" data-handle="ne"></div>
+            <div class="rh rh-nw" data-handle="nw"></div>
+            <div class="rh rh-se" data-handle="se"></div>
+            <div class="rh rh-sw" data-handle="sw"></div>
+        </div>
+    }
+</div>

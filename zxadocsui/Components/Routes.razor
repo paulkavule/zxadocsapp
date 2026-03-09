@@ -1,0 +1,10 @@
+﻿@using zxadocsui.Helpers
+
+<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+    <Found Context="routeData">
+
+        <RouteView RouteData="@routeData" DefaultLayout="typeof(Layout.PlainLayout)" />
+
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>

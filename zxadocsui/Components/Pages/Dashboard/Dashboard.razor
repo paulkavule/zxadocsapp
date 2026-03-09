@@ -1,0 +1,278 @@
+﻿@page "/dashboard"
+@rendermode InteractiveServer
+
+<!-- page title + breadcrumb -->
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Document workflows</h1>
+        <nav class="flex items-center space-x-2 text-sm text-slate-500 mt-1">
+            <a href="#" class="hover:text-green-600">Dashboard</a>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+            <span class="text-slate-800 font-medium">Active workflows</span>
+        </nav>
+    </div>
+    <div class="flex items-center gap-3 text-sm">
+        <span
+            class="bg-green-100 text-green-700 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-semibold">
+            <i class="fa-solid fa-circle-check"></i> System online · 2 min lag
+        </span>
+    </div>
+</div>
+
+<!-- STATS CARDS (4 backoffice kpi) -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm stat-card">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-sm text-slate-500 font-medium">Pending approval</p>
+                <p class="text-3xl font-bold text-slate-800 mt-1">24</p>
+            </div>
+            <div class="bg-amber-100 w-12 h-12 rounded-xl flex items-center justify-center text-amber-600">
+                <i class="fa-regular fa-clock text-xl"></i>
+            </div>
+        </div>
+        <p class="text-xs text-slate-400 mt-4"><span class="text-green-600 font-medium">↑ 3</span> since yesterday</p>
+    </div>
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm stat-card">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-sm text-slate-500 font-medium">In review</p>
+                <p class="text-3xl font-bold text-slate-800 mt-1">13</p>
+            </div>
+            <div class="bg-blue-100 w-12 h-12 rounded-xl flex items-center justify-center text-blue-600">
+                <i class="fa-regular fa-file-lines text-xl"></i>
+            </div>
+        </div>
+        <p class="text-xs text-slate-400 mt-4">2 due today</p>
+    </div>
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm stat-card">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-sm text-slate-500 font-medium">Completed (this week)</p>
+                <p class="text-3xl font-bold text-slate-800 mt-1">187</p>
+            </div>
+            <div class="bg-emerald-100 w-12 h-12 rounded-xl flex items-center justify-center text-emerald-600">
+                <i class="fa-regular fa-circle-check text-xl"></i>
+            </div>
+        </div>
+        <p class="text-xs text-slate-400 mt-4"><span class="text-green-600 font-medium">+12%</span> vs last week</p>
+    </div>
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm stat-card">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-sm text-slate-500 font-medium">Avg. resolution</p>
+                <p class="text-3xl font-bold text-slate-800 mt-1">4.2h</p>
+            </div>
+            <div class="bg-green-100 w-12 h-12 rounded-xl flex items-center justify-center text-green-600">
+                <i class="fa-solid fa-gauge-high text-xl"></i>
+            </div>
+        </div>
+        <p class="text-xs text-slate-400 mt-4">-32 min from last month</p>
+    </div>
+</div>
+
+<!-- two column layout: active workflows table + right side info -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- LEFT: main workflows table (span 2) -->
+    <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="font-semibold text-slate-800 text-lg flex items-center gap-2"><i
+                class="fa-solid fa-arrows-spin text-green-500"></i> Active workflows</h2>
+                <a href="#" class="text-sm text-green-600 hover:underline flex items-center gap-1">View all <i
+                    class="fa-solid fa-arrow-right"></i></a>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50 text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                            <tr>
+                                <th class="text-left px-6 py-4">Document</th>
+                                <th class="text-left px-6 py-4">Initiator</th>
+                                <th class="text-left px-6 py-4">Step</th>
+                                <th class="text-left px-6 py-4">Due</th>
+                                <th class="text-left px-6 py-4">Status</th>
+                                <th class="text-right px-6 py-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr class="table-row-hover">
+                                <td class="px-6 py-4 font-medium text-slate-800">Q3_Financials_Draft.pdf</td>
+                                <td class="px-6 py-4 text-slate-600">m.chen@finance</td>
+                                <td class="px-6 py-4"><span
+                                    class="bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium">CFO
+                                    review</span></td>
+                                    <td class="px-6 py-4 text-slate-600">2025-04-12</td>
+                                    <td class="px-6 py-4"><span
+                                        class="badge-pending text-amber-700 px-3 py-1 rounded-full text-xs font-medium border border-amber-200">Pending</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button
+                                        class="text-green-600 hover:text-green-800 font-medium text-xs px-3 py-1.5 border border-green-200 rounded-lg hover:bg-green-50 transition">Review</button>
+                                    </td>
+                                </tr>
+                                <tr class="table-row-hover">
+                                    <td class="px-6 py-4 font-medium text-slate-800">vendor_contract_renewal.docx</td>
+                                    <td class="px-6 py-4 text-slate-600">r.singh@legal</td>
+                                    <td class="px-6 py-4"><span
+                                        class="bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium">Legal
+                                        check</span></td>
+                                        <td class="px-6 py-4 text-slate-600">2025-04-10</td>
+                                        <td class="px-6 py-4"><span
+                                            class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium border border-green-200">Approved</span>
+                                        </td>
+                                        <td class="px-6 py-4 text-right">
+                                            <button
+                                            class="text-green-600 hover:text-green-800 text-xs px-3 py-1.5 border border-green-200 rounded-lg hover:bg-green-50 transition">View</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="table-row-hover">
+                                        <td class="px-6 py-4 font-medium text-slate-800">onboarding_kit_v2.pdf</td>
+                                        <td class="px-6 py-4 text-slate-600">l.zhao@hr</td>
+                                        <td class="px-6 py-4"><span
+                                            class="bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium">HR
+                                            approval</span></td>
+                                            <td class="px-6 py-4 text-slate-600">2025-04-15</td>
+                                            <td class="px-6 py-4"><span
+                                                class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-200">In
+                                                progress</span></td>
+                                                <td class="px-6 py-4 text-right">
+                                                    <button
+                                                    class="text-green-600 hover:text-green-800 text-xs px-3 py-1.5 border border-green-200 rounded-lg hover:bg-green-50 transition">Review</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="table-row-hover">
+                                                <td class="px-6 py-4 font-medium text-slate-800">security_audit_report.pdf</td>
+                                                <td class="px-6 py-4 text-slate-600">a.wong@itsec</td>
+                                                <td class="px-6 py-4"><span
+                                                    class="bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium">Compliance</span>
+                                                </td>
+                                                <td class="px-6 py-4 text-slate-600">2025-04-18</td>
+                                                <td class="px-6 py-4"><span
+                                                    class="badge-pending text-amber-700 px-3 py-1 rounded-full text-xs font-medium border border-amber-200">Pending</span>
+                                                </td>
+                                                <td class="px-6 py-4 text-right">
+                                                    <button
+                                                    class="text-green-600 hover:text-green-800 text-xs px-3 py-1.5 border border-green-200 rounded-lg hover:bg-green-50 transition">Review</button>
+                                                </td>
+                                            </tr>
+                                            <tr class="table-row-hover">
+                                                <td class="px-6 py-4 font-medium text-slate-800">product_specs_final.pdf</td>
+                                                <td class="px-6 py-4 text-slate-600">k.patel@product</td>
+                                                <td class="px-6 py-4"><span
+                                                    class="bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium">PM
+                                                    sign-off</span></td>
+                                                    <td class="px-6 py-4 text-slate-600">2025-04-09</td>
+                                                    <td class="px-6 py-4"><span
+                                                        class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium border border-green-200">Approved</span>
+                                                    </td>
+                                                    <td class="px-6 py-4 text-right">
+                                                        <button
+                                                        class="text-green-600 hover:text-green-800 text-xs px-3 py-1.5 border border-green-200 rounded-lg hover:bg-green-50 transition">View</button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div
+                                        class="px-6 py-4 bg-slate-50 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
+                                        <span>Showing 5 of 24 active workflows</span>
+                                        <div class="flex gap-2">
+                                            <button
+                                            class="px-3 py-1 border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-100">Previous</button>
+                                            <button
+                                            class="px-3 py-1 border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-100">Next</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- RIGHT: activity feed and pending tasks -->
+                                <div class="space-y-6">
+                                    <!-- pending approvals card (compact) -->
+                                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                                        <h3 class="font-semibold text-slate-800 flex items-center gap-2 mb-4"><i
+                                            class="fa-regular fa-bell text-amber-500"></i> Your pending approvals</h3>
+                                            <ul class="space-y-3">
+                                                <li class="flex items-center justify-between text-sm">
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="fa-regular fa-file-pdf text-red-400"></i>
+                                                        <span class="text-slate-700">Expense_report_Q2.pdf</span>
+                                                    </div>
+                                                    <span
+                                                    class="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">Urgent</span>
+                                                </li>
+                                                <li class="flex items-center justify-between text-sm">
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="fa-regular fa-file-word text-blue-400"></i>
+                                                        <span class="text-slate-700">NDA_acme_corp.docx</span>
+                                                    </div>
+                                                    <span class="text-xs text-slate-400">due today</span>
+                                                </li>
+                                                <li class="flex items-center justify-between text-sm">
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="fa-regular fa-file-image text-emerald-400"></i>
+                                                        <span class="text-slate-700">brand_assets_request</span>
+                                                    </div>
+                                                    <span class="text-xs text-slate-400">in 2d</span>
+                                                </li>
+                                            </ul>
+                                            <button
+                                                class="w-full mt-4 text-green-600 text-sm font-medium border border-green-200 rounded-xl py-2.5 hover:bg-green-50 transition">View
+                                                all 8</button>
+                                            </div>
+
+                                            <!-- workflow stats / mini chart (placeholder) -->
+                                            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                                                <div class="flex items-center justify-between mb-3">
+                                                    <h3 class="font-semibold text-slate-800">Workflow velocity</h3>
+                                                    <i class="fa-solid fa-ellipsis text-slate-400"></i>
+                                                </div>
+                                                <div class="flex items-end h-24 gap-1.5">
+                                                    <div class="w-1/5 bg-green-200 h-16 rounded-t-lg"></div>
+                                                    <div class="w-1/5 bg-green-300 h-20 rounded-t-lg"></div>
+                                                    <div class="w-1/5 bg-green-400 h-12 rounded-t-lg"></div>
+                                                    <div class="w-1/5 bg-green-300 h-24 rounded-t-lg"></div>
+                                                    <div class="w-1/5 bg-green-200 h-10 rounded-t-lg"></div>
+                                                </div>
+                                                <div class="flex justify-between text-xs text-slate-500 mt-2">
+                                                    <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span>
+                                                </div>
+                                                <hr class="my-4 border-slate-100">
+                                                <div class="flex items-center justify-between text-sm">
+                                                    <span class="text-slate-600">Avg. completion</span>
+                                                    <span class="font-bold text-slate-800">4.2h</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- recent audit log snippet -->
+                                            <div class="bg-white/70 rounded-2xl border border-slate-200 p-5">
+                                                <h3 class="font-semibold text-slate-800 text-sm flex items-center gap-2"><i
+                                                    class="fa-regular fa-clock text-green-500"></i> Recent activity</h3>
+                                                    <div class="mt-3 space-y-2 text-xs">
+                                                        <div class="flex gap-2"><span class="text-slate-400">09:34</span><span class="text-slate-700"><span
+                                                            class="font-medium">K. Park</span> approved <span
+                                                            class="text-green-600">budget_2026</span></span></div>
+                                                            <div class="flex gap-2"><span class="text-slate-400">09:12</span><span class="text-slate-700"><span
+                                                                class="font-medium">T. Liu</span> uploaded 3 documents to <span
+                                                                class="text-green-600">vendor contracts</span></span></div>
+                                                                <div class="flex gap-2"><span class="text-slate-400">08:55</span><span class="text-slate-700">Workflow
+                                                                    <span class="text-green-600">#2214</span> escalated to manager</span></div>
+                                                                </div>
+                                                                <a href="#" class="block mt-3 text-green-600 text-xs hover:underline">View full audit trail →</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- bottom action bar (quick actions) -->
+                                                    <div class="mt-8 bg-green-50/70 border border-green-100 rounded-2xl p-5 flex flex-wrap items-center justify-between">
+                                                        <div class="flex items-center gap-3">
+                                                            <i class="fa-solid fa-wand-magic-sparkles text-green-600 text-xl"></i>
+                                                            <span class="font-medium text-slate-800">Need to create a new approval flow?</span>
+                                                        </div>
+                                                        <div class="flex gap-3">
+                                                            <button
+                                                                class="bg-white border border-green-200 text-green-700 px-5 py-2 rounded-xl text-sm font-medium hover:bg-green-50 transition flex items-center gap-2"><i
+                                                                class="fa-regular fa-file"></i> Use template</button>
+                                                                <button
+                                                                    class="bg-green-600 text-white px-5 py-2 rounded-xl text-sm font-medium shadow-sm hover:bg-green-700 transition flex items-center gap-2"><i
+                                                                    class="fa-solid fa-plus"></i> Custom workflow</button>
+                                                                </div>
+                                                            </div>

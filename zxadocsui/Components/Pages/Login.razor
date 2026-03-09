@@ -1,0 +1,285 @@
+@page "/"
+@rendermode InteractiveServer
+
+<div class="min-h-screen font-sans antialiased flex items-center justify-center p-5 animate-gradient-drift relative overflow-x-hidden"
+     id="login-body">
+
+    <!-- DECORATIVE INFOGRAPHICS (floating modern elements) -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <!-- large stat bubbles (semi-transparent, infographic style) with zxadocs metrics -->
+        <div class="absolute top-[12%] left-[8%] w-32 h-32 rounded-full bg-white/20 backdrop-blur-sm border border-white/40 shadow-xl flex items-center justify-center floating-icon"
+             style="animation-delay: 0s;">
+            <div class="text-center">
+                <i class="fa-regular fa-file-pdf text-3xl text-[#1f7b4d]/80"></i>
+                <div class="text-xs font-bold text-[#195d3a] mt-1">2.4M+</div>
+            </div>
+        </div>
+
+        <div class="absolute bottom-[18%] right-[9%] w-40 h-40 rounded-full bg-white/20 backdrop-blur-sm border border-white/40 shadow-xl flex items-center justify-center floating-icon"
+             style="animation-delay: 1.5s;">
+            <div class="text-center">
+                <i class="fa-regular fa-clock text-4xl text-[#1f7b4d]/80"></i>
+                <div class="text-xs font-bold text-[#195d3a] mt-1">avg. 4.2h</div>
+            </div>
+        </div>
+
+        <div class="absolute top-[25%] right-[12%] w-28 h-28 rounded-full bg-white/20 backdrop-blur-sm border border-white/40 shadow-xl flex items-center justify-center floating-icon"
+             style="animation-delay: 0.7s;">
+            <i class="fa-solid fa-shield-halved text-4xl text-[#1f7b4d]/70"></i>
+        </div>
+
+        <div class="absolute bottom-[30%] left-[12%] w-36 h-36 rounded-full bg-white/20 backdrop-blur-sm border border-white/40 shadow-xl flex items-center justify-center floating-icon"
+             style="animation-delay: 2.2s;">
+            <div class="text-center">
+                <i class="fa-solid fa-diagram-project text-3xl text-[#1f7b4d]/80"></i>
+                <div class="text-xs font-bold text-[#195d3a] mt-1">24 workflows</div>
+            </div>
+        </div>
+
+        <!-- small micro-icons (floating) -->
+        <div class="absolute top-[40%] left-[20%] w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/40 shadow-md flex items-center justify-center floating-icon"
+             style="animation-delay: 1.2s;">
+            <i class="fa-regular fa-circle-check text-2xl text-[#1f7b4d]/80"></i>
+        </div>
+        <div class="absolute bottom-[40%] right-[18%] w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/40 shadow-md flex items-center justify-center floating-icon"
+             style="animation-delay: 0.3s;">
+            <i class="fa-regular fa-star text-2xl text-[#1f7b4d]/80"></i>
+        </div>
+
+        <!-- abstract lines / connections (infographic style) with zxadocs brand color -->
+        <svg class="absolute top-0 left-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
+            <path d="M150,200 Q300,100 450,250 T700,180" stroke="#1f7b4d" stroke-width="2" fill="none"
+                  stroke-dasharray="6 6" />
+            <path d="M800,400 Q650,300 500,450 T200,380" stroke="#1f7b4d" stroke-width="2" fill="none"
+                  stroke-dasharray="6 6" />
+        </svg>
+    </div>
+
+    <!-- main login card (centered, with modern infographic integration) -->
+    <div class="relative z-20 w-full max-w-5xl flex flex-col lg:flex-row items-center gap-8">
+
+        <!-- LEFT: INFOGRAPHICS + STATS (modern, visual) with zxadocs branding -->
+        <div class="flex-1 hidden lg:block">
+            <div class="pr-8">
+                <!-- main headline with ZXADOCS logo treatment -->
+                <div class="mb-8">
+                    <div
+                        class="inline-flex items-center gap-2 bg-white/30 backdrop-blur-md rounded-full px-5 py-2 border border-white/50 shadow-sm">
+                        <!-- small company logo icon -->
+                        <div class="text-[#1f7b4d] px-3  py-2 text-2xl rounded-lg">
+                            <i class="fa fa-fire" aria-hidden="true"></i>
+                        </div>
+                        <span class="text-sm font-semibold text-[#195d3a]">real-time workflow analytics</span>
+                    </div>
+                    <h1 class="text-4xl font-black text-[#195d3a] mt-6 leading-tight">
+                        Welcome to <span
+                        class="text-transparent bg-clip-text bg-gradient-to-r from-[#1f7b4d] to-[#44a56d]">zxadocs</span><br>
+                        <span class="text-2xl font-medium text-[#2a5f40]">secure document workflow</span>
+                    </h1>
+                    <p class="text-[#2a5f40] mt-3 max-w-md text-base/relaxed">
+                        Access your organization's document workflows with confidence — protected by end-to-end
+                        encryption and adaptive MFA.
+                    </p>
+                </div>
+
+                <!-- infographic stats cards (modern, glassmorphism) with company metrics -->
+                <div class="grid grid-cols-2 gap-4 mt-8">
+                    <div class="bg-white/30 backdrop-blur-md rounded-2xl p-5 border border-white/50 shadow-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-[#1f7b4d]/20 flex items-center justify-center">
+                                <i class="fa-regular fa-folder-open text-xl text-[#1f7b4d]"></i>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-[#195d3a]">12.5k</div>
+                                <div class="text-xs text-[#2a5f40]">active documents</div>
+                            </div>
+                        </div>
+                        <div class="mt-3 w-full bg-white/40 h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-[#1f7b4d] w-4/5 h-1.5 rounded-full"></div>
+                        </div>
+                    </div>
+                    <div class="bg-white/30 backdrop-blur-md rounded-2xl p-5 border border-white/50 shadow-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-[#1f7b4d]/20 flex items-center justify-center">
+                                <i class="fa-regular fa-clock text-xl text-[#1f7b4d]"></i>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-[#195d3a]">4.2h</div>
+                                <div class="text-xs text-[#2a5f40]">avg. approval</div>
+                            </div>
+                        </div>
+                        <div class="mt-3 w-full bg-white/40 h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-[#1f7b4d] w-3/5 h-1.5 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- mini progress bars / additional infographics with zxadocs security status -->
+                <div
+                    class="mt-6 bg-white/20 backdrop-blur-md rounded-2xl p-5 border border-white/50 shadow-lg flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-white/40 flex items-center justify-center">
+                            <i class="fa-solid fa-shield-halved text-2xl text-[#1f7b4d]"></i>
+                        </div>
+                        <div>
+                            <span class="text-sm font-semibold text-[#195d3a]">zxadocs security</span>
+                            <div class="flex items-center gap-1 text-xs">
+                                <i class="fa-solid fa-circle-check text-[#1f7b4d]"></i>
+                                <span class="text-[#2a5f40]">AES-256 · MFA ready</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-1">
+                        <div class="w-2 h-8 bg-[#1f7b4d] rounded-full"></div>
+                        <div class="w-2 h-8 bg-[#1f7b4d] rounded-full"></div>
+                        <div class="w-2 h-8 bg-[#1f7b4d] rounded-full"></div>
+                        <div class="w-2 h-8 bg-[#1f7b4d]/40 rounded-full"></div>
+                    </div>
+                </div>
+
+                <!-- tiny stat badges (floating) with company name -->
+                <div class="flex gap-3 mt-6">
+                    <span
+                        class="stat-badge text-xs px-4 py-2 rounded-full text-[#195d3a] font-medium shadow-sm flex items-center gap-1">
+                        <i class="fa-regular fa-building"></i> 200+ enterprises
+                    </span>
+                    <span
+                        class="stat-badge text-xs px-4 py-2 rounded-full text-[#195d3a] font-medium shadow-sm flex items-center gap-1">
+                        <i class="fa-regular fa-star"></i> 4.9 · zxadocs
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: LOGIN CARD (modern glass) with zxadocs branding -->
+        <div class="w-full max-w-md">
+            <!-- subtle branding above card (mobile visible) with zxadocs logo -->
+            <div class="text-center mb-4 lg:hidden">
+                <div
+                    class="inline-flex items-center justify-center space-x-2 bg-white/60 backdrop-blur-sm px-5 py-2 rounded-full shadow-sm border border-white/70">
+                    <div class="bg-[#1f7b4d] text-white p-1.5 rounded-lg shadow-sm">
+                        <i class="fa-solid fa-file-lines text-sm"></i>
+                    </div>
+                    <span class="font-bold text-[#195d3a] text-lg">zxadocs</span>
+                </div>
+            </div>
+
+            <!-- login card (modern glass with infographic touches) -->
+            <div class="login-card-modern rounded-3xl shadow-2xl p-8 relative overflow-hidden">
+
+                <!-- tiny decorative elements inside card -->
+                <div class="absolute -top-10 -right-10 w-40 h-40 bg-[#c0e6cc]/30 rounded-full blur-2xl"></div>
+                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-[#a8dbb8]/30 rounded-full blur-2xl"></div>
+
+                <div class="relative z-10">
+                    <!-- header with zxadocs logo and lock icon -->
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="bg-[#1f7b4d] text-white p-3 rounded-2xl shadow-md">
+                            <img src="/images/zxadocs_icon_124_white.png" width="30px" />
+
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1">
+                                <h2 class="text-2xl font-bold text-[#195d3a]">zxadocs</h2>
+                                <span
+                                class="bg-[#e0f2df] text-[#1f7b4d] text-[10px] font-semibold px-2 py-0.5 rounded-full">secure</span>
+                            </div>
+                            <p class="text-xs text-[#5f8b74]">sign in to your workspace</p>
+                        </div>
+                    </div>
+
+                    <!-- login form -->
+                    <form class="space-y-5">
+                        <!-- email field -->
+                        <div>
+                            <label class="block text-sm font-medium text-[#1e4a33] mb-1.5">
+                                <i class="fa-regular fa-envelope mr-1 text-[#5f8b74]"></i> Username
+                            </label>
+                            <MudTextField T="string" Variant="Variant.Outlined" Placeholder="pdk@email.com" />
+                        </div>
+
+                        <!-- password field with forgot -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="block text-sm font-medium text-[#1e4a33]">
+                                    <i class="fa-solid fa-lock mr-1 text-[#5f8b74]"></i> Password
+                                </label>
+                                <a href="#"
+                                   class="text-xs text-[#1f7b4d] hover:text-[#0f5a30] font-medium hover:underline transition">Forgot?</a>
+                            </div>
+                            <div class="relative mt-1">
+                                <MudTextField T="string" Variant="Variant.Outlined" Placeholder="••••••••"
+                                              InputType="InputType.Password" />
+
+                            </div>
+                        </div>
+
+                        <!-- remember & 2fa hint (with infographic mini-badge) -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <MudSwitch T="bool" Label="Remember" @bind-Value="rememberPassword"
+                                           Color="Color.Secondary" />
+
+                            </div>
+                            <span
+                                class="text-xs bg-[#1f7b4d]/10 px-3 py-1.5 rounded-full text-[#1f7b4d] font-medium flex items-center gap-1">
+                                <i class="fa-solid fa-shield-halved text-xs"></i> 2FA ready
+                            </span>
+                        </div>
+
+                        <!-- sign in button with zxadocs branding -->
+                        <MudButton StartIcon="@Icons.Material.Filled.Login" Variant="Variant.Filled"
+                                   Color="Color.Primary" Class="w-full py-3" @onclick="()=>UserLogin()">
+                            Login</MudButton>
+
+                            <!-- SSO options -->
+                            <div class="relative my-6">
+                                <div class="absolute inset-0 flex items-center">
+                                    <div class="w-full border-t border-[#d0e8d4]"></div>
+                                </div>
+                                <div class="relative flex justify-center text-sm">
+                                    <span class="px-4 bg-white/90 text-[#5f8b74] rounded-full text-xs font-medium">or
+                                        SSO</span>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button
+                                        class="flex items-center justify-center gap-2 bg-white border border-[#d0e8d4] hover:bg-[#f0f9ef] text-[#1e4a33] py-3 rounded-xl text-sm font-medium transition">
+                                        <i class="fa-brands fa-google text-[#5f8b74]"></i> Google
+                                    </button>
+                                    <button
+                                        class="flex items-center justify-center gap-2 bg-white border border-[#d0e8d4] hover:bg-[#f0f9ef] text-[#1e4a33] py-3 rounded-xl text-sm font-medium transition">
+                                        <i class="fa-brands fa-microsoft text-[#5f8b74]"></i> Microsoft
+                                    </button>
+                                </div>
+                            </form>
+
+                            <!-- signup link with company name -->
+                            <p class="text-center text-sm text-[#5f8b74] mt-6">
+                                New to zxadocs?
+                                <a href="#"
+                                       class="font-semibold text-[#1f7b4d] hover:text-[#0f5a30] hover:underline transition">Request
+                                    access</a>
+                                </p>
+
+                                <!-- internal security note with company name -->
+                                <div class="flex items-center justify-center gap-1 mt-4 text-xs text-[#8bb89b]">
+                                    <i class="fa-solid fa-lock"></i>
+                                    <span>zxadocs · end-to-end encrypted</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- footer links (consistent) -->
+                        <div class="flex items-center justify-center gap-6 mt-6 text-xs text-[#8bb89b]">
+                            <a href="#" class="hover:text-[#1f7b4d] transition flex items-center gap-1"><i
+                                class="fa-regular fa-circle-question"></i> Help</a>
+                                <a href="#" class="hover:text-[#1f7b4d] transition flex items-center gap-1"><i
+                                    class="fa-regular fa-shield"></i> Privacy</a>
+                                    <a href="#" class="hover:text-[#1f7b4d] transition flex items-center gap-1"><i
+                                        class="fa-regular fa-file-lines"></i> Terms</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>

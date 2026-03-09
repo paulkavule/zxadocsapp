@@ -1,0 +1,77 @@
+login-body {
+  background-color: red;
+}
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 0%;
+  }
+  25% {
+    background-position: 50% 30%;
+  }
+  50% {
+    background-position: 100% 70%;
+  }
+  75% {
+    background-position: 50% 80%;
+  }
+  100% {
+    background-position: 0% 0%;
+  }
+}
+.animate-gradient-drift {
+  background: linear-gradient(
+    125deg,
+    #d9efdf,
+    #c0e6cc,
+    #a8dbb8,
+    #c0e6cc,
+    #e1f3e4
+  );
+  background-size: 300% 300%;
+  animation: gradientShift 22s ease infinite;
+}
+/* floating icons / infographic elements */
+.floating-icon {
+  animation: float 4s ease-in-out infinite;
+}
+@keyframes float {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(2deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+.pulse-glow {
+  animation: pulseGlow 3s infinite;
+}
+@keyframes pulseGlow {
+  0% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.5;
+  }
+}
+/* infographic stat cards style */
+.stat-badge {
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+.login-card-modern {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(200, 230, 210, 0.7);
+}
+.input-focus-ring-modern:focus {
+  outline: none;
+  border-color: #1f7b4d;
+  box-shadow: 0 0 0 4px rgba(31, 123, 77, 0.2);
+}

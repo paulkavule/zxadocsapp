@@ -1,0 +1,20 @@
+.sidebar-transition {
+  transition: width 0.25s ease-in-out;
+}
+.content-transition {
+  transition: margin-left 0.25s ease-in-out;
+}
+.submenu {
+  transition:
+    max-height 0.3s ease-in-out,
+    opacity 0.2s;
+  overflow: hidden;
+}
+/* hide scrollbar for clean template look (optional) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

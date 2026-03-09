@@ -1,0 +1,52 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="@Assets["_content/MudBlazor/MudBlazor.min.css"]" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["ctailwindcss.css"]" />
+    <link rel="stylesheet" href="@Assets["zxadocsui.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet />
+</head>
+
+<body>
+    <Routes />
+    <ReconnectModal />
+    <script src="/js/dashboard-layout.js"></script>
+    @* <script>
+        window.addEventListener('DOMContentLoaded', function () {
+        const originalPushState = history.pushState;
+        history.pushState = function () {
+        originalPushState.apply(this, arguments);
+        window.dispatchEvent(new Event('blazorNavigation'));
+        };
+
+        window.addEventListener('popstate', function () {
+        window.dispatchEvent(new Event('blazorNavigation'));
+        });
+        });
+    </script> *@
+    <script>
+        if (window.pdfjsLib) {
+        console.log("------------------1")
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        }
+    </script>
+    <script src="/pdfjs/pdfinterpolator.js"></script>
+    <script src="/js/dragandresizehandler.js"></script>
+    <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>
