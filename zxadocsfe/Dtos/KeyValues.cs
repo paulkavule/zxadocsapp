@@ -2,8 +2,8 @@ using System;
 
 namespace zxadocsfe.Dtos;
 
-public record KeyValues
+public record KeyValue
 {
-    public string Name {set;get;}
-    public string Value {set;get;}
+    public string Name { set; get; }
+    public string Value { set; get; }
 }

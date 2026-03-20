@@ -1,0 +1,54 @@
+﻿@using zxadocslib.Dtos
+<MudForm Model="@Document" @bind-IsValid="@success" @bind-Errors="@errors" Class="flex flex-col space-y-3 w-1/3">
+    <MudTextField Label="Title" Placeholder="Title" @bind-Value="@Document.Title" Variant="Variant.Outlined"
+                  Required="true" RequiredError="Provide the document title">
+    </MudTextField>
+    <MudTextField Label="Subject" Placeholder="Subject" @bind-Value="Document.Subject" Variant="Variant.Outlined">
+    </MudTextField>
+    <MudSelect T="string" @bind-Value="Document.Priority" Label="Priority" Placeholder="Priority"
+               Variant="Variant.Outlined">
+        @foreach (var item in priorityList)
+        {
+            <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
+        }
+    </MudSelect>
+    <MudSelect T="string" SelectedValues="@(new string[] { Document.TypeId == 0 ? "" : Document.TypeId + "" })"
+               ValueChanged="DocTypeChanged" Label="Document Type" Placeholder="Document Type" Variant="Variant.Outlined"
+               Required="true" RequiredError="Select the document type">
+        @foreach (var item in doctypeList)
+        {
+            <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
+        }
+    </MudSelect>
+    <MudSelect T="string" SelectedValues="@(new string[] { Document.CategoryId == 0 ? "" : Document.CategoryId + "" })"
+               ValueChanged="DocCategoryChanged" Label="Document category" Placeholder="Document Category"
+               Variant="Variant.Outlined" Required="true" RequiredError="Select the document category">
+        @foreach (var item in docCatList)
+        {
+            <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
+        }
+    </MudSelect>
+    @if (extraFields?.Count > 0)
+    {
+        @foreach (var field in extraFields)
+        {
+            if (field?.Options?.Count > 0)
+            {
+                <MudSelect T="string" SelectedValues="@(new string[] { field.SelectedValue })" @bind-Value="field?.SelectedValue"
+                           Label=@("Select " + field.FieldName) Placeholder="@("Enter" + field?.FieldName)" Variant="Variant.Outlined">
+                    @foreach (var item in field.Options)
+                    {
+                        <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            else
+            {
+                <MudTextField Label="@field?.FieldName" @bind-Value="field?.SelectedValue"
+                              Placeholder="@("Enter" + field?.FieldName)" Variant="Variant.Outlined">
+                </MudTextField>
+            }
+        }
+    }
+
+</MudForm>

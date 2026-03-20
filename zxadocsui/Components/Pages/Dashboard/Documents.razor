@@ -1,1 +1,387 @@
 ﻿@page "/documents"
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <!-- header: app title + simple action (compose) -->
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white/90 backdrop-blur-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+                <i class="fas fa-envelope text-sm"></i>
+            </div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Document centre</h1>
+        </div>
+        <NavLink href="/createdocument" Match="NavLinkMatch.Prefix">
+                    <span class=" text-green-800">
+                        <i class="fa fa-pen" style="width: 20px;"></i>
+                    </span>
+                    Outbox
+                </NavLink>
+        @* <MudButton OnClick="@(()=>CreateDocument())" StartIcon="@Icons.Material.Filled.Edit" Color="Color.Primary">Compose
+        </MudButton> *@
+    </div>
+
+    <!-- tabs navigation (role="tablist") -->
+    <div
+        class="px-5 sm:px-6 pt-4 border-b border-slate-200 bg-slate-50/30 flex justify-between items-center"
+        role="tablist"
+        aria-label="mail folders"
+    >
+        <div class="flex flex-wrap gap-1 w-3/4">
+            <!-- inbox tab (active by default) -->
+            <button
+                id="tab-inbox"
+                class="tab-button active-tab flex items-center gap-2 px-5 py-2.5 rounded-t-xl text-sm font-medium transition-all duration-200 border-b-2 border-transparent -mb-px"
+                data-tab="inbox"
+                role="tab"
+                aria-selected="true"
+                aria-controls="panel-inbox"
+            >
+                <i class="fas fa-inbox text-base"></i>
+                <span>Inbox</span>
+                <span class="ml-1 bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full">12</span>
+            </button>
+            <!-- outbox tab -->
+            <button
+                id="tab-outbox"
+                class="tab-button flex items-center gap-2 px-5 py-2.5 rounded-t-xl text-sm font-medium transition-all duration-200 border-b-2 border-transparent -mb-px text-slate-600 hover:text-slate-900"
+                data-tab="outbox"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-outbox"
+            >
+                <i class="fas fa-paper-plane text-base"></i>
+                <span>Outbox</span>
+                <span class="ml-1 bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded-full">4</span>
+            </button>
+            <!-- archived tab -->
+            <button
+                id="tab-archived"
+                class="tab-button flex items-center gap-2 px-5 py-2.5 rounded-t-xl text-sm font-medium transition-all duration-200 border-b-2 border-transparent -mb-px text-slate-600 hover:text-slate-900"
+                data-tab="archived"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-archived"
+            >
+                <i class="fas fa-box-archive text-base"></i>
+                <span>Archived</span>
+                <span class="ml-1 bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded-full">8</span>
+            </button>
+            <!-- deleted tab -->
+            <button
+                id="tab-deleted"
+                class="tab-button flex items-center gap-2 px-5 py-2.5 rounded-t-xl text-sm font-medium transition-all duration-200 border-b-2 border-transparent -mb-px text-slate-600 hover:text-slate-900"
+                data-tab="deleted"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-deleted"
+            >
+                <i class="fas fa-trash-can text-base"></i>
+                <span>Deleted</span>
+                <span class="ml-1 bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded-full">3</span>
+            </button>
+        </div>
+        <div class="flex-1 flex justify-center items-center gap-2">
+            <MudTextField
+                T="string"
+                Label="Search"
+                Placeholder="Document Number, Department, Sender"
+                InputType="InputType.Text"
+                Variant="Variant.Outlined"
+                Class="py-1 w-3/4"
+            />
+            <MudSelect T="string" Variant="Variant.Outlined" Label="Filter" Class="py-1">
+                <MudSelectItem Value="@("PriorityDesc")">Priority Desc</MudSelectItem>
+            </MudSelect>
+        </div>
+    </div>
+
+    <!-- tab panels container (dynamic content) -->
+    <div class="bg-white">
+        <!-- inbox panel (default visible) -->
+        <div id="panel-inbox" class="tab-panel p-5 block" role="tabpanel" aria-labelledby="tab-inbox">
+
+<div class="divide-y divide-slate-200 bg-white rounded-2xl border border-slate-200">
+
+    <!-- Item 1 -->
+    <div class="flex items-start gap-4 p-4 hover:bg-slate-50 transition">
+
+        <div class="min-w-0 flex-1">
+            <div class="flex items-start justify-between gap-4">
+
+                <!-- Left content -->
+                <div class="min-w-0">
+
+                    <!-- Ticket + Department -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h3 class="text-sm font-semibold text-slate-900">
+                            #123712388
+                        </h3>
+
+                        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                            Technology & Enterprise Solution
+                        </span>
+
+                        <!-- Priority -->
+                        <span class="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-600">
+                            High Priority
+                        </span>
+
+                        <!-- Status -->
+                        <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
+                            Open
+                        </span>
+                    </div>
+
+                    <!-- Subject -->
+                    <p class="mt-2 flex items-center gap-2 text-sm font-medium text-slate-800">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                            <i class="fa fa-file-o"></i>
+                        </span>
+                        Q3 planning – draft agenda attached
+                    </p>
+
+                    <!-- Users -->
+                    <p class="mt-2 text-xs text-slate-500">
+                        @@Marry Lutaya
+                        <span class="mx-1 text-slate-300">→</span>
+                        @@James Ahimbisibwe
+                    </p>
+
+                </div>
+
+                <!-- Right side -->
+                <div class="flex shrink-0 flex-col items-end gap-3">
+
+                    <span class="text-xs font-medium text-slate-400">
+                        10:32 AM
+                    </span>
+
+                    <div class="flex items-center gap-1">
+                        <button class="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-amber-50 hover:text-amber-500 transition">
+                            <i class="far fa-star"></i>
+                        </button>
+
+                        <button class="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition">
+                            <i class="far fa-flag"></i>
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Item 2 -->
+    <div class="flex items-start gap-4 p-4 hover:bg-slate-50 transition">
+
+        <div class="min-w-0 flex-1">
+            <div class="flex items-start justify-between gap-4">
+
+                <div class="min-w-0">
+
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h3 class="text-sm font-semibold text-slate-900">
+                            #123712412
+                        </h3>
+
+                        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                            Infrastructure
+                        </span>
+
+                        <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-600">
+                            Medium Priority
+                        </span>
+
+                        <span class="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-600">
+                            In Progress
+                        </span>
+                    </div>
+
+                    <p class="mt-2 flex items-center gap-2 text-sm font-medium text-slate-800">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                            <i class="fa fa-file-o"></i>
+                        </span>
+                        Server migration plan review
+                    </p>
+
+                    <p class="mt-2 text-xs text-slate-500">
+                        @@James Ahimbisibwe
+                        <span class="mx-1 text-slate-300">→</span>
+                        @@IT Support
+                    </p>
+
+                </div>
+
+                <div class="flex shrink-0 flex-col items-end gap-3">
+                    <span class="text-xs font-medium text-slate-400">
+                        09:18 AM
+                    </span>
+
+                    <div class="flex items-center gap-1">
+                        <button class="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-amber-50 hover:text-amber-500 transition">
+                            <i class="far fa-star"></i>
+                        </button>
+
+                        <button class="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition">
+                            <i class="far fa-flag"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+            <!-- subtle footer: action row (inbox) -->
+            <div
+                class="px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center text-xs text-slate-500"
+            >
+                <span><i class="far fa-clock mr-1"></i> last updated 2 min ago</span>
+                <button class="text-indigo-600 hover:text-indigo-800 font-medium">mark all read</button>
+            </div>
+        </div>
+
+        <!-- outbox panel (hidden by default) -->
+        <div id="panel-outbox" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-outbox">
+            <div class="divide-y divide-slate-100 mail-list-scroll max-h-[420px] overflow-y-auto">
+                <div class="flex items-start gap-3 px-6 py-4 hover:bg-slate-50">
+                    <div class="flex-shrink-0 pt-1"><i class="fas fa-check-circle text-xs text-indigo-400"></i></div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-semibold text-sm">To: Alex Rivera</h3>
+                            <span class="text-xs text-slate-400">09:45</span>
+                        </div>
+                        <p class="text-sm font-medium text-slate-800">contract feedback + signed NDA</p>
+                        <p class="text-xs text-slate-500">
+                            attached the final version, please let me know if any changes …
+                        </p>
+                    </div>
+                </div>
+               
+            </div>
+            <div class="px-6 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500">
+                <i class="fas fa-info-circle mr-1"></i> 4 messages sent, 1 pending
+            </div>
+        </div>
+
+        <!-- archived panel -->
+        <div id="panel-archived" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-archived">
+            <div class="divide-y divide-slate-100 mail-list-scroll max-h-[420px] overflow-y-auto">
+                <div class="flex items-start gap-3 px-6 py-4 hover:bg-slate-50">
+                    <div class="flex-shrink-0 pt-1"><i class="fas fa-box text-xs text-slate-400"></i></div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-semibold text-sm">Newsletter · design Weekly</h3>
+                            <span class="text-xs text-slate-400">oct 28</span>
+                        </div>
+                        <p class="text-sm text-slate-800">✨ 10 UI tips & free resources</p>
+                        <p class="text-xs text-slate-500">read online version – issue #342</p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-3 border-t border-slate-100 bg-slate-50/50 text-xs text-slate-500">
+                <i class="fas fa-archive mr-1"></i> 8 archived messages ·
+                <button class="text-indigo-600">empty now</button>
+            </div>
+        </div>
+
+        <!-- deleted panel -->
+        <div id="panel-deleted" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-deleted">
+            <div class="divide-y divide-slate-100 mail-list-scroll max-h-[420px] overflow-y-auto">
+                <div class="flex items-start gap-3 px-6 py-4 hover:bg-slate-50">
+                    <div class="flex-shrink-0 pt-1"><i class="fas fa-trash-alt text-xs text-rose-400"></i></div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-semibold text-sm">Dropbox · files deleted</h3>
+                            <span class="text-xs text-slate-400">2d ago</span>
+                        </div>
+                        <p class="text-sm text-slate-800">[Alert] 'old backups' removed from team folder</p>
+                        <p class="text-xs text-slate-500">you can restore until Dec 15</p>
+                    </div>
+                </div>
+                
+            </div>
+            <div
+                class="px-6 py-3 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center text-xs text-slate-500"
+            >
+                <span><i class="fas fa-trash-can mr-1"></i> 3 items · empty every 30d</span
+                ><button class="text-rose-600 hover:text-rose-800 font-medium">empty trash</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- lightweight bottom note (consistent) -->
+    <div class="bg-slate-50 px-6 py-2 text-xs text-slate-400 border-t border-slate-100 flex justify-between">
+        <span><i class="far fa-envelope-open mr-1"></i> 5.2 GB / 15 GB used</span>
+        <span>privacy · settings</span>
+    </div>
+</div>
+
+<!-- tiny script for tab switching (plain js, no dependencies) -->
+<script>
+    (function () {
+        const tabs = document.querySelectorAll(".tab-button");
+        const panels = {
+            inbox: document.getElementById("panel-inbox"),
+            outbox: document.getElementById("panel-outbox"),
+            archived: document.getElementById("panel-archived"),
+            deleted: document.getElementById("panel-deleted"),
+        };
+
+        // helper: remove active state from all tabs & panels, then activate
+        function activateTab(tabId) {
+            // update tab buttons
+            tabs.forEach((btn) => {
+                const isActive = btn.dataset.tab === tabId;
+                // aria-selected
+                btn.setAttribute("aria-selected", isActive ? "true" : "false");
+                // style classes
+                if (isActive) {
+                    btn.classList.add(
+                        "active-tab",
+                        "text-indigo-700",
+                        "border-indigo-500",
+                        "bg-white",
+                        "font-semibold"
+                    );
+                    btn.classList.remove("text-slate-600", "hover:text-slate-900", "border-transparent");
+                } else {
+                    btn.classList.remove(
+                        "active-tab",
+                        "text-indigo-700",
+                        "border-indigo-500",
+                        "bg-white",
+                        "font-semibold"
+                    );
+                    btn.classList.add("text-slate-600", "hover:text-slate-900", "border-transparent");
+                }
+            });
+
+            // hide all panels, show the selected one
+            Object.values(panels).forEach((panel) => panel.classList.add("hidden"));
+            if (panels[tabId]) panels[tabId].classList.remove("hidden");
+        }
+
+        // add click listener to each tab
+        tabs.forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+                const tabId = btn.dataset.tab;
+                if (tabId) activateTab(tabId);
+            });
+
+            // optional keyboard support (Enter/Space activate)
+            btn.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    const tabId = btn.dataset.tab;
+                    if (tabId) activateTab(tabId);
+                }
+            });
+        });
+
+        // initial active state: inbox is open (default in html)
+        // ensure classes correspond on page load (in case of mismatch)
+        activateTab("inbox");
+    })();
+</script>

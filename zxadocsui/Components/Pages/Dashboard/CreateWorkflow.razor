@@ -1,0 +1,17 @@
+﻿@page "/createdocument"
+@using zxadocsui.Components.DocWorkflow
+
+<MudPaper>
+    <MudStepper NonLinear ShowResetButton OnPreviewInteraction="OnPreviewInteraction" Class="w-full h-[80%]">
+        @* HasError="@(_step1Complete == false)" *@
+        <MudStep Title="Step 1" SecondaryText="Document Details" HasError=validForm>
+            <DocumentDetails Document="document" @ref="docRef" />
+        </MudStep>
+        <MudStep Title="Step 2" SecondaryText="Work flow">
+            <DocumentsWorkflow Document="document" @ref="wkflowRef" />
+        </MudStep>
+        <MudStep Title="Step 3" SecondaryText="Upload and Sign">
+            <DocumentEditor Document="document" @ref="childRef" DocId="DocId" />
+        </MudStep>
+    </MudStepper>
+</MudPaper>

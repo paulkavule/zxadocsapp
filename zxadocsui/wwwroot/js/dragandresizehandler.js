@@ -324,7 +324,11 @@ function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
     },
   };
 }
-
+function resetCanvas(containerId) {
+  const canvas = document.getElementById(containerId);
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
 function getBoxRelativeToContainer(containerId, divId) {
   const container = document.getElementById(containerId);
   const target = document.getElementById(divId);

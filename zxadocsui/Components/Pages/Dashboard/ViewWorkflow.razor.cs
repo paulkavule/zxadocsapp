@@ -6,15 +6,15 @@ using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
-using zxadocsui.Components.Custom;
+using zxadocsui.Components.DocWorkflow;
 using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard;
 
-public partial class NewWorkflow : IDisposable
+public partial class ViewWorkflow
 {
     [Inject] ISnackbar? Snackbar { get; set; } = default;
-    [Inject] ILogger<NewWorkflow>? logger { set; get; }
+    [Inject] ILogger<ViewWorkflow>? logger { set; get; }
     [Inject] private IHttpService httpSvc { get; set; } = default!;
     [Inject] private NavigationManager navManager { get; set; } = default!;
     [Inject] private RequestContext userContext { get; set; } = default!;
@@ -23,12 +23,13 @@ public partial class NewWorkflow : IDisposable
     string fileBase64 = string.Empty, docType = string.Empty, userId = string.Empty, fileName = "File Name", docRef = string.Empty, organisationId = string.Empty;
     private double UploadProgress { get; set; }
 
-    private List<ListOption> priorityList = new(), doctypeList = new(), docCatList = new(), usersList = new();
+    private List<ListOption> priorityList = new(), doctypeList = new(), docCatList = new(), usersList = new(), workflowList = new();
+    // private List<KeyValue> workflowList = new();
     private List<DocAttachment> attachmentList = new();
     private List<DocCategoryField> extraFields = new();
 
     Document document = new();
-    private byte[] fileBytes = default!;
+    // private byte[] fileBytes = default!;
 
     private ListOption ForwardTo = new();
     bool editMode, success;
@@ -44,6 +45,22 @@ public partial class NewWorkflow : IDisposable
         {
             editMode = true;
             await FetchDocumentDetails(DocId);
+        }
+        workflowList = new List<ListOption>
+        {
+            new ListOption { Id = 1, Name = "First Name"},
+            new ListOption { Id = 1, Name = "Second Name"},
+            new ListOption { Id = 1, Name = "Third Name"},
+        };
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await loadPriorities();
+            await loadDocumentTypes();
+            StateHasChanged();
         }
     }
 
@@ -67,24 +84,24 @@ public partial class NewWorkflow : IDisposable
             await DocCategoryChanged(document.CategoryId + "");
 
             //extraFields = document.ExtraFields.Select(dd => new DocCategoryField { FieldId = dd.FieldId, FieldName = dd., SelectedValue = dd.FieldValue }).ToList();
-            Snackbar?.Clear();
-            Snackbar?.Add("Downloading file. Please wait....", Severity.Info);
-            fileName = $"doc_{docId}.pdf";
-            await using var fileStream = File.Create(fileName);
+            // Snackbar?.Clear();
+            // Snackbar?.Add("Downloading file. Please wait....", Severity.Info);
+            // fileName = $"doc_{docId}.pdf";
+            // await using var fileStream = File.Create(fileName);
 
-            await foreach (var chunk in httpSvc.DownloadDocumentFileAsync(docId: int.Parse(docId)))
-                await fileStream.WriteAsync(chunk, 0, chunk.Length);
+            // await foreach (var chunk in httpSvc.DownloadDocumentFileAsync(docId: int.Parse(docId)))
+            //     await fileStream.WriteAsync(chunk, 0, chunk.Length);
 
 
-            Snackbar?.Clear();
-            Snackbar?.Add("Downloading complete. Please proceed....", Severity.Info);
+            // Snackbar?.Clear();
+            // Snackbar?.Add("Downloading complete. Please proceed....", Severity.Info);
 
-            fileStream.Flush();
-            fileStream.Close();
+            // fileStream.Flush();
+            // fileStream.Close();
 
-            fileBase64 = Convert.ToBase64String(File.ReadAllBytes(fileName));
+            // fileBase64 = Convert.ToBase64String(File.ReadAllBytes(fileName));
 
-            StateHasChanged();
+            // StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -93,14 +110,14 @@ public partial class NewWorkflow : IDisposable
             logger!.LogDebug(ex.Message);
         }
     }
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await loadPriorities();
-            await loadDocumentTypes();
-        }
-    }
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender)
+    //     {
+    //         await loadPriorities();
+    //         await loadDocumentTypes();
+    //     }
+    // }
 
     private async Task loadPriorities()
     {
@@ -217,50 +234,50 @@ public partial class NewWorkflow : IDisposable
     }
 
     private async Task OnForwardToChanged(ListOption option) => document.NextActor = option.Id + "";
-    private async Task UploadFileDocument(IBrowserFile file)
-    {
-        try
-        {
-            var buffer = new byte[4096];
-            long totalBytes = file.Size;
-            long bytesRead = 0;
-            Console.WriteLine($"Starting upload of file: {file.Name}, Size: {totalBytes} bytes");
-            // Create a new progress object to report upload progress
-            var progress = new Progress<double>(percentage =>
-            {
-                // This will be called as the upload progresses
-                UploadProgress = percentage;
-                StateHasChanged();
-            });
+    // private async Task UploadFileDocument(IBrowserFile file)
+    // {
+    //     try
+    //     {
+    //         var buffer = new byte[4096];
+    //         long totalBytes = file.Size;
+    //         long bytesRead = 0;
+    //         Console.WriteLine($"Starting upload of file: {file.Name}, Size: {totalBytes} bytes");
+    //         // Create a new progress object to report upload progress
+    //         var progress = new Progress<double>(percentage =>
+    //         {
+    //             // This will be called as the upload progresses
+    //             UploadProgress = percentage;
+    //             StateHasChanged();
+    //         });
 
-            Console.WriteLine($"File size: {file.Size}\n");
-            fileName = file.Name;
-            var stream = file.OpenReadStream(maxAllowedSize: 10485760);
-            using var ms = new MemoryStream();
-            int counter = 0;
-            while (await stream.ReadAsync(buffer) is int read && read > 0)
-            {
-                await ms.WriteAsync(buffer.AsMemory(0, read));
-                bytesRead += read;
-                Console.WriteLine($"Reading bytes {counter}");
-                // Calculate and report progress
-                var percentage = (double)bytesRead / totalBytes * 100;
+    //         Console.WriteLine($"File size: {file.Size}\n");
+    //         fileName = file.Name;
+    //         var stream = file.OpenReadStream(maxAllowedSize: 10485760);
+    //         using var ms = new MemoryStream();
+    //         int counter = 0;
+    //         while (await stream.ReadAsync(buffer) is int read && read > 0)
+    //         {
+    //             await ms.WriteAsync(buffer.AsMemory(0, read));
+    //             bytesRead += read;
+    //             Console.WriteLine($"Reading bytes {counter}");
+    //             // Calculate and report progress
+    //             var percentage = (double)bytesRead / totalBytes * 100;
 
-                // Console.WriteLine($"Upload progress: {percentage}%");
-                ((IProgress<double>)progress).Report(percentage);
-                await Task.Delay(20);
-                counter++;
-            }
-            fileBytes = ms.ToArray();
-            fileBase64 = Convert.ToBase64String(fileBytes);
-            Console.WriteLine($"string length from uploadfiledocument is {fileBase64.Length}");
-            StateHasChanged();
-        }
-        catch (Exception ee)
-        {
-            logger!.LogDebug(ee.StackTrace);
-        }
-    }
+    //             // Console.WriteLine($"Upload progress: {percentage}%");
+    //             ((IProgress<double>)progress).Report(percentage);
+    //             await Task.Delay(20);
+    //             counter++;
+    //         }
+    //         fileBytes = ms.ToArray();
+    //         fileBase64 = Convert.ToBase64String(fileBytes);
+    //         Console.WriteLine($"string length from uploadfiledocument is {fileBase64.Length}");
+    //         StateHasChanged();
+    //     }
+    //     catch (Exception ee)
+    //     {
+    //         logger!.LogDebug(ee.StackTrace);
+    //     }
+    // }
     private async Task UploadDocument(InputFileChangeEventArgs e)
     {
         var file = e.File;
@@ -402,6 +419,11 @@ public partial class NewWorkflow : IDisposable
     {
         try
         {
+            var attachment = attachmentList.FirstOrDefault(at => at.Type == AppConstants.AttachmentType.Document);
+            if (document == null)
+                return (false, "Document not found");
+
+            var fileBytes = Convert.FromBase64String(attachment?.Content);
             if (fileBytes == null || fileBytes.Length <= 0)
             {
                 // show toaster, message = "Document reference has not yet been generated"
@@ -442,14 +464,36 @@ public partial class NewWorkflow : IDisposable
         return userList;
     }
 
-    public void Dispose()
+    private void ItemUpdated(MudItemDropInfo<KeyValue> dropItem)
     {
-        attachmentList.Clear();
-        attachmentList = null!;
-        if (File.Exists(fileName))
-        {
-            File.Delete(fileName);
-        }
+        dropItem.Item.Value = dropItem.DropzoneIdentifier;
     }
+
+    private void MoveUp(ListOption item)
+    {
+        var index = workflowList.IndexOf(item);
+        if (index <= 0) return;
+
+        (workflowList[index - 1], workflowList[index]) =
+            (workflowList[index], workflowList[index - 1]);
+    }
+
+    private void MoveDown(ListOption item)
+    {
+        var index = workflowList.IndexOf(item);
+        if (index < 0 || index >= workflowList.Count - 1) return;
+
+        (workflowList[index + 1], workflowList[index]) =
+            (workflowList[index], workflowList[index + 1]);
+    }
+    // public void Dispose()
+    // {
+    //     attachmentList.Clear();
+    //     attachmentList = null!;
+    //     if (File.Exists(fileName))
+    //     {
+    //         File.Delete(fileName);
+    //     }
+    // }
 
 }

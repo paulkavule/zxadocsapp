@@ -1,0 +1,17 @@
+.tab-content {
+  transition: opacity 0.15s ease;
+}
+[role="tabpanel"] {
+  outline: none;
+}
+/* subtle custom scroll for mail lists */
+.mail-list-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.mail-list-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.mail-list-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 12px;
+}

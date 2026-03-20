@@ -1,0 +1,37 @@
+﻿@page "/docfolders"
+@using zxadocsfe.Services
+@using zxadocslib.Dtos
+@rendermode InteractiveAuto
+
+<MudPopoverProvider />
+
+<div class="flex mx-3 p-3 " style="font-size:14px; ">
+    <div class="w-[20%] flex flex-col gap-3">
+        <MudForm Model="@document" @bind-IsValid="@success" @bind-Errors="@errors" OnEnterPressed="SubmitDocument"
+                 Class="flex flex-col space-y-3">
+
+            <MudSelect T="string" @bind-Value="document.Priority" Label="Priority" Placeholder="Priority"
+                       Variant="Variant.Outlined">
+                @foreach (var item in priorityList)
+                {
+                    <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="string" SelectedValues="@(new string[] { document.TypeId + "" })" Label="Document Type"
+                       Placeholder="Document Type" Variant="Variant.Outlined">
+                @foreach (var item in doctypeList)
+                {
+                    <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Send" FullWidth="true" style=""
+                       @onclick="SubmitDocument">Send
+            </MudButton>
+        </MudForm>
+    </div>
+    <div class="flex-1">
+
+    </div>
+
+</div>

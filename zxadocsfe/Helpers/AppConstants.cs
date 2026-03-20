@@ -19,7 +19,8 @@ public class AppConstants
     {
         public const string Signature = "Signature";
         public const string Comment = "Comment";
+        public const string Document = "Document";
     }
-   
+
 
 }

@@ -70,10 +70,10 @@ public enum HttpVerb
 public interface IHttpService
 {
     void Initialize(string scheme);
-    Task<(bool success, T? data, string? error)> GetAsync<T>(string endpoint, List<fedtos.KeyValues>? headers = null);
-    Task<(bool success, T? data, string? error)> ExecuteRequestAsync<T>(HttpVerb method, string endpoint, object? data = null, List<fedtos.KeyValues>? headers = null);
+    Task<(bool success, T? data, string? error)> GetAsync<T>(string endpoint, List<fedtos.KeyValue>? headers = null);
+    Task<(bool success, T? data, string? error)> ExecuteRequestAsync<T>(HttpVerb method, string endpoint, object? data = null, List<fedtos.KeyValue>? headers = null);
     Task<(bool success, T? data, string? error)> UploadDocumentAsync<T>(string endpoint, byte[] docContent, string userId,
-    string documentRef, string fileName, string folder = "General", List<fedtos.KeyValues>? headers = null);
+    string documentRef, string fileName, string folder = "General", List<fedtos.KeyValue>? headers = null);
     Task<(bool success, T? data, string? error)> UploadFileWithProgressAsync<T>(
         string endpoint,
         Stream fileStream,
@@ -107,12 +107,12 @@ public class HttpService : IHttpService
     {
         _client = _httpClientFactory?.CreateClient(scheme);
     }
-    public Task<(bool success, T? data, string? error)> GetAsync<T>(string endpoint, List<fedtos.KeyValues>? headers = null)
+    public Task<(bool success, T? data, string? error)> GetAsync<T>(string endpoint, List<fedtos.KeyValue>? headers = null)
     {
         return ExecuteRequestAsync<T>(HttpVerb.Get, endpoint, null, headers);
     }
 
-    public async Task<(bool success, T? data, string? error)> ExecuteRequestAsync<T>(HttpVerb method, string endpoint, object? data = null, List<fedtos.KeyValues>? headers = null)
+    public async Task<(bool success, T? data, string? error)> ExecuteRequestAsync<T>(HttpVerb method, string endpoint, object? data = null, List<fedtos.KeyValue>? headers = null)
     {
         try
         {
@@ -171,7 +171,7 @@ public class HttpService : IHttpService
     }
 
     public async Task<(bool success, T? data, string? error)> UploadDocumentAsync<T>(string endpoint, byte[] docContent, string userId,
-    string documentRef, string fileName, string folder = "General", List<fedtos.KeyValues>? headers = null)
+    string documentRef, string fileName, string folder = "General", List<fedtos.KeyValue>? headers = null)
     {
         try
         {

@@ -20,22 +20,12 @@
 </head>
 
 <body>
-    <Routes />
+    <Routes @rendermode="InteractiveServer" />
     <ReconnectModal />
     <script src="/js/dashboard-layout.js"></script>
-    @* <script>
-        window.addEventListener('DOMContentLoaded', function () {
-        const originalPushState = history.pushState;
-        history.pushState = function () {
-        originalPushState.apply(this, arguments);
-        window.dispatchEvent(new Event('blazorNavigation'));
-        };
-
-        window.addEventListener('popstate', function () {
-        window.dispatchEvent(new Event('blazorNavigation'));
-        });
-        });
-    </script> *@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    @* <script src="/pdfjs/pdf.min.js"></script> *@
+    <!-- Set worker to the matching CDN file -->
     <script>
         if (window.pdfjsLib) {
         console.log("------------------1")

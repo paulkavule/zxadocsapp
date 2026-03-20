@@ -8,68 +8,64 @@ using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
+using Microsoft.AspNetCore.Components.Forms;
+using System.Runtime.CompilerServices;
 
-namespace zxadocsui.Components.Custom;
+namespace zxadocsui.Components.DocWorkflow;
 
 public partial class DocumentEditor
 {
-    [Inject] IDialogService dialogSvc { set; get; }
-    [Inject] IHttpService httpSvc { get; set; }
+    [Inject] ISnackbar Snackbar { set; get; } = default!;
+    [Inject] ILogger<DocumentEditor> logger { set; get; } = default!;
+    [Inject] IDialogService dialog { set; get; } = default!;
+    [Inject] IHttpService httpSvc { get; set; } = default!;
     [Inject] IJSRuntime JS { get; set; } = default!;
-    private readonly List<RenderFragment> fragments = new();
     private readonly List<string> activeSignatures = new();
-
-    //[Parameter] public int Width { get; set; } = 100;
-    //[Parameter] public int Height { get; set; } = 100;
+    [Parameter] public Document Document { get; set; } = new();
     [Parameter] public string UserId { get; set; } = string.Empty;
     [Parameter] public string DocId { get; set; } = string.Empty;
-    [Parameter] public string FileUrl { get; set; } = string.Empty;
     [Parameter] public EventCallback<int> OnPageChanged { get; set; }
 
     private DotNetObjectReference<DocumentEditor>? _dotRef;
-    private string _containerId = $"pdf_{Guid.NewGuid():N}";
-    private ElementReference pdfCanvas;
-    private ElementReference stageRef;
-    private ElementReference dragRef;
-
+    private string _containerId = $"pdf_{Guid.NewGuid():N}", base64File;
     // private List<ElementReference> references = new();
     private List<DocAttachment> attachments = new();
 
-    private IJSObjectReference? _module;
-    private IJSObjectReference? _dragHandle;
-    private double _upX, _upY, width, height;
     private int divCount = 0;
-    private double maxCanvasWidth = 300, maxCanvasHeight = 500;
+    private double maxCanvasWidth = 300, maxCanvasHeight = 500, uploadProgress;
 
     public int CurrentPage { get; private set; } = 1;
     public int PageCount { get; private set; } = 0;
     public double Scale { get; private set; } = 1;
-    private bool hasInitialized = false, addSignature, addComment, shouldRender;
+    private bool hasInitialized = false, addSignature = false, addComment = false, shouldRender = false;
     private List<string> commentList = new List<string>();
-    [Parameter] public EventCallback<List<DocAttachment>> InitializeAttachments { set; get; }
-    // [Parameter] public EventCallback<BoxRect> OnResizeInit { get; set; }
-    // [Parameter] public EventCallback<BoxRect> OnResizeEndInit { get; set; }
-
-
+    // [Parameter] public EventCallback<List<DocAttachment>> InitializeAttachments { set; get; }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Console.WriteLine($" OnAfterRenderAsync ---------------> {string.IsNullOrEmpty(FileUrl)}");
         if (firstRender)
         {
+            if (!string.IsNullOrEmpty(UserId))
+                await LoadUserInformation();
+
+            if (!string.IsNullOrEmpty(DocId))
+                await LoadDocumentInformation();
+
             Console.WriteLine($"OnAfterRenderAsync =================> 1 ");
             _dotRef = DotNetObjectReference.Create(this);
+
         }
 
         if (hasInitialized == false)
         {
             try
             {
-                if (string.IsNullOrEmpty(FileUrl))
+                if (string.IsNullOrEmpty(base64File))
                     return;
-                var _ = Convert.FromBase64String(FileUrl);
+                var _ = Convert.FromBase64String(base64File);
 
                 // Console.WriteLine($"OnAfterRenderAsync =================> 2 {FileUrl}");
-                var meta = await JS.InvokeAsync<InitResult>("blazorPdf.init", _containerId, FileUrl, _dotRef);
+                var meta = await JS.InvokeAsync<InitResult>("blazorPdf.init", _containerId, base64File, _dotRef);
                 PageCount = meta.pageCount;
                 Console.WriteLine("meta data ====> " + meta.pageCount + " - " + meta.scale + " - " + meta.width + " - " + meta.height);
                 // Scale = meta.scale;
@@ -84,14 +80,14 @@ public partial class DocumentEditor
         }
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        if (!string.IsNullOrEmpty(UserId))
-            await LoadUserInformation();
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     if (!string.IsNullOrEmpty(UserId))
+    //         await LoadUserInformation();
 
-        if (!string.IsNullOrEmpty(DocId))
-            await LoadDocumentInformation();
-    }
+    //     if (!string.IsNullOrEmpty(DocId))
+    //         await LoadDocumentInformation();
+    // }
 
     private async Task LoadUserInformation()
     {
@@ -99,7 +95,33 @@ public partial class DocumentEditor
     }
     private async Task LoadDocumentInformation()
     {
-        var documents = await httpSvc.GetAsync<ApiResponse<List<User>>>($"/api/documents/{DocId}");
+        try
+        {
+            string fileName = $"doc_{DocId}.pdf";
+            Snackbar?.Clear();
+            Snackbar?.Add("Downloading file. Please wait....", Severity.Info);
+            await using var fileStream = File.Create(fileName);
+
+            await foreach (var chunk in httpSvc.DownloadDocumentFileAsync(docId: int.Parse(DocId)))
+                await fileStream.WriteAsync(chunk, 0, chunk.Length);
+
+
+            Snackbar?.Clear();
+            Snackbar?.Add("Downloading complete. Please proceed....", Severity.Info);
+
+            fileStream.Flush();
+            fileStream.Close();
+
+            base64File = Convert.ToBase64String(File.ReadAllBytes(fileName));
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar?.Clear();
+            Snackbar?.Add("Document download failed.", Severity.Error);
+            logger.LogError(ex.Message);
+        }
     }
     // protected override bool ShouldRender()
     // {
@@ -188,7 +210,7 @@ public partial class DocumentEditor
     private async Task AddComment()
     {
         var options = new DialogOptions { CloseOnEscapeKey = true };
-        var dialogReference = await dialogSvc.ShowAsync<TextInputDialog>("Adding Comment", options);
+        var dialogReference = await dialog.ShowAsync<TextInputDialog>("Adding Comment", options);
         var dialogResult = await dialogReference.Result;
         if (dialogResult!.Canceled || dialogResult.Data == null)
             return;
@@ -237,7 +259,7 @@ public partial class DocumentEditor
             [nameof(TextInputDialog.InitialText)] = attachment.Content
         };
         var options = new DialogOptions { CloseOnEscapeKey = true };
-        var dialogRef = await dialogSvc.ShowAsync<TextInputDialog>(
+        var dialogRef = await dialog.ShowAsync<TextInputDialog>(
             "Edit text dialog",          // Dialog header (can be different from Title param)
             parameters,
             options
@@ -323,6 +345,56 @@ public partial class DocumentEditor
     {
         return attachments;
     }
+
+    private async Task UploadFileDocument(IBrowserFile file)
+    {
+        try
+        {
+            var buffer = new byte[4096];
+            long totalBytes = file.Size;
+            long bytesRead = 0;
+            Console.WriteLine($"Starting upload of file: {file.Name}, Size: {totalBytes} bytes");
+            // Create a new progress object to report upload progress
+            var progress = new Progress<double>(percentage =>
+            {
+                // This will be called as the upload progresses
+                uploadProgress = percentage;
+                StateHasChanged();
+            });
+
+            Console.WriteLine($"File size: {file.Size}\n");
+            var stream = file.OpenReadStream(maxAllowedSize: 10485760);
+            using var ms = new MemoryStream();
+            int counter = 0;
+            while (await stream.ReadAsync(buffer) is int read && read > 0)
+            {
+                await ms.WriteAsync(buffer.AsMemory(0, read));
+                bytesRead += read;
+                Console.WriteLine($"Reading bytes {counter}");
+                // Calculate and report progress
+                var percentage = (double)bytesRead / totalBytes * 100;
+
+                // Console.WriteLine($"Upload progress: {percentage}%");
+                ((IProgress<double>)progress).Report(percentage);
+                await Task.Delay(20);
+                counter++;
+            }
+            // await JS.InvokeVoidAsync("resetCanvas", _containerId);
+
+            var fileBytes = ms.ToArray();
+            base64File = Convert.ToBase64String(fileBytes);
+            attachments.Add(new DocAttachment { Content = base64File, Type = AppConstants.AttachmentType.Document });
+            // await JS.InvokeAsync<InitResult>("blazorPdf.init", _containerId, base64File, _dotRef);
+            Console.WriteLine($"string length from uploadfiledocument is {base64File.Length}");
+            StateHasChanged();
+        }
+        catch (Exception ee)
+        {
+            logger!.LogDebug(ee.StackTrace);
+        }
+    }
+
+
     // => OnResizeEndInit.HasDelegate ? OnResizeEndInit.InvokeAsync(new BoxRect(x, y, w, h)) : Task.CompletedTask;
 
 

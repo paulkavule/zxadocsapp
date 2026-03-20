@@ -1,0 +1,137 @@
+﻿@page "/viewdocument"
+@using zxadocsfe.Dtos
+@using zxadocslib.Dtos
+@using zxadocsui.Components.DocWorkflow
+@rendermode InteractiveServer
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <!-- header: app title + simple action (compose) -->
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white/90 backdrop-blur-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+                <i class="fas fa-file text-sm"></i>
+            </div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Upload document</h1>
+        </div>
+    </div>
+    <div class="flex mx-3 p-3 gap-4 " style="font-size:14px; ">
+        <div class="w-[20%] flex flex-col gap-3">
+            <MudForm Model="@document" @bind-IsValid="@success" @bind-Errors="@errors" OnEnterPressed="SubmitDocument"
+                     Class="flex flex-col space-y-3">
+                <MudTextField Label="Title" Placeholder="Title" @bind-Value="@document.Title" Variant="Variant.Outlined"
+                              Required="true" RequiredError="Provide the document title">
+                </MudTextField>
+                <MudTextField Label="Subject" Placeholder="Subject" @bind-Value="document.Subject"
+                              Variant="Variant.Outlined">
+                </MudTextField>
+                <MudSelect T="string" @bind-Value="document.Priority" Label="Priority" Placeholder="Priority"
+                           Variant="Variant.Outlined">
+                    @foreach (var item in priorityList)
+                    {
+                        <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="string" SelectedValues="@(new string[] { document.TypeId + "" })"
+                           ValueChanged="DocTypeChanged" Label="Document Type" Placeholder="Document Type"
+                           Variant="Variant.Outlined">
+                    @foreach (var item in doctypeList)
+                    {
+                        <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="string" SelectedValues="@(new string[] { document.CategoryId + "" })"
+                           ValueChanged="DocCategoryChanged" Label="Document category" Placeholder="Document Category"
+                           Variant="Variant.Outlined">
+                    @foreach (var item in docCatList)
+                    {
+                        <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudAutocomplete T="ListOption" Variant="Variant.Outlined" Label="User" Placeholder="User"
+                                 ValueChanged="OnForwardToChanged" Dense="true" Clearable="true" CoerceText="true"
+                                 ResetValueOnEmptyText="true" SearchFunc="SearchCountries"
+                                 ToStringFunc="@(s => s?.Name ?? string.Empty)">
+                </MudAutocomplete>
+                @if (extraFields?.Count > 0)
+                {
+                    @foreach (var field in extraFields)
+                    {
+                        if (field?.Options?.Count > 0)
+                        {
+                            <MudSelect T="string" SelectedValues="@(new string[] { field.SelectedValue })"
+                                       @bind-Value="field?.SelectedValue" Label=@("Select " + field.FieldName)
+                                       Placeholder="@("Enter" + field?.FieldName)" Variant="Variant.Outlined">
+                                @foreach (var item in field.Options)
+                                {
+                                    <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        }
+                        else
+                        {
+                            <MudTextField Label="@field?.FieldName" @bind-Value="field?.SelectedValue"
+                                          Placeholder="@("Enter" + field?.FieldName)" Variant="Variant.Outlined">
+                            </MudTextField>
+                        }
+                    }
+                }
+                <div class="bg-white rounded-lg shadow divide-y divide-gray-200">
+                    @for (int i = 0; i < workflowList.Count; i++)
+                    {
+                        var item = workflowList[i];
+
+                        <div class="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
+
+                            <div class="text-sm font-medium text-gray-800">
+                                @item.Name
+                            </div>
+
+                            <div class="flex flex-col gap-1">
+
+                                <MudButton Size="Size.Small" Variant="Variant.Text"
+                                           StartIcon="@Icons.Material.Filled.ArrowUpward" Disabled="@(i == 0)"
+                                           OnClick="() => MoveUp(item)" Class="p-0" />
+
+                                <MudButton Size="Size.Small" Variant="Variant.Text"
+                                           StartIcon="@Icons.Material.Filled.ArrowDownward"
+                                           Disabled="@(i == workflowList.Count - 1)" OnClick="() => MoveDown(item)" Class="p-0" />
+
+                            </div>
+
+                        </div>
+                    }
+                </div>
+                @* <div class="border-2 py-2 px-2 border-gray-100 rounded-2xl my-3">
+                    <lable>Upload File</lable>
+                    <MudFileUpload T="IBrowserFile" FilesChanged="@UploadFileDocument">
+                        <ActivatorContent>
+                            <MudIconButton Icon="@Icons.Custom.FileFormats.FilePdf" Color="Color.Error"
+                                           Disabled="@editMode" />
+                            <lable> @fileName</lable>
+                        </ActivatorContent>
+                    </MudFileUpload>
+             
+                    @if (UploadProgress > 0 && UploadProgress < 100)
+                    {
+                        <div class="w-[98%] bg-gray-200 rounded-full h-2.5 mt-0 mx-auto">
+                            <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                                 style="width: @UploadProgress%; height: 10px;">
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-600 mt-1">
+                            Uploading: @UploadProgress.ToString("0.0")%
+                        </div>
+                    }
+                </div> *@
+                <div class="mt-5 text-center">
+                    <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Send" FullWidth="true" style=""
+                               @onclick="SubmitDocument">Send
+                    </MudButton>
+                </div>
+            </MudForm>
+        </div>
+        <div class="flex-1 inset-2 bg-green-50 rounded-2xl p-3 border border-green-100">
+            <DocumentEditor @ref="childRef" DocId=DocId />
+        </div>
+    </div>
+</div>

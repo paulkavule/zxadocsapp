@@ -9,6 +9,11 @@ public record DocAttachment : DocumentAmendment
     public bool StopDragClick { get; set; }
 }
 
+public record DocsWorkflow : DocumentWorkflow
+{
+    public string Name { get; set; } = "";
+}
+
 public record DocUploadResult
 {
     public string Name { get; set; } = string.Empty;

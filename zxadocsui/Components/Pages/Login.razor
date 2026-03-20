@@ -189,13 +189,15 @@
                     </div>
 
                     <!-- login form -->
-                    <form class="space-y-5">
+                    <MudForm @ref="_form" @bind-IsValid="@_formValid" @bind-Errors="@_errors"
+                             OnEnterPressed="@(() => _form.ValidateAsync())" class="space-y-5">
                         <!-- email field -->
                         <div>
                             <label class="block text-sm font-medium text-[#1e4a33] mb-1.5">
                                 <i class="fa-regular fa-envelope mr-1 text-[#5f8b74]"></i> Username
                             </label>
-                            <MudTextField T="string" Variant="Variant.Outlined" Placeholder="pdk@email.com" />
+                            <MudTextField T="string" Variant="Variant.Outlined" Placeholder="pdk@email.com"
+                                          Required="true" RequiredError="User name is required!" @bind-Value="_username" />
                         </div>
 
                         <!-- password field with forgot -->
@@ -208,8 +210,9 @@
                                    class="text-xs text-[#1f7b4d] hover:text-[#0f5a30] font-medium hover:underline transition">Forgot?</a>
                             </div>
                             <div class="relative mt-1">
-                                <MudTextField T="string" Variant="Variant.Outlined" Placeholder="••••••••"
-                                              InputType="InputType.Password" />
+                                <MudTextField T="string" Variant="Variant.Outlined" val Placeholder="••••••••"
+                                              InputType="InputType.Password" Required="true" RequiredError="Passwors is required!"
+                                              @bind-Value="_password" />
 
                             </div>
                         </div>
@@ -217,7 +220,7 @@
                         <!-- remember & 2fa hint (with infographic mini-badge) -->
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
-                                <MudSwitch T="bool" Label="Remember" @bind-Value="rememberPassword"
+                                <MudSwitch T="bool" Label="Remember" @bind-Value="_rememberPassword"
                                            Color="Color.Secondary" />
 
                             </div>
@@ -229,7 +232,8 @@
 
                         <!-- sign in button with zxadocs branding -->
                         <MudButton StartIcon="@Icons.Material.Filled.Login" Variant="Variant.Filled"
-                                   Color="Color.Primary" Class="w-full py-3" @onclick="()=>UserLogin()">
+                                   Disabled="@(!_formValid)" Color="Color.Primary" Class="w-full py-3"
+                                   @onclick="()=>UserLogin()">
                             Login</MudButton>
 
                             <!-- SSO options -->
@@ -253,7 +257,7 @@
                                         <i class="fa-brands fa-microsoft text-[#5f8b74]"></i> Microsoft
                                     </button>
                                 </div>
-                            </form>
+                            </MudForm>
 
                             <!-- signup link with company name -->
                             <p class="text-center text-sm text-[#5f8b74] mt-6">
