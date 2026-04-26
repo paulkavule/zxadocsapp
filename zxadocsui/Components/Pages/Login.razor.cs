@@ -1,4 +1,5 @@
 using System;
+using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
@@ -71,6 +72,18 @@ public partial class Login
 
             await jsSvc!.InvokeVoidAsync("localStorage.setItem", "token", token.Token);
             await jsSvc!.InvokeVoidAsync("localStorage.setItem", "refresh_token", token.RefereshToken);
+
+            var handler = new JwtSecurityTokenHandler();
+            var jwt = handler.ReadJwtToken(token.Token);
+            var claim1 = jwt.Claims.FirstOrDefault(dd => dd.Type == "sub");
+            var claim2 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "userid");
+            var claim3 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "orgid");
+
+            context.Claims.Clear();
+
+            context.Claims.Add("UserName", claim1?.Value ?? "");
+            context.Claims.Add("UserId", claim2?.Value ?? "");
+            context.Claims.Add("OrgId", claim3?.Value ?? "");
 
             navigator?.NavigateTo("/dashboard");
 

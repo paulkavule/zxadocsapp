@@ -6,6 +6,7 @@ namespace zxadocsui.Components.Pages.Dashboard;
 
 public partial class Dashboard
 {
+
     [Inject] IJSRuntime JSRuntime { set; get; } = default;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -22,4 +23,6 @@ public partial class Dashboard
     {
         Console.WriteLine("This is okay");
     }
+
+
 }

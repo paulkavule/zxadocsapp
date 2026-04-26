@@ -1,12 +1,14 @@
 using MudBlazor;
 using MudBlazor.Services;
 using zxadocsfe.Services;
+using zxadocslib.Helpers;
 using zxadocsui.Components;
+using zxadocsui.Srevices;
 using zxadocsui.State;
 using zxadocui.Infrastructure.Http;
 
 var builder = WebApplication.CreateBuilder(args);
-
+EnvHelper.LoadVariables(".env");
 builder.Services.AddMudServices(config =>
 {
     config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.TopRight;
@@ -22,6 +24,7 @@ builder.Services.AddScoped<IHttpService, HttpService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserSession, UserSession>();
 
+builder.Services.AddSingleton<SideDialogService>();
 builder.Services.AddSingleton<AppState>();
 builder.Services.AddSingleton<RequestContext>();
 

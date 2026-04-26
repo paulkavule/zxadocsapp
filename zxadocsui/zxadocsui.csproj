@@ -19,6 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Components/Folders/" />
+    <Folder Include="Components/Shared/" />
+    <Folder Include="Srevices/" />
     <Folder Include="State/" />
   </ItemGroup>
 

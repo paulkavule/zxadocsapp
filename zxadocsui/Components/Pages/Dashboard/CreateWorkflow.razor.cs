@@ -54,7 +54,7 @@ public partial class CreateWorkflow
                 }
                 break;
             case 1:
-                var workflowList = wkflowRef!.WorflowList();
+                workflowList = wkflowRef!.WorflowList();
                 if (workflowList?.Count <= 0)
                 {
                     await DialogService!.ShowMessageBoxAsync("Error", "Please provide the documents worflow");
@@ -133,6 +133,7 @@ public partial class CreateWorkflow
 
             OrganisationId = int.Parse(organisationId),
         }).ToArray();
+        var data = JsonConvert.SerializeObject(document);
         var (status, result, message) = await HttpSvc!.ExecuteRequestAsync<ApiResponse<string>>(HttpVerb.Post, $"api/document", document);
         if (status == false || result?.Data == null)
         {

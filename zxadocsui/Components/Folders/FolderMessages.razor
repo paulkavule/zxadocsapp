@@ -1,0 +1,158 @@
+﻿@using static zxadocsfe.Helpers.AppConstants
+@using zxadocslib.Dtos
+
+<ul class="divide-y divide-slate-200 bg-white border border-slate-200 shadow-sm p-4 rounded-lg">
+
+    @foreach (var document in PagedDocuments)
+    {
+        <li class="px-4 py-3 border border-slate-200 bg-white hover:bg-slate-50 transition hover:cursor-pointer">
+            <div class="flex items-center justify-between gap-4" @onclick="() => OpenDocument(document)">
+
+                <!-- Left Section -->
+                <div class="min-w-0 flex-1">
+
+                    <!-- Top Row -->
+                    <div class="flex items-center gap-2 flex-wrap">
+
+                        <span class="text-sm font-semibold text-slate-900">
+                            #@document.RecordId
+                        </span>
+
+                        <span class="text-xs text-slate-500">
+                            @document.Author?.Name
+                        </span>
+
+                        <!-- Status -->
+                        <span
+                            class="rounded-full px-2 py-0.5 text-[11px] font-semibold
+                            @(document.Status == 1 ? "bg-emerald-100 text-emerald-600"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                  : document.Status == 2 ? "bg-rose-100 text-rose-600"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                  : "bg-amber-100 text-amber-600")">
+                            @(document.Status == 1 ? "Approved"
+                              : document.Status == 2 ? "Rejected"
+                              : "Pending")
+                        </span>
+
+                    </div>
+
+                    <!-- Title -->
+                    <div class="mt-1 text-sm font-medium text-slate-800 truncate">
+                        @document.Title
+                    </div>
+
+                    <!-- Flow -->
+                    <div class="mt-1 text-xs text-slate-500">
+                        @document.FromActor
+                        <span class="mx-1 text-slate-300">→</span>
+                        @document.NextActor
+                    </div>
+
+                </div>
+
+                <!-- Right Section -->
+                <div class="flex flex-col items-end gap-1 shrink-0">
+
+                    <span class="text-xs text-slate-400">
+                        @document.RecieveDate?.ToString("yyyy-MM-dd")
+                    </span>
+
+                    <div class="flex items-center gap-1">
+                        <button
+                            class="h-7 w-7 flex items-center justify-center rounded-full text-slate-400 hover:bg-amber-50 hover:text-amber-500">
+                            <i class="far fa-star"></i>
+                        </button>
+
+                        <button
+                            class="h-7 w-7 flex items-center justify-center rounded-full @(document.Priority == "1" ? "text-red-400" : "text-slate-400 ") hover:bg-rose-50 hover:text-rose-500">
+                            <i class="far fa-flag"></i>
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </li>
+    }
+
+</ul>
+<div class="flex justify-center items-center mt-5">
+    <MudPagination Selected="_currentPage" SelectedChanged="PageChanged" Count="@TotalPages" Class="pa-4" />
+</div>
+
+@code {
+    [Parameter] public List<QueryDto.DocumentQuery> DocList { get; set; } = new();
+    [Parameter] public FolderType FolderType { set; get; }
+    [Inject] public NavigationManager Navigator { set; get; } = default!;
+    private int _currentPage = 1;
+    private int rowsPerPage = 10;
+
+    private IEnumerable<QueryDto.DocumentQuery> PagedDocuments =>
+        DocList
+            .Skip((_currentPage - 1) * rowsPerPage)
+            .Take(rowsPerPage);
+
+    private int TotalPages =>
+        (int)Math.Ceiling(DocList.Count / (double)rowsPerPage);
+    protected override async Task OnInitializedAsync()
+    {
+        @* DocList.AddRange(GenerateDocuments()); *@
+        await Task.CompletedTask;
+    }
+
+    private void OpenDocument(QueryDto.DocumentQuery doc)
+    {
+        Navigator.NavigateTo($"/viewdocument/{doc.RecordId}");
+    }
+    private void PageChanged(int page)
+    {
+        _currentPage = page;
+    }
+
+    private List<QueryDto.DocumentQuery> GenerateDocuments()
+    {
+        var list = new List<QueryDto.DocumentQuery>();
+
+        var authors = new[]
+        {
+        "James K", "Alice M", "John D", "Sarah N", "Peter O",
+        "Grace T", "Michael B", "Linda C", "David S", "Ruth A"
+    };
+
+        var titles = new[]
+        {
+        "IT Policy", "HR Guidelines", "Security Audit", "Finance Report",
+        "Compliance Review", "Procurement Plan", "Risk Assessment",
+        "Training Manual", "Operations Update", "Project Proposal"
+    };
+
+        var statuses = new[] { 0, 1, 2 }; // e.g. Pending, Approved, Rejected
+
+        for (int i = 1; i <= 33; i++)
+        {
+            var authorName = authors[i % authors.Length];
+            var title = titles[i % titles.Length];
+            var status = statuses[i % statuses.Length];
+
+            list.Add(new QueryDto.DocumentQuery
+            {
+                RecordId = i,
+                Author = new QueryDto.UserQuery
+                {
+                    Name = authorName,
+                    Email = $"{authorName.Replace(" ", "").ToLower()}@zxadocs.org",
+                    UserName = authorName.Replace(" ", "").ToLower()
+                },
+                DueDate = DateTime.Today.AddDays(-i),
+                FromActor = $"user{i % 5}",
+                NextActor = $"user{(i + 1) % 5}",
+                LastAction = status == 1 ? "Approved" : status == 2 ? "Rejected" : "Pending",
+                RecieveDate = DateTime.Now.AddDays(-i),
+                Status = status,
+                Title = title
+            });
+        }
+
+        return list;
+    }
+}

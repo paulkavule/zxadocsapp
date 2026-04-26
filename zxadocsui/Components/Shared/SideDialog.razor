@@ -1,0 +1,57 @@
+﻿@using zxadocsui.Srevices
+
+@implements IDisposable
+
+<MudDrawer @bind-Open="_open" Anchor="Anchor.Right" Variant="DrawerVariant.Temporary" Width="@($"{_width}px")">
+
+    <div class="flex justify-between items-center p-3 border-b-2 border-gray-100">
+
+        <div class="text-xl">@_title</div>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="Close" />
+    </div>
+
+    <div class="pa-4">
+        @if (_componentType != null)
+        {
+            <DynamicComponent Type="_componentType" Parameters="_parameters" />
+        }
+    </div>
+</MudDrawer>
+
+@code {
+    private bool _open;
+    private string? _title;
+    private int _width = 420;
+
+    private Type? _componentType;
+    private Dictionary<string, object>? _parameters;
+    [Inject] SideDialogService dialog { set; get; } = default!;
+    protected override void OnInitialized()
+    {
+        dialog.OnShow += Show;
+        dialog.OnClose += Close;
+    }
+
+    private void Show(Type component, Dictionary<string, object>? parameters, string? title, int? width)
+    {
+        _componentType = component;
+        _parameters = parameters;
+        _title = title;
+        _width = width ?? 420;
+        _open = true;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Close()
+    {
+        _open = false;
+        _componentType = null;
+    }
+
+    public void Dispose()
+    {
+        dialog.OnShow -= Show;
+        dialog.OnClose -= Close;
+    }
+}

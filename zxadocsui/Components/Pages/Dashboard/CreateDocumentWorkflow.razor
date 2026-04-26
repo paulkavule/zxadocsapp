@@ -1,0 +1,102 @@
+﻿@page "/workflows"
+
+@using zxadocsfe.Dtos
+
+<div class="flex  justify-between items-center gap-4 mb-3">
+    <div class="flex-1 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <p class="text-sm text-slate-500">Categories</p>
+        <p class="text-2xl font-semibold mt-1">5</p>
+    </div>
+    <div class="flex-1 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <p class="text-sm text-slate-500">Active Workflows</p>
+        <p class="text-2xl font-semibold mt-1">12</p>
+    </div>
+    <div class="flex-1 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <p class="text-sm text-slate-500">Approval Levels</p>
+        <p class="text-2xl font-semibold mt-1">28</p>
+    </div>
+</div>
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h2 class="text-lg font-semibold text-slate-900">Workflow Listing</h2>
+            <p class="text-sm text-slate-500 mt-1">Approval flows grouped by document category.</p>
+        </div>
+        <div class="flex gap-3">
+            <MudSelect T="string" ValueChanged="DocTypeChanged" Label="Document Type" Placeholder="Document Type"
+                       Variant="Variant.Outlined" Required="true" RequiredError="Select the document type">
+                @foreach (var item in doctypeList)
+                {
+                    <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="string" ValueChanged="DocCatChanged" Label="Document category" Placeholder="Document Category"
+                       Variant="Variant.Outlined" Required="true" RequiredError="Select the document category">
+                @foreach (var item in docCatList)
+                {
+                    <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    </div>
+
+    <div class="divide-y divide-slate-200">
+        <!-- Workflow Item -->
+        @if (workflowList?.Count > 0)
+        {
+            <article class="p-5 hover:bg-slate-50">
+                <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <span
+                            class="inline-flex items-center rounded-full bg-indigo-50 text-indigo-700 px-3 py-1 text-xs font-medium">Procurement</span>
+                            <span
+                            class="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-medium">Active</span>
+                        </div>
+                        <h3 class="text-base font-semibold text-slate-900 mt-3">Procurement Approval Flow</h3>
+                        <p class="text-sm text-slate-500 mt-1">Used for purchase requests, supplier documents, and
+                            procurement contracts.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(()=>AddStepToCategory())">Add
+                            </MudButton>
+                            @if (rearranged)
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="@(()=>SaveLevelChanges())">save
+                                </MudButton>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Approval Timeline -->
+                    <div class="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4 overflow-y-auto">
+                        @foreach (var wf in workflowList)
+                        {
+                            <div class="relative rounded-xl border border-slate-200 bg-white p-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-semibold text-blue-400 hover:cursor-pointer"
+                                          @onclick="()=>EditDocWorkflow(wf)">LEVEL
+                                        @wf.Level</span>
+                                        <div class="flex justify-between items-center gap-2">
+                                            <span class="text-sm text-slate-500">@(wf.IsRequired ? "Required":"Optional")</span>
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" />
+                                        </div>
+                                    </div>
+
+                                    <div class="flex justify-between items-center mt-3">
+                                        <p class="font-medium text-slate-900">@wf.RoleName</p>
+                                        <div>
+                                            <button class="p-2 rounded-full bg-gray-600 hover:bg-gray-400"
+                                                    @onclick="() => MoveUp(wf)"><i class="fa fa-angle-left" aria-hidden="true"></i></button>
+                                            <button class="p-2 rounded-full bg-gray-600 hover:bg-gray-400"
+                                                    @onclick="() => MoveDown(wf)"><i class="fa fa-angle-right"
+                                                                                 aria-hidden="true"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            </div>

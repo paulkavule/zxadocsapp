@@ -138,8 +138,6 @@ function getTargetBtnsHeight(target) {
 }
 
 function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
-  // options: { x, y, w, h, minW, minH, maxW, maxH, keepAspect, contain }
-
   const state = {
     x: options.x ?? 40,
     y: options.y ?? 40,
@@ -153,112 +151,129 @@ function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
     contain: !!options.contain,
     aspect: null,
     pointerId: null,
-    active: null, // which handle?
+    active: null,
     startX: 0,
     startY: 0,
     startBox: null,
     raf: 0,
   };
 
-  if (state.keepAspect) state.aspect = state.w / state.h;
+  if (state.keepAspect) {
+    state.aspect = state.w / state.h;
+  }
 
-  // Apply initial box style
   function applyStyle() {
-    if (targetEl === undefined || targetEl == null) return;
-    targetEl.style.transform = `translate(${Math.round(
-      state.x,
-    )}px, ${Math.round(state.y)}px)`;
+    if (!targetEl) return;
+
+    targetEl.style.transform = `translate(${Math.round(state.x)}px, ${Math.round(state.y)}px)`;
     targetEl.style.width = `${Math.round(state.w)}px`;
     targetEl.style.height = `${Math.round(state.h)}px`;
   }
-  applyStyle();
 
   function clampBox(nx, ny, nw, nh) {
-    // min/max
     nw = Math.max(state.minW, Math.min(nw, state.maxW));
     nh = Math.max(state.minH, Math.min(nh, state.maxH));
 
     if (state.contain && stageEl) {
       const s = stageEl.getBoundingClientRect();
-      // Keep fully in stage bounds
       nx = Math.max(0, Math.min(nx, s.width - nw));
       ny = Math.max(0, Math.min(ny, s.height - nh));
     }
+
     return { x: nx, y: ny, w: nw, h: nh };
   }
 
   function setBox(nx, ny, nw, nh) {
     const c = clampBox(nx, ny, nw, nh);
+
     state.x = c.x;
     state.y = c.y;
     state.w = c.w;
     state.h = c.h;
+
     if (!state.raf) {
       state.raf = requestAnimationFrame(() => {
         state.raf = 0;
         applyStyle();
-        // if (dotNetRef) {
-        //   dotNetRef
-        //     .invokeMethodAsync("OnResize", state.x, state.y, state.w, state.h)
-        //     .catch(() => {});
-        // }
       });
     }
   }
 
   function onPointerDown(e) {
-    const handle = e.currentTarget.dataset.handle; // "n","s","e","w","ne","nw","se","sw"
+    const handle = e.currentTarget.dataset.handle;
     if (!handle) return;
+
+    // Resize ONLY when left mouse button is pressed.
+    // Hovering or moving over handles does nothing.
     if (e.pointerType === "mouse" && e.button !== 0) return;
+
     e.preventDefault();
-    e.stopPropagation(); // IMPORTANT: prevents drag pointerdown from firing
+    e.stopPropagation();
 
     state.pointerId = e.pointerId;
-    e.currentTarget.setPointerCapture(state.pointerId);
     state.active = handle;
     state.startX = e.clientX;
     state.startY = e.clientY;
-    state.startBox = { x: state.x, y: state.y, w: state.w, h: state.h };
+    state.startBox = {
+      x: state.x,
+      y: state.y,
+      w: state.w,
+      h: state.h,
+    };
+
+    e.currentTarget.setPointerCapture(e.pointerId);
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
   }
 
   function onPointerMove(e) {
+    // No resizing unless pointerdown started from a handle.
     if (state.pointerId === null || e.pointerId !== state.pointerId) return;
+    if (!state.startBox || !state.active) return;
+
+    e.preventDefault();
+
     const dx = e.clientX - state.startX;
     const dy = e.clientY - state.startY;
 
     let { x, y, w, h } = state.startBox;
     const hnd = state.active;
 
-    // Horizontal adjustments
-    if (hnd.includes("e")) w = state.startBox.w + dx;
+    if (hnd.includes("e")) {
+      w = state.startBox.w + dx;
+    }
+
     if (hnd.includes("w")) {
       w = state.startBox.w - dx;
       x = state.startBox.x + dx;
     }
 
-    // Vertical adjustments
-    if (hnd.includes("s")) h = state.startBox.h + dy;
+    if (hnd.includes("s")) {
+      h = state.startBox.h + dy;
+    }
+
     if (hnd.includes("n")) {
       h = state.startBox.h - dy;
       y = state.startBox.y + dy;
     }
 
     if (state.keepAspect && state.aspect) {
-      // Adjust to maintain aspect; preference to the axis with larger change
-      const viaWidthH = w / state.aspect; // height implied by width
-      const viaHeightW = h * state.aspect; // width implied by height
+      const viaWidthH = w / state.aspect;
+      const viaHeightW = h * state.aspect;
 
       if (Math.abs(dx) > Math.abs(dy)) {
-        // lock height from width
-        let nh = viaWidthH;
-        // If resizing from N, shift y to keep bottom anchored
-        if (hnd.includes("n")) y = state.startBox.y + (state.startBox.h - nh);
+        const nh = viaWidthH;
+        if (hnd.includes("n")) {
+          y = state.startBox.y + (state.startBox.h - nh);
+        }
         h = nh;
       } else {
-        // lock width from height
-        let nw = viaHeightW;
-        // If resizing from W, shift x to keep right anchored
-        if (hnd.includes("w")) x = state.startBox.x + (state.startBox.w - nw);
+        const nw = viaHeightW;
+        if (hnd.includes("w")) {
+          x = state.startBox.x + (state.startBox.w - nw);
+        }
         w = nw;
       }
     }
@@ -267,31 +282,29 @@ function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
   }
 
   function onPointerUp(e) {
-    if (e.pointerId !== state.pointerId) return;
-    const s = stageRect();
-    e.currentTarget.releasePointerCapture(state.pointerId);
+    if (state.pointerId === null || e.pointerId !== state.pointerId) return;
+
+    e.preventDefault();
+
     state.pointerId = null;
     state.active = null;
     state.startBox = null;
+
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("pointercancel", onPointerUp);
+
     if (dotNetRef) {
-      console.log(
-        "The positioning is x:" +
-          state.x +
-          " y:" +
-          state.y +
-          " w:" +
-          state.w +
-          " h:" +
-          state.h,
-      );
+      const s = stageEl.getBoundingClientRect();
+
       dotNetRef
         .invokeMethodAsync(
           "OnResizeEnd",
           targetEl.id,
           state.x,
-          state.y, // adjust for btns height
+          state.y,
           state.w,
-          state.h, // adjust for btns height
+          state.h,
           s.width,
           s.height,
         )
@@ -299,15 +312,17 @@ function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
     }
   }
 
-  // Attach listeners to all handles inside targetEl
+  applyStyle();
+
   const handles = targetEl.querySelectorAll("[data-handle]");
+
   handles.forEach((h) => {
     h.addEventListener("pointerdown", onPointerDown);
-    h.addEventListener("pointermove", onPointerMove);
-    h.addEventListener("pointerup", onPointerUp);
+
+    // Optional: cursor only. No resizing happens on hover.
+    h.style.touchAction = "none";
   });
 
-  // Public API
   return {
     setBox(x, y, w, h) {
       setBox(x, y, w, h);
@@ -318,9 +333,11 @@ function initResizable(stageEl, targetEl, options = {}, dotNetRef) {
     dispose() {
       handles.forEach((h) => {
         h.removeEventListener("pointerdown", onPointerDown);
-        h.removeEventListener("pointermove", onPointerMove);
-        h.removeEventListener("pointerup", onPointerUp);
       });
+
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
     },
   };
 }

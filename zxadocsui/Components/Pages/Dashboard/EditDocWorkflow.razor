@@ -1,0 +1,70 @@
+﻿@using zxadocsfe.Dtos
+@using zxadocsfe.Services
+@using zxadocslib.Dtos
+@using zxadocsui.Srevices
+@using zxadocsui.State
+
+<MudSelect T="int" @bind-Value="Work.RoleId" Label="User Role" Placeholder="Select role" Variant="Variant.Outlined">
+    @foreach (var item in userRoles)
+    {
+        <MudSelectItem T="int" Value="@item.Id">@item.RoleName</MudSelectItem>
+    }
+</MudSelect>
+<MudSwitch @bind-Value="isRequired" Color="Color.Primary" />
+
+<MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium" FullWidth="true"
+           OnClick="@(()=>OkayClicked())" class="mt-3"> Save
+</MudButton>
+@code {
+
+    [Inject] ISnackbar Snackbar { set; get; } = default!;
+    [Inject] ILogger<CreateDocumentWorkflow> logger { set; get; } = default!;
+    [Inject] SideDialogService sideDialog { set; get; } = default!;
+    [Inject] IHttpService httpSvc { get; set; } = default!;
+    [Inject] RequestContext? context { set; get; }
+    [Parameter] public WorkFlow Work { set; get; } = new();
+    private List<UserRole> userRoles = new();
+    string orgId = "";
+    bool isRequired = false;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            orgId = context?.Claims["OrgId"] ?? "0";
+            isRequired = Work.IsRequired;
+            await loadUserRoles();
+        }
+        catch (Exception ee)
+        {
+            logger!.LogError(ee, ee.Message);
+        }
+    }
+
+    private async Task loadUserRoles()
+    {
+        try
+        {
+
+            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<UserRole>>>($"api/userroles/{orgId}");
+            if (status == false || result?.Data == null) return;
+
+            userRoles = result.Data;
+
+            userRoles.Insert(0, new UserRole { Id = 0, RoleName = "Select" });
+        }
+        catch (Exception ex)
+        {
+            logger!.LogDebug(ex.Message);
+        }
+    }
+
+    void OkayClicked()
+    {
+        var role = userRoles.FirstOrDefault(ur => ur.Id == Work.RoleId);
+        Work.IsRequired = isRequired;
+        Work.RoleName = role?.RoleName ?? "";
+        sideDialog.Close(Work);
+    }
+
+
+}

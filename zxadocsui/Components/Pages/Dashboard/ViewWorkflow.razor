@@ -1,4 +1,4 @@
-﻿@page "/viewdocument"
+﻿@page "/viewdocument/{DocId?}"
 @using zxadocsfe.Dtos
 @using zxadocslib.Dtos
 @using zxadocsui.Components.DocWorkflow
@@ -131,7 +131,7 @@
             </MudForm>
         </div>
         <div class="flex-1 inset-2 bg-green-50 rounded-2xl p-3 border border-green-100">
-            <DocumentEditor @ref="childRef" DocId=DocId />
+            <DocumentEditor @ref="childRef" DocId="@DocId" />
         </div>
     </div>
 </div>

@@ -20,7 +20,7 @@ public partial class ViewWorkflow
     [Inject] private RequestContext userContext { get; set; } = default!;
     [Parameter] public string DocId { set; get; } = string.Empty;
     private DocumentEditor? childRef;
-    string fileBase64 = string.Empty, docType = string.Empty, userId = string.Empty, fileName = "File Name", docRef = string.Empty, organisationId = string.Empty;
+    string fileBase64 = string.Empty, docType = string.Empty, userName = string.Empty, userId = string.Empty, fileName = "File Name", docRef = string.Empty, organisationId = string.Empty;
     private double UploadProgress { get; set; }
 
     private List<ListOption> priorityList = new(), doctypeList = new(), docCatList = new(), usersList = new(), workflowList = new();
@@ -37,27 +37,22 @@ public partial class ViewWorkflow
     // string[] errors = { };
     protected override async Task OnInitializedAsync()
     {
+        userName = userContext.Claims?["UserName"] ?? "0";
         userId = userContext.Claims?["UserId"] ?? "0";
         organisationId = "1";
         httpSvc!.Initialize(AppConstants.HttpSchemes.Core);
 
-        if (string.IsNullOrWhiteSpace(DocId) == false)
-        {
-            editMode = true;
-            await FetchDocumentDetails(DocId);
-        }
-        workflowList = new List<ListOption>
-        {
-            new ListOption { Id = 1, Name = "First Name"},
-            new ListOption { Id = 1, Name = "Second Name"},
-            new ListOption { Id = 1, Name = "Third Name"},
-        };
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            if (string.IsNullOrWhiteSpace(DocId) == false)
+            {
+                editMode = true;
+                await FetchDocumentDetails(DocId);
+            }
             await loadPriorities();
             await loadDocumentTypes();
             StateHasChanged();

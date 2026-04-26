@@ -9,7 +9,13 @@ public class AppConstants
         TOKEN,
         REFRESH_TOKEN
     }
-
+    public enum FolderType
+    {
+        Inbox,
+        Outbox,
+        Archive,
+        Delete
+    }
     public record HttpSchemes
     {
         public const string Core = "Api";
