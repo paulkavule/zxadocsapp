@@ -1,6 +1,7 @@
 ﻿@page "/viewdocument/{DocId?}"
 @using zxadocsfe.Dtos
 @using zxadocslib.Dtos
+@using zxadocslib.Helpers
 @using zxadocsui.Components.DocWorkflow
 @rendermode InteractiveServer
 
@@ -47,11 +48,15 @@
                         <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
                     }
                 </MudSelect>
-                <MudAutocomplete T="ListOption" Variant="Variant.Outlined" Label="User" Placeholder="User"
-                                 ValueChanged="OnForwardToChanged" Dense="true" Clearable="true" CoerceText="true"
-                                 ResetValueOnEmptyText="true" SearchFunc="SearchCountries"
-                                 ToStringFunc="@(s => s?.Name ?? string.Empty)">
-                </MudAutocomplete>
+                @if (docWorkflowList.Count <= 0)
+                {
+                    <MudAutocomplete T="ListOption" Variant="Variant.Outlined" Label="User" Placeholder="User"
+                                     ValueChanged="OnForwardToChanged" Dense="true" Clearable="true" CoerceText="true"
+                                     ResetValueOnEmptyText="true" SearchFunc="SearchCountries"
+                                     ToStringFunc="@(s => s?.Name ?? string.Empty)">
+
+                    </MudAutocomplete>
+                }
                 @if (extraFields?.Count > 0)
                 {
                     @foreach (var field in extraFields)
@@ -124,9 +129,17 @@
                     }
                 </div> *@
                 <div class="mt-5 text-center">
-                    <MudButton Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.Send" FullWidth="true" style=""
-                               @onclick="SubmitDocument">Send
-                    </MudButton>
+
+                    <MudButtonGroup Color="Color.Primary" Variant="Variant.Filled" Class="w-full">
+                        <MudButton Class="w-full" OnClick="() => SubmitDocument()">@approvalStatus.Name</MudButton>
+                        <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown" Style="align-self: auto;">
+                            @foreach (var stat in docStatusList)
+                            {
+                                <MudMenuItem OnClick="() => ApprovalActionSelected(stat)">@stat.Name
+                                </MudMenuItem>
+                            }
+                        </MudMenu>
+                    </MudButtonGroup>
                 </div>
             </MudForm>
         </div>

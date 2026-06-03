@@ -1,5 +1,7 @@
+@using zxadocsfe.Dtos
 @using zxadocsui.Components.Shared
 @using zxadocsui.Helpers
+@using zxadocsui.State
 @inherits LayoutComponentBase
 
 <MudThemeProvider Theme="@ThemeProvider.GeneralTheme" />
@@ -143,13 +145,16 @@
                         <div class="border-t border-[#d4ead5] p-5 shrink-0">
                             <div class="flex items-center space-x-3">
                                 <span
-                                class="w-10 h-10 rounded-full bg-[#cbeace] flex items-center justify-center text-[#1f7b4d] font-semibold text-lg shrink-0">JD</span>
+                                class="w-10 h-10 rounded-full bg-[#cbeace] flex items-center justify-center text-[#1f7b4d] font-semibold text-lg shrink-0">@userData.FullName.GetInitials()</span>
                                 <div class="flex-1 min-w-0 sidebar-user-info">
-                                    <p class="text-sm font-semibold text-[#195d3a] truncate">Jessie Du</p>
-                                    <p class="text-xs text-[#5f8b74] truncate">j.du@zxadocs</p>
+                                    <p class="text-sm font-semibold text-[#195d3a] truncate">@userData.FullName</p>
+                                    <p class="text-xs text-[#5f8b74] truncate">@userData.RoleName</p>
                                 </div>
-                                <i
-                                class="fa-solid fa-ellipsis-vertical text-[#8bb89b] hover:text-[#1f7b4d] cursor-pointer shrink-0"></i>
+                                <MudMenu Icon="@Icons.Material.Filled.MoreVert" AriaLabel="Open user menu">
+                                    <MudMenuItem Label="Profile" />
+                                    <MudMenuItem Label="My account" />
+                                    <MudMenuItem Label="Logout" OnClick="@(() => LogOut())" />
+                                </MudMenu>
                             </div>
                         </div>
                     </aside>
@@ -201,3 +206,23 @@
                 </div>
                 <SideDialog />
             </div>
+
+
+@code {
+    [Inject] public IUserSession session { set; get; } = default!;
+    UserData userData = new();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            userData = await session.GetCurrentUser();
+            StateHasChanged();
+        }
+    }
+
+    async Task LogOut()
+    {
+        await session.SignOut();
+
+    }
+}

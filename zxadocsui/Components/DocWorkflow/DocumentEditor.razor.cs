@@ -28,6 +28,7 @@ public partial class DocumentEditor
 
     private DotNetObjectReference<DocumentEditor>? _dotRef;
     private string _containerId = $"pdf_{Guid.NewGuid():N}", base64File;
+    private string signatureUrl = string.Empty;
     // private List<ElementReference> references = new();
     private List<DocAttachment> attachments = new();
 
@@ -37,6 +38,7 @@ public partial class DocumentEditor
     public int CurrentPage { get; private set; } = 1;
     public int PageCount { get; private set; } = 0;
     public double Scale { get; private set; } = 1;
+    private bool documentEdited = false;
     private bool hasInitialized = false, addSignature = false, addComment = false, shouldRender = false;
     private List<string> commentList = new List<string>();
     // [Parameter] public EventCallback<List<DocAttachment>> InitializeAttachments { set; get; }
@@ -92,12 +94,17 @@ public partial class DocumentEditor
     private async Task LoadUserInformation()
     {
         var user = await httpSvc.GetAsync<ApiResponse<List<User>>>($"/api/users/{UserId}");
+        signatureUrl = user.data?.Data?.FirstOrDefault()?.Signature ?? string.Empty;
     }
     private async Task LoadDocumentInformation()
     {
         try
         {
             string fileName = $"doc_{DocId}.pdf";
+
+            var fullpath = Path.GetFullPath(fileName);
+            logger!.LogInformation("********* Going to render full ************ " + fullpath);
+            Console.WriteLine("********* Going to render full ************ " + fullpath);
             Snackbar?.Clear();
             Snackbar?.Add("Downloading file. Please wait....", Severity.Info);
             await using var fileStream = File.Create(fileName);
@@ -344,6 +351,11 @@ public partial class DocumentEditor
     public List<DocAttachment> GetAttchments()
     {
         return attachments;
+    }
+
+    public bool GetDocumentEditStatus()
+    {
+        return documentEdited;
     }
 
     private async Task UploadFileDocument(IBrowserFile file)

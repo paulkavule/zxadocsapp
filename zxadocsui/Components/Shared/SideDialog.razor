@@ -2,7 +2,8 @@
 
 @implements IDisposable
 
-<MudDrawer @bind-Open="_open" Anchor="Anchor.Right" Variant="DrawerVariant.Temporary" Width="@($"{_width}px")">
+<MudDrawer @bind-Open="_open" Anchor="Anchor.Right" Variant="DrawerVariant.Temporary" Width="@($"{_width}px")"
+           Class="z-20">
 
     <div class="flex justify-between items-center p-3 border-b-2 border-gray-100">
 
@@ -23,6 +24,8 @@
     private string? _title;
     private int _width = 420;
 
+    Anchor _anchor = Anchor.Right;
+
     private Type? _componentType;
     private Dictionary<string, object>? _parameters;
     [Inject] SideDialogService dialog { set; get; } = default!;
@@ -32,14 +35,14 @@
         dialog.OnClose += Close;
     }
 
-    private void Show(Type component, Dictionary<string, object>? parameters, string? title, int? width)
+    private void Show(Type component, Dictionary<string, object>? parameters, string? title, int? width, Anchor? anchor)
     {
         _componentType = component;
         _parameters = parameters;
         _title = title;
         _width = width ?? 420;
         _open = true;
-
+        _anchor = anchor ?? Anchor.Right;
         InvokeAsync(StateHasChanged);
     }
 

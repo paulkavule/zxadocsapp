@@ -10,7 +10,7 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.10" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <PackageReference Include="pkavule.zxadocslib" Version="1.1.11" />
+    <PackageReference Include="pkavule.zxadocslib" Version="1.1.19" />
   </ItemGroup>
 
 </Project>

@@ -1,9 +1,12 @@
 using System;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
+using zxadocslib.Helpers;
+using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard;
 
@@ -13,9 +16,12 @@ public partial class Documents
     [Inject] IHttpService? HttpSvc { get; set; } = default!;
     [Inject] IDialogService? DialogService { get; set; }
     [Inject] ISnackbar? Snackbar { get; set; }
+    [Inject] IUserSession? Session { get; set; }
+
     [Inject] NavigationManager Navigator { set; get; } = default!;
-    List<QueryDto.DocumentQuery> inboxList = new(), outboxList = new(), archievedList = new(), deletedList = new();
-    string userName = "pkavule";
+    List<QueryDto.DocumentQuery> inboxList = new(), outboxList = new(), archievedList = new(), deletedList = new(), draftList = new();
+
+    UserData userData = new();
     protected override Task OnInitializedAsync()
     {
         return base.OnInitializedAsync();
@@ -25,9 +31,9 @@ public partial class Documents
     {
         if (firstRender)
         {
+            userData = await Session!.GetCurrentUser();
             HttpSvc?.Initialize(AppConstants.HttpSchemes.Core);
-            await LoadDocuments(0);
-
+            await LoadDocuments(DocStatus.Published);
             StateHasChanged();
         }
     }
@@ -36,32 +42,59 @@ public partial class Documents
         Navigator.NavigateTo("/newdocument");
     }
 
-    private async Task LoadDocuments(int inboxId)
+    private async Task LoadDocuments(DocStatus folder)
     {
-        var (status, result, message) = await HttpSvc!.GetAsync<ApiResponse<List<QueryDto.DocumentQuery>>>($"/api/documents/dashboard/{inboxId}?userName={userName}&pageNumber=1&pageSize=100");
-        if (status == false)
-            return;
-        if (!status || result == null || result.Data.Count <= 0)
-            return;
-
-        switch (inboxId)
+        try
         {
-            case 0:
-                inboxList = result.Data;
-                break;
+            var (status, result, message) = await HttpSvc!.GetAsync<ApiResponse<List<QueryDto.DocumentQuery>>>($"/api/documents/dashboard?id={(int)folder}&userName={userData.UserId}&pageNumber=1&pageSize=100");
+            if (status == false)
+                return;
+            if (!status || result == null || result.Data.Count <= 0)
+                return;
+            switch (folder)
+            {
+                case DocStatus.Published:
+                    inboxList = result.Data.Where(doc => doc.NextActor == userData.UserId && doc.Status != DocStatus.Archived).ToList();
+                    break;
+                case DocStatus.Archived:
+                    archievedList = result.Data.Where(doc => doc.NextActor != userData.UserId && doc.Status == DocStatus.Archived).ToList();
+                    break;
+                case DocStatus.Outbox:
+                    archievedList = result.Data.Where(doc => doc.Author.Id == int.Parse(userData.UserId)).ToList();
+                    break;
+                case DocStatus.Deleted:
+                    deletedList = result.Data.Where(doc => doc.Status == DocStatus.Deleted).ToList();
+                    break;
+                case DocStatus.Draft:
+                    draftList = result.Data.Where(doc => doc.Status == DocStatus.Draft).ToList();
+                    break;
+            }
 
-            case 1:
-                outboxList = result.Data;
-                break;
-            case 2:
-                archievedList = result.Data;
-                break;
-            case 3:
-                deletedList = result.Data;
-                break;
+            // outboxList = result.Data.Where(doc => doc.Status == (int)DocStatus.Outbox).ToList();
+
+            // deletedList = result.Data.Where(doc => doc.Status == (int)DocStatus.Deleted).ToList();
+
+            Console.WriteLine("Access Token: " + result.Data.Count);
         }
-        Console.WriteLine("Access Token: " + result.Data.Count);
+        catch (Exception ee)
+        {
+            Snackbar!.Clear();
+            Snackbar.Add($"Faile to load documents {ee.Message}", Severity.Error);
+        }
     }
 
-    async Task IndexChanged(int page) => await LoadDocuments(page);
+    async Task IndexChanged(int page)
+    {
+
+        DocStatus folder = DocStatus.Published;
+        if (page == 1)
+            folder = DocStatus.Outbox;
+        else if (page == 2)
+            folder = DocStatus.Archived;
+        else if (page == 3)
+            folder = DocStatus.Deleted;
+
+        await LoadDocuments(folder);
+
+    }
 }

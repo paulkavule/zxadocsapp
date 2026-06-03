@@ -17,7 +17,7 @@ public partial class CreateDocumentWorkflow
     [Inject] ILogger<CreateDocumentWorkflow> logger { set; get; } = default!;
     [Inject] IDialogService dialog { set; get; } = default!;
     [Inject] SideDialogService sideDialog { get; set; } = default!;
-    [Inject] RequestContext? context { set; get; }
+    [Inject] IUserSession? session { set; get; }
     [Inject] IHttpService httpSvc { get; set; } = default!;
     private List<ListOption> doctypeList = new(), docCatList = new();
     List<WorkFlow> workflowList = new();
@@ -30,9 +30,10 @@ public partial class CreateDocumentWorkflow
         {
             if (firstRender)
             {
+                var userData = await session!.GetCurrentUser();
                 httpSvc.Initialize(AppConstants.HttpSchemes.Core);
-                int.TryParse(context?.Claims["OrgId"], out orgId);
-                string _userId = context?.Claims["UserId"] ?? "";
+                int.TryParse(userData.OrgId, out orgId);
+                string _userId = userData.UserId ?? "";
                 userid = DataEncryptor.Decrypt(_userId);
                 await loadDocumentTypes();
             }

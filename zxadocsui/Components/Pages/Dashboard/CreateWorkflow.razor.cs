@@ -7,6 +7,7 @@ using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocsui.Components.DocWorkflow;
+using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard;
 
@@ -15,6 +16,7 @@ public partial class CreateWorkflow
     [Inject] ILogger<CreateWorkflow>? Logger { get; set; } = default!;
     [Inject] IHttpService? HttpSvc { get; set; } = default!;
     [Inject] IDialogService? DialogService { get; set; }
+    [Inject] IUserSession? Session { get; set; }
     [Inject] ISnackbar? Snackbar { get; set; }
     [Inject] NavigationManager? Navigator { get; set; }
     private DocumentsWorkflow? wkflowRef;
@@ -24,8 +26,15 @@ public partial class CreateWorkflow
     private List<DocAttachment> attachmentList = new();
     private List<DocCategoryField> extraFields = new();
     Document document = new();
-    string userId = "1", organisationId = "0";
+    UserData userData = new();
     bool validForm;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            userData = await Session!.GetCurrentUser();
+        }
+    }
     private async Task OnPreviewInteraction(StepperInteractionEventArgs arg)
     {
         if (arg.Action == StepAction.Complete)
@@ -86,8 +95,8 @@ public partial class CreateWorkflow
             PositionY = dd.PositionY,
             Page = dd.Page - 1,
             Type = dd.Type,
-            CreatedBy = int.Parse(userId),
-            OrganisationId = int.Parse(organisationId),
+            CreatedBy = int.Parse(userData.UserId),
+            OrganisationId = int.Parse(userData.OrgId),
         }).ToArray();
         string jsonrequest = JsonConvert.SerializeObject(docAttachments);
         var (status, result, message) = await HttpSvc!.ExecuteRequestAsync<ApiResponse<string>>(HttpVerb.Post, $"api/documents/sign/{document.Id}/{document.NextActor}", docAttachments);
@@ -114,7 +123,8 @@ public partial class CreateWorkflow
             Snackbar!.Add(uploadResult, Severity.Error);
             return false;
         }
-        document.AuthorId = int.Parse(userId);
+        document.AuthorId = int.Parse(userData.UserId);
+        document.NextActor = workflowList[0].ActorId + "";
         document.DocumentReference = docRef;
         document.Path = uploadResult;
         document.Workflows = workflowList.Select(fl => new DocumentWorkflow { ActorId = fl.ActorId, IsFinal = fl.IsFinal, Level = fl.Level, WorkflowType = fl.WorkflowType }).ToArray();
@@ -130,8 +140,7 @@ public partial class CreateWorkflow
             PositionY = dd.PositionY,
             Page = dd.Page - 1,
             Type = dd.Type,
-
-            OrganisationId = int.Parse(organisationId),
+            OrganisationId = int.Parse(userData.OrgId),
         }).ToArray();
         var data = JsonConvert.SerializeObject(document);
         var (status, result, message) = await HttpSvc!.ExecuteRequestAsync<ApiResponse<string>>(HttpVerb.Post, $"api/document", document);
@@ -148,14 +157,14 @@ public partial class CreateWorkflow
     {
         try
         {
-            string fileName = $"{userId}_{Guid.NewGuid().ToString().Replace("-", "")}.pdf";
+            string fileName = $"{userData.UserId}_{Guid.NewGuid().ToString().Replace("-", "")}.pdf";
             var attachmentDoc = attachmentList.FirstOrDefault(dd => dd.Type == AppConstants.AttachmentType.Document);
             if (attachmentDoc == null)
                 return (false, "Couldn't proceed with the upload");
 
             var fileBytes = Convert.FromBase64String(attachmentDoc.Content);
             Logger!.LogDebug("Proceeding to send to the server");
-            var (status, result, message) = await HttpSvc!.UploadDocumentAsync<DocUploadResult>($"api/upload", fileBytes, userId, _docRef, fileName, $"store_{document.TypeId}");
+            var (status, result, message) = await HttpSvc!.UploadDocumentAsync<DocUploadResult>($"api/upload", fileBytes, userData.UserId, _docRef, fileName, $"store_{document.TypeId}");
             if (status == false || result?.Name == null)
             {
                 Snackbar!.Clear();

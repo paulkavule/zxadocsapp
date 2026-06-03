@@ -16,6 +16,17 @@ public class AppConstants
         Archive,
         Delete
     }
+
+    public enum SessionVariable
+    {
+        CurrentUser
+    }
+
+    public record SessionVariables
+    {
+        public const string TOKEN = "UserToken";
+        public const string REFRESH_TOKEN = "RefereshToken";
+    }
     public record HttpSchemes
     {
         public const string Core = "Api";

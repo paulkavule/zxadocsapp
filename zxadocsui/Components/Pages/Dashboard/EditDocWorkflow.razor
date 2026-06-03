@@ -7,7 +7,7 @@
 <MudSelect T="int" @bind-Value="Work.RoleId" Label="User Role" Placeholder="Select role" Variant="Variant.Outlined">
     @foreach (var item in userRoles)
     {
-        <MudSelectItem T="int" Value="@item.Id">@item.RoleName</MudSelectItem>
+        <MudSelectItem T="int" Value="@item.RoleId">@item.RoleName</MudSelectItem>
     }
 </MudSelect>
 <MudSwitch @bind-Value="isRequired" Color="Color.Primary" />
@@ -21,16 +21,20 @@
     [Inject] ILogger<CreateDocumentWorkflow> logger { set; get; } = default!;
     [Inject] SideDialogService sideDialog { set; get; } = default!;
     [Inject] IHttpService httpSvc { get; set; } = default!;
-    [Inject] RequestContext? context { set; get; }
+    [Inject] IUserSession session { set; get; } = default!;
     [Parameter] public WorkFlow Work { set; get; } = new();
     private List<UserRole> userRoles = new();
-    string orgId = "";
+    UserData? userData = default!;
     bool isRequired = false;
-    protected override async Task OnInitializedAsync()
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         try
         {
-            orgId = context?.Claims["OrgId"] ?? "0";
+            if (!firstRender)
+                return;
+            userData = await session.GetCurrentUser();
+
             isRequired = Work.IsRequired;
             await loadUserRoles();
         }
@@ -38,6 +42,7 @@
         {
             logger!.LogError(ee, ee.Message);
         }
+
     }
 
     private async Task loadUserRoles()
@@ -45,12 +50,13 @@
         try
         {
 
-            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<UserRole>>>($"api/userroles/{orgId}");
+            var (status, result, message) = await
+httpSvc!.GetAsync<ApiResponse<List<UserRole>>>($"api/userroles/{userData?.OrgId}");
             if (status == false || result?.Data == null) return;
 
             userRoles = result.Data;
 
-            userRoles.Insert(0, new UserRole { Id = 0, RoleName = "Select" });
+            userRoles.Insert(0, new UserRole { RoleId = 0, RoleName = "Select" });
         }
         catch (Exception ex)
         {
@@ -60,7 +66,7 @@
 
     void OkayClicked()
     {
-        var role = userRoles.FirstOrDefault(ur => ur.Id == Work.RoleId);
+        var role = userRoles.FirstOrDefault(ur => ur.RoleId == Work.RoleId);
         Work.IsRequired = isRequired;
         Work.RoleName = role?.RoleName ?? "";
         sideDialog.Close(Work);

@@ -24,11 +24,11 @@ builder.Services.AddScoped<IHttpService, HttpService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserSession, UserSession>();
 
-builder.Services.AddSingleton<SideDialogService>();
-builder.Services.AddSingleton<AppState>();
-builder.Services.AddSingleton<RequestContext>();
+builder.Services.AddScoped<SideDialogService>();
+builder.Services.AddScoped<AppState>();
+builder.Services.AddScoped<RequestsContext>();
 
-builder.Services.AddTransient<HttpCoreIntercetpor>();
+builder.Services.AddScoped<HttpCoreIntercetpor>();
 
 builder.Services.AddHttpClient("Api", conf =>
 {

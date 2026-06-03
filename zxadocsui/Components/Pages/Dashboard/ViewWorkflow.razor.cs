@@ -6,6 +6,7 @@ using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
+using zxadocslib.Helpers;
 using zxadocsui.Components.DocWorkflow;
 using zxadocsui.State;
 
@@ -17,18 +18,21 @@ public partial class ViewWorkflow
     [Inject] ILogger<ViewWorkflow>? logger { set; get; }
     [Inject] private IHttpService httpSvc { get; set; } = default!;
     [Inject] private NavigationManager navManager { get; set; } = default!;
-    [Inject] private RequestContext userContext { get; set; } = default!;
+    [Inject] private IUserSession session { get; set; } = default!;
     [Parameter] public string DocId { set; get; } = string.Empty;
     private DocumentEditor? childRef;
-    string fileBase64 = string.Empty, docType = string.Empty, userName = string.Empty, userId = string.Empty, fileName = "File Name", docRef = string.Empty, organisationId = string.Empty;
+    string fileBase64 = string.Empty, docType = string.Empty, userName = string.Empty, fileName = "File Name",
+    docRef = string.Empty, organisationId = string.Empty;
     private double UploadProgress { get; set; }
-
-    private List<ListOption> priorityList = new(), doctypeList = new(), docCatList = new(), usersList = new(), workflowList = new();
-    // private List<KeyValue> workflowList = new();
+    private ListOption approvalStatus = new ListOption { Id = 0, Name = "Select" };
+    private List<ListOption> priorityList = new(), doctypeList = new(), docCatList = new(), usersList = new(), docStatusList = new(), workflowList = new();
+    private List<DocumentWorkflow> docWorkflowList = new();
     private List<DocAttachment> attachmentList = new();
     private List<DocCategoryField> extraFields = new();
 
     Document document = new();
+
+    UserData userData = new UserData();
     // private byte[] fileBytes = default!;
 
     private ListOption ForwardTo = new();
@@ -37,9 +41,7 @@ public partial class ViewWorkflow
     // string[] errors = { };
     protected override async Task OnInitializedAsync()
     {
-        userName = userContext.Claims?["UserName"] ?? "0";
-        userId = userContext.Claims?["UserId"] ?? "0";
-        organisationId = "1";
+
         httpSvc!.Initialize(AppConstants.HttpSchemes.Core);
 
     }
@@ -48,14 +50,38 @@ public partial class ViewWorkflow
     {
         if (firstRender)
         {
+            userData = await session.GetCurrentUser();
             if (string.IsNullOrWhiteSpace(DocId) == false)
             {
                 editMode = true;
+                await FeatchCustomWorkflow(DocId);
                 await FetchDocumentDetails(DocId);
             }
+            docStatusList = Enum.GetValues<ApprovalStatus>().Select(e => new ListOption { Id = (int)e, Name = e.ToString() }).ToList();
             await loadPriorities();
             await loadDocumentTypes();
             StateHasChanged();
+        }
+    }
+
+    private async Task FeatchCustomWorkflow(string docId)
+    {
+        try
+        {
+            var (status, result, message) = await httpSvc!.ExecuteRequestAsync<ApiResponse<List<DocumentWorkflow>>>(HttpVerb.Get, $"api/docworkflow/{docId}");
+            if (status == false || result?.Data == null)
+            {
+                //show dialog at this point
+                Snackbar?.Clear();
+                Snackbar?.Add(message!, Severity.Normal);
+                return;
+            }
+
+            docWorkflowList = result.Data;
+        }
+        catch (Exception ee)
+        {
+            logger!.LogError(ee, ee.Message);
         }
     }
 
@@ -323,13 +349,20 @@ public partial class ViewWorkflow
         attachmentList = attachments;
         Console.WriteLine($"InitializeDocumentAttachements <~><~><~><~><~> {attachments?.Count}");
     }
+    void ApprovalActionSelected(ListOption option) => approvalStatus = option;
     private async Task SubmitDocument()
     {
         try
         {
+            if (userData.UserId != document.NextActor)
+            {
+                Snackbar!.Clear();
+                Snackbar!.Add("You don't have access to the document", Severity.Info);
+                return;
+            }
             attachmentList = childRef?.GetAttchments() ?? new List<DocAttachment>();
 
-            if (editMode && userId == document.NextActor)
+            if (editMode && userData.UserId == document.NextActor)
             {
                 await ProcessDocumentSigning();
             }
@@ -347,21 +380,38 @@ public partial class ViewWorkflow
 
     private async Task ProcessDocumentSigning()
     {
+        var nextActor = document?.NextActor;
+        var documentEdited = childRef?.GetDocumentEditStatus() ?? false;
+
+        if (docWorkflowList.Count >= 0)
+        {
+            var currentIndex = docWorkflowList.FindIndex(dd => dd.ActorId == int.Parse(document.NextActor));
+            nextActor = currentIndex >= 0 && currentIndex < docWorkflowList.Count - 1 ? docWorkflowList[currentIndex + 1].ActorId.ToString() : null;
+        }
 
         var docAttachments = attachmentList.Select(dd => new DocumentAmendment
         {
             Content = dd.Type == AppConstants.AttachmentType.Signature ? "" : dd.Content,
             Height = dd.Height,
             Width = dd.Width,
+            PageHeight = dd.PageHeight,
+            PageWidth = dd.PageWidth,
             PositionX = dd.PositionX,
             PositionY = dd.PositionY,
             Page = dd.Page - 1,
             Type = dd.Type,
-            CreatedBy = int.Parse(userId),
-            OrganisationId = int.Parse(organisationId),
+            CreatedBy = int.Parse(userData.UserId),
+            OrganisationId = int.Parse(userData.OrgId),
         }).ToArray();
-        string jsonrequest = JsonConvert.SerializeObject(docAttachments);
-        var (status, result, message) = await httpSvc!.ExecuteRequestAsync<ApiResponse<string>>(HttpVerb.Post, $"api/documents/sign/{document.Id}/{document.NextActor}", docAttachments);
+        // string jsonrequest = JsonConvert.SerializeObject(docAttachments);
+        var signingRequest = new
+        {
+            ForwardedTo = nextActor ?? "-1",
+            DocumentId = DocId,
+            ConfirmDocUpdate = documentEdited,
+            Attachments = docAttachments
+        };
+        var (status, result, message) = await httpSvc!.ExecuteRequestAsync<ApiResponse<string>>(HttpVerb.Post, $"api/documents/sign?Status={approvalStatus.Id}", signingRequest);
         if (status == false)
         {
             Snackbar!.Clear();
@@ -383,7 +433,7 @@ public partial class ViewWorkflow
             // show toaster, message = "Document reference has not yet been generated"
             return;
         }
-        document.AuthorId = int.Parse(userId);
+        document.AuthorId = int.Parse(userData.UserId);
         document.DocumentReference = docRef;
         document.Path = uploadResult;
         document.ExtraFields = extraFields.Select(dd => new DocumentExtraField { FieldId = dd.FieldId, FieldValue = dd.SelectedValue }).ToArray();
@@ -428,7 +478,7 @@ public partial class ViewWorkflow
 
             logger!.LogInformation("Proceeding to send to the server");
             var _docRef = Guid.NewGuid().ToString();
-            var (status, result, message) = await httpSvc!.UploadDocumentAsync<DocUploadResult>($"api/upload", fileBytes, userId, _docRef, fileName, $"store_{document.TypeId}");
+            var (status, result, message) = await httpSvc!.UploadDocumentAsync<DocUploadResult>($"api/upload", fileBytes, userData.UserId, _docRef, fileName, $"store_{document.TypeId}");
             if (status == false || result?.Name == null)
             {
                 logger!.LogInformation(message);

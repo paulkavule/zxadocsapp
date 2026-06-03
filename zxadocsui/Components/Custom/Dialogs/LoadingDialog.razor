@@ -1,0 +1,29 @@
+﻿<MudDialog>
+    <DialogContent>
+        <div class="flex gap-3 justify-between mt-2">
+            <div class="">
+                @if (ShowProgress)
+                {
+                    <MudProgressCircular Color="Color.Secondary" Value="@Progress" Class="w-10 h-10" />
+                }
+                else
+                {
+                    <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+                }
+            </div>
+
+            <div class="">@Message</div>
+        </div>
+
+    </DialogContent>
+</MudDialog>
+@code {
+    //[Inject] private IDialogService dialog { set; get; } = default;
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string Message { set; get; } = string.Empty;
+    [Parameter] public double Progress { set; get; }
+    [Parameter] public bool ShowProgress { set; get; }
+
+
+}

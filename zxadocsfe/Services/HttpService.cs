@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Net;
 using Microsoft.Extensions.Logging;
@@ -74,6 +75,7 @@ public interface IHttpService
     Task<(bool success, T? data, string? error)> ExecuteRequestAsync<T>(HttpVerb method, string endpoint, object? data = null, List<fedtos.KeyValue>? headers = null);
     Task<(bool success, T? data, string? error)> UploadDocumentAsync<T>(string endpoint, byte[] docContent, string userId,
     string documentRef, string fileName, string folder = "General", List<fedtos.KeyValue>? headers = null);
+    Task<(bool success, byte[]? data, string? error)> AppendDocumentAsync(string endpoint, byte[] docContent, string fileName, List<fedtos.KeyValue>? headers = null);
     Task<(bool success, T? data, string? error)> UploadFileWithProgressAsync<T>(
         string endpoint,
         Stream fileStream,
@@ -203,6 +205,53 @@ public class HttpService : IHttpService
         {
             _logger.LogError(ex, "UploadDocumentAsync to {Endpoint} failed with exception", endpoint);
             throw;
+        }
+        finally
+        {
+            if (headers != null)
+            {
+                foreach (var header in headers)
+                {
+                    _client!.DefaultRequestHeaders.Remove(header.Name);
+                }
+            }
+        }
+    }
+
+    public async Task<(bool success, byte[]? data, string? error)> AppendDocumentAsync(string endpoint, byte[] docContent, string fileName, List<fedtos.KeyValue>? headers = null)
+    {
+        try
+        {
+            if (headers != null)
+            {
+                foreach (var header in headers)
+                {
+                    _client?.DefaultRequestHeaders.TryAddWithoutValidation(header.Name, header.Value);
+                }
+            }
+
+            using var content = new MultipartFormDataContent();
+            using var byteArrayContent = new ByteArrayContent(docContent);
+            byteArrayContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+            content.Add(byteArrayContent, "file", fileName);
+
+            var response = await _client!.PostAsync(endpoint, content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var fileBytes = await response.Content.ReadAsByteArrayAsync();
+                return (true, fileBytes, null);
+            }
+
+            var error = await response.Content.ReadAsStringAsync();
+            _logger.LogWarning("AppendDocumentAsync to {Endpoint} failed with status {Status}: {Error}",
+                endpoint, response.StatusCode, error);
+            return (false, null, error);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AppendDocumentAsync to {Endpoint} failed with exception", endpoint);
+            return (false, null, ex.Message);
         }
         finally
         {

@@ -1,11 +1,18 @@
 using System;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
+using Newtonsoft.Json.Linq;
+using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
+using zxadocslib.Dtos;
+using zxadocslib.Helpers;
+using zxadocsui.Components.Pages.LoginComponents;
 using zxadocsui.Dtos;
+using zxadocsui.Srevices;
 using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages;
@@ -16,10 +23,11 @@ public partial class Login
     [Inject] ISnackbar? snackBar { set; get; }
     [Inject] AppState? state { set; get; }
     [Inject] IHttpService? httpSvc { get; set; }
-    [Inject] RequestContext? context { set; get; }
+    // [Inject] RequestContext? context { set; get; }
     [Inject] IUserSession? session { get; set; }
     [Inject] IAuthService? authSvc { get; set; }
     [Inject] IJSRuntime? jsSvc { set; get; }
+    [Inject] SideDialogService? sideDialog { set; get; } = default!;
 
     MudForm _form;
     string _username = "pkavule", _password = "1234..34";
@@ -44,7 +52,6 @@ public partial class Login
         }
     }
 
-
     protected override async Task OnInitializedAsync()
     {
         httpSvc!.Initialize("Api");
@@ -61,43 +68,45 @@ public partial class Login
             snackBar?.Add(validationErrors, Severity.Info);
             return;
         }
-        context!.TenantId = Guid.NewGuid().ToString();
         var (status, token) = await authSvc!.UserLogin(_username, _password);
-        if (status)
-        {
-            session!.AddItem("token", token.Token);
-            session!.AddItem("refreshToken", token.Token);
-            context.RefreshToken = token.RefereshToken;
-            context.Token = token.Token;
-
-            await jsSvc!.InvokeVoidAsync("localStorage.setItem", "token", token.Token);
-            await jsSvc!.InvokeVoidAsync("localStorage.setItem", "refresh_token", token.RefereshToken);
-
-            var handler = new JwtSecurityTokenHandler();
-            var jwt = handler.ReadJwtToken(token.Token);
-            var claim1 = jwt.Claims.FirstOrDefault(dd => dd.Type == "sub");
-            var claim2 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "userid");
-            var claim3 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "orgid");
-
-            context.Claims.Clear();
-
-            context.Claims.Add("UserName", claim1?.Value ?? "");
-            context.Claims.Add("UserId", claim2?.Value ?? "");
-            context.Claims.Add("OrgId", claim3?.Value ?? "");
-
-            navigator?.NavigateTo("/dashboard");
-
-            // state.Set(AppConstants.StateKey.TOKEN, token.Token);
-            // state.Set(AppConstants.StateKey.REFRESH_TOKEN, token.RefereshToken);
-            // tokenProvider?.SetTokens(token.Token, token.RefereshToken);
-
-
-            Console.WriteLine("Login successful. Token expires at: " + token.ExpireDate);
-        }
-        else
+        if (!status)
         {
             snackBar?.Clear();
             snackBar?.Add("Invalid username or password", Severity.Error);
+            return;
         }
+
+        var role = token.Roles.Count == 1 ? token.Roles[0] : await sideDialog!.Show<RolesMenu, UserRole>(title: "Select Role", parameters: new Dictionary<string, object> { { "UserRoles", token.Roles } });
+        if (role == null)
+        {
+            snackBar!.Add("You need to select a role", Severity.Info);
+            return;
+        }
+        session!.AddItem(AppConstants.SessionVariables.TOKEN, token.Token);
+        session!.AddItem(AppConstants.SessionVariables.REFRESH_TOKEN, token.Token);
+
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(token.Token);
+        var claim1 = jwt.Claims.FirstOrDefault(dd => dd.Type == "sub");
+        var claim2 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "userid");
+        var claim3 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "orgid");
+        var claim4 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "lable");
+
+        var userData = new UserData
+        {
+            Username = claim1!.Value,
+            UserId = claim2!.Value,
+            OrgId = claim3!.Value,
+            RoleName = claim4!.Value,
+            RoleId = role.RoleId.ToString(),
+            FullName = jwt.Claims.First(dd => dd.Type == ClaimTypes.Name)!.Value,
+            LoginDate = DateTime.Now,
+            Token = DataEncryptor.Encrypt(token.Token),
+            RefreshToken = DataEncryptor.Encrypt(token.RefereshToken)
+        };
+        await session.SaveSessionData(AppConstants.SessionVariable.CurrentUser, userData);
+        navigator?.NavigateTo("/dashboard");
+
+        Console.WriteLine("Login successful. Token expires at: " + token.ExpireDate);
     }
 }

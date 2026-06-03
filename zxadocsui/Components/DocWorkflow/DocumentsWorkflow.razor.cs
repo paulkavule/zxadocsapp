@@ -17,20 +17,31 @@ public partial class DocumentsWorkflow
     DocsWorkflow nextActor = new();
     private async Task OnForwardToChanged(DocsWorkflow option)
     {
+        if (option == null || option.ActorId == 0)
+            return;
         workflowList?.Add(new DocsWorkflow { ActorId = option.ActorId, DocumentId = option.DocumentId, IsFinal = option.IsFinal, Id = option.Id, Level = workflowList?.Count + 1 ?? 1, Name = option.Name });
     }
 
 
     private async Task<IEnumerable<DocsWorkflow>> SearchCountries(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value) || value.Length < 3)
-            return usersList.AsEnumerable();
+        try
+        {
+            if (string.IsNullOrEmpty(value) || value.Length < 3)
+                return usersList.AsEnumerable();
 
-        var (_, result, _) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=usersearch&category={value}");
+            var (_, result, _) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=usersearch&category={value}");
 
-        var userList = result?.Data ?? new List<ListOption>();
+            var userList = result?.Data ?? new List<ListOption>();
 
-        return userList.Select(op => new DocsWorkflow { ActorId = op.Id, Name = op.Name });
+            return userList.Select(op => new DocsWorkflow { ActorId = op.Id, Name = op.Name });
+        }
+        catch (Exception ex)
+        {
+            logger!.LogError(ex, ex.Message);
+            return new List<DocsWorkflow>();
+        }
+
     }
 
 

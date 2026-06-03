@@ -3,14 +3,13 @@ using static zxadocsfe.Helpers.AppConstants;
 
 namespace zxadocsui.State;
 
-public class RequestContext
+public class RequestsContext
 {
     public string? Token { get; set; }
     public string? RefreshToken { get; set; }
     public string? TenantId { get; set; }
     public bool SkipAuthForNextCall { get; set; }
     public bool IsBusy { get; set; }
-    public Dictionary<string, string> Claims { get; set; } = new();
 }
 
 public class AppState

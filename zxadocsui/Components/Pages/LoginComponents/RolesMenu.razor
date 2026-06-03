@@ -1,0 +1,31 @@
+@using zxadocslib.Dtos
+@using zxadocsui.Srevices
+
+<MudList T="UserRole" Class="pa-2">
+    @if (UserRoles is null || UserRoles.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="pa-3 mud-text-secondary">No roles available.</MudText>
+    }
+    else
+    {
+        @foreach (var role in UserRoles)
+        {
+            <MudListItem T="UserRole"
+                         Value="@role"
+                         Icon="@Icons.Material.Filled.AccountCircle"
+                         OnClick="@(() => SelectRole(role))">
+                @role.RoleName
+            </MudListItem>
+        }
+    }
+</MudList>
+
+@code {
+    [Parameter] public List<UserRole> UserRoles { set; get; } = default!;
+    [Inject] SideDialogService sideDialog { set; get; } = default!;
+
+    private void SelectRole(UserRole role)
+    {
+        sideDialog.Close(role);
+    }
+}

@@ -1,5 +1,6 @@
 ﻿@using static zxadocsfe.Helpers.AppConstants
 @using zxadocslib.Dtos
+@using zxadocslib.Helpers
 
 <ul class="divide-y divide-slate-200 bg-white border border-slate-200 shadow-sm p-4 rounded-lg">
 
@@ -25,11 +26,9 @@
                         <!-- Status -->
                         <span
                             class="rounded-full px-2 py-0.5 text-[11px] font-semibold
-                            @(document.Status == 1 ? "bg-emerald-100 text-emerald-600"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                  : document.Status == 2 ? "bg-rose-100 text-rose-600"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                  : "bg-amber-100 text-amber-600")">
-                            @(document.Status == 1 ? "Approved"
-                              : document.Status == 2 ? "Rejected"
+                            @(document.ApprovalStatus == ApprovalStatus.Approve ? "bg-emerald-100 text-emerald-600" : document.ApprovalStatus == ApprovalStatus.Reject ? "bg-rose-100 text-rose-600" : "bg-amber-100 text-amber-600")">
+                            @(document.ApprovalStatus == ApprovalStatus.Approve ? "Approved"
+                              : document.ApprovalStatus == ApprovalStatus.Reject ? "Rejected"
                               : "Pending")
                         </span>
 
@@ -148,7 +147,7 @@
                 NextActor = $"user{(i + 1) % 5}",
                 LastAction = status == 1 ? "Approved" : status == 2 ? "Rejected" : "Pending",
                 RecieveDate = DateTime.Now.AddDays(-i),
-                Status = status,
+                //Status = status,
                 Title = title
             });
         }
