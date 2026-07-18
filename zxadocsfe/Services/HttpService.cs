@@ -1,10 +1,8 @@
-using System;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Net;
 using Microsoft.Extensions.Logging;
-using zxadocslib.Dtos;
 using fedtos = zxadocsfe.Dtos;
 
 namespace zxadocsfe.Services;
@@ -14,7 +12,6 @@ public class ProgressTrackingStreamContent : StreamContent
     private readonly Stream _stream;
     private readonly IProgress<double> _progress;
     private readonly long _totalBytes;
-    private long _bytesRead;
     private readonly CancellationToken _cancellationToken;
 
     public ProgressTrackingStreamContent(
@@ -26,7 +23,6 @@ public class ProgressTrackingStreamContent : StreamContent
         _stream = stream;
         _progress = progress;
         _totalBytes = stream.Length;
-        _bytesRead = 0;
         _cancellationToken = cancellationToken;
     }
 
@@ -68,6 +64,11 @@ public enum HttpVerb
     Delete
 }
 
+public interface ITokenProvider
+{
+    string? AccessToken { get; }
+}
+
 public interface IHttpService
 {
     void Initialize(string scheme);
@@ -83,7 +84,7 @@ public interface IHttpService
         Dictionary<string, string> additionalFields,
         IProgress<double> progress,
         CancellationToken cancellationToken = default);
-    IAsyncEnumerable<byte[]> DownloadDocumentFileAsync(int docId, int bufferSize = 81920, CancellationToken ct = default);
+    IAsyncEnumerable<byte[]> DownloadDocumentFileAsync(int docId, int bufferSize = 81920, bool isSignature = false, CancellationToken ct = default);
 
 
 }
@@ -92,22 +93,30 @@ public class HttpService : IHttpService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<HttpService> _logger;
-    private readonly JsonSerializerOptions _jsonOptions;
+    private readonly ITokenProvider _tokenProvider;
+    private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
     private HttpClient? _client;
 
-    public HttpService(IHttpClientFactory httpClientFactory, ILogger<HttpService> logger)
+    public HttpService(IHttpClientFactory httpClientFactory, ILogger<HttpService> logger, ITokenProvider tokenProvider)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        };
+        _tokenProvider = tokenProvider;
     }
 
     public void Initialize(string scheme)
     {
         _client = _httpClientFactory?.CreateClient(scheme);
+    }
+
+    private void ApplyAuthorization()
+    {
+        if (_client is null) return;
+
+        var token = _tokenProvider.AccessToken;
+        _client.DefaultRequestHeaders.Authorization = string.IsNullOrWhiteSpace(token)
+            ? null
+            : new AuthenticationHeaderValue("Bearer", token);
     }
     public Task<(bool success, T? data, string? error)> GetAsync<T>(string endpoint, List<fedtos.KeyValue>? headers = null)
     {
@@ -116,6 +125,7 @@ public class HttpService : IHttpService
 
     public async Task<(bool success, T? data, string? error)> ExecuteRequestAsync<T>(HttpVerb method, string endpoint, object? data = null, List<fedtos.KeyValue>? headers = null)
     {
+        ApplyAuthorization();
         try
         {
             // Apply any custom headers
@@ -175,6 +185,7 @@ public class HttpService : IHttpService
     public async Task<(bool success, T? data, string? error)> UploadDocumentAsync<T>(string endpoint, byte[] docContent, string userId,
     string documentRef, string fileName, string folder = "General", List<fedtos.KeyValue>? headers = null)
     {
+        ApplyAuthorization();
         try
         {
             var content = new MultipartFormDataContent();
@@ -220,6 +231,7 @@ public class HttpService : IHttpService
 
     public async Task<(bool success, byte[]? data, string? error)> AppendDocumentAsync(string endpoint, byte[] docContent, string fileName, List<fedtos.KeyValue>? headers = null)
     {
+        ApplyAuthorization();
         try
         {
             if (headers != null)
@@ -273,6 +285,7 @@ public class HttpService : IHttpService
         IProgress<double> progress,
         CancellationToken cancellationToken = default)
     {
+        ApplyAuthorization();
         try
         {
             // Create a wrapper stream that can track progress
@@ -324,9 +337,12 @@ public class HttpService : IHttpService
         }
     }
 
-    public async IAsyncEnumerable<byte[]> DownloadDocumentFileAsync(int docId, int bufferSize = 81920, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+
+    public async IAsyncEnumerable<byte[]> DownloadDocumentFileAsync(int docId, int bufferSize = 81920, bool isSignature = false, CancellationToken ct = default)
     {
-        var response = await _client!.GetAsync($"api/documents/content/{docId}", HttpCompletionOption.ResponseHeadersRead, ct);
+        ApplyAuthorization();
+        var endpoint = isSignature ? $"api/users/signature?ref={docId.ToString()}" : $"api/documents/content/{docId}";
+        var response = await _client!.GetAsync(endpoint, HttpCompletionOption.ResponseHeadersRead, ct);
 
         response.EnsureSuccessStatusCode();
 
@@ -342,6 +358,4 @@ public class HttpService : IHttpService
             yield return chunk;
         }
     }
-
-
 }

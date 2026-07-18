@@ -54,13 +54,13 @@ public partial class Documents
             switch (folder)
             {
                 case DocStatus.Published:
-                    inboxList = result.Data.Where(doc => doc.NextActor == userData.UserId && doc.Status != DocStatus.Archived).ToList();
+                    inboxList = result.Data.Where(doc => doc.NextActorId == int.Parse(userData.UserId) && doc.Status != DocStatus.Archived).ToList();
                     break;
                 case DocStatus.Archived:
-                    archievedList = result.Data.Where(doc => doc.NextActor != userData.UserId && doc.Status == DocStatus.Archived).ToList();
+                    archievedList = result.Data.Where(doc => doc.NextActorId != int.Parse(userData.UserId) && doc.Status == DocStatus.Archived).ToList();
                     break;
                 case DocStatus.Outbox:
-                    archievedList = result.Data.Where(doc => doc.Author.Id == int.Parse(userData.UserId)).ToList();
+                    outboxList = result.Data.Where(doc => doc.Author.Id == int.Parse(userData.UserId)).ToList();
                     break;
                 case DocStatus.Deleted:
                     deletedList = result.Data.Where(doc => doc.Status == DocStatus.Deleted).ToList();

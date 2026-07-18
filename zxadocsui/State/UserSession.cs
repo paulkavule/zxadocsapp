@@ -1,13 +1,9 @@
-using System;
-using System.IdentityModel.Tokens.Jwt;
-using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Newtonsoft.Json;
 using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
-using zxadocslib.Dtos;
+using zxadocsfe.Services;
 using zxadocslib.Helpers;
 using static zxadocsfe.Helpers.AppConstants;
 
@@ -22,9 +18,10 @@ public interface IUserSession
     Task<UserData> GetCurrentUser();
     Task<T> GetSessionData<T>(SessionVariable variable);
     Task<bool> SaveSessionData(SessionVariable variable, object value);
+    Task UpdateTokens(string accessToken, string refreshToken);
     Task SignOut();
 }
-public class UserSession : /*AuthenticationStateProvider,*/ IUserSession
+public class UserSession : IUserSession, ITokenProvider
 {
     private readonly ProtectedLocalStorage storage;
     private readonly NavigationManager nav;
@@ -38,6 +35,8 @@ public class UserSession : /*AuthenticationStateProvider,*/ IUserSession
         this.nav = nav;
         this.logger = logger;
     }
+
+    public string? AccessToken => GetItem<string>(AppConstants.SessionVariables.TOKEN);
     public T GetItem<T>(string key)
     {
         try
@@ -85,22 +84,71 @@ public class UserSession : /*AuthenticationStateProvider,*/ IUserSession
             return user;
         }
 
-        var currentUser = await GetSessionData<UserData>(SessionVariable.CurrentUser);
-        user.LoginDate = currentUser.LoginDate;
-        user.RoleId = currentUser.RoleId;
+        try
+        {
+            var currentUser = await GetSessionData<UserData>(SessionVariable.CurrentUser);
+            if (currentUser == null)
+                return user;
 
-        user.Username = DataEncryptor.Decrypt(currentUser.Username);
-        user.FullName = DataEncryptor.Decrypt(currentUser.FullName);
-        user.RoleName = DataEncryptor.Decrypt(currentUser.RoleName);
-        user.OrgId = DataEncryptor.Decrypt(currentUser.OrgId);
-        user.UserId = DataEncryptor.Decrypt(currentUser.UserId);
-        user.Token = DataEncryptor.Decrypt(currentUser.Token);
-        user.RefreshToken = DataEncryptor.Decrypt(currentUser.RefreshToken);
+            user.LoginDate = currentUser.LoginDate;
+            user.RoleId = currentUser.RoleId;
 
-        Items.Remove(userDataKey);
-        Items.Add(userDataKey, user);
+            user.Username = DataEncryptor.Decrypt(currentUser.Username);
+            user.FullName = DataEncryptor.Decrypt(currentUser.FullName);
+            user.RoleName = DataEncryptor.Decrypt(currentUser.RoleName);
+            user.OrgId = DataEncryptor.Decrypt(currentUser.OrgId);
+            user.UserId = DataEncryptor.Decrypt(currentUser.UserId);
+            user.Token = DataEncryptor.Decrypt(currentUser.Token);
+            user.EntityId = DataEncryptor.Decrypt(currentUser.EntityId);
+            user.UserReference = DataEncryptor.Decrypt(currentUser.UserReference);
+            user.RefreshToken = DataEncryptor.Decrypt(currentUser.RefreshToken);
+
+            Items.Remove(userDataKey);
+            Items.Add(userDataKey, user);
+            Items[AppConstants.SessionVariables.TOKEN] = user.Token;
+            Items[AppConstants.SessionVariables.REFRESH_TOKEN] = user.RefreshToken;
+        }
+        catch (Exception ex)
+        {
+            // ProtectedLocalStorage is unavailable during prerender, and stored data may be missing or unreadable.
+            logger.LogDebug(ex, "Failed to load user session from storage");
+            return new UserData();
+        }
 
         return user;
+    }
+
+    public async Task UpdateTokens(string accessToken, string refreshToken)
+    {
+        var userDataKey = "101Session";
+        var user = await GetCurrentUser();
+
+        user.Token = accessToken;
+        user.RefreshToken = refreshToken;
+        Items[userDataKey] = user;
+        Items[AppConstants.SessionVariables.TOKEN] = accessToken;
+        Items[AppConstants.SessionVariables.REFRESH_TOKEN] = refreshToken;
+
+        try
+        {
+            var encrypted = new UserData
+            {
+                Username = DataEncryptor.Encrypt(user.Username),
+                FullName = DataEncryptor.Encrypt(user.FullName),
+                RoleName = DataEncryptor.Encrypt(user.RoleName),
+                OrgId = DataEncryptor.Encrypt(user.OrgId),
+                UserId = DataEncryptor.Encrypt(user.UserId),
+                Token = DataEncryptor.Encrypt(accessToken),
+                RefreshToken = DataEncryptor.Encrypt(refreshToken),
+                LoginDate = user.LoginDate,
+                RoleId = user.RoleId
+            };
+            await SaveSessionData(SessionVariable.CurrentUser, encrypted);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to persist refreshed tokens to storage");
+        }
     }
 
     public async Task<T> GetSessionData<T>(SessionVariable variable)

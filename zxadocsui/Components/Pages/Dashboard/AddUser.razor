@@ -1,0 +1,66 @@
+@page "/users/add"
+@using zxadocslib.Dtos
+@rendermode InteractiveServer
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden p-3">
+    <!-- header: app title + simple action (compose) -->
+    <div class="border-b border-slate-200 flex items-center justify-between bg-white/90 backdrop-blur-sm">
+        <div class="flex items-center gap-3 mb-2">
+            <div class="bg-[#1f7b4d] text-white p-3 rounded-2xl shadow-md">
+                <i class="fa fa-user-plus" aria-hidden="true"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold text-[#195d3a]">Add User</h2>
+                <p class="text-xs text-[#5f8b74]">create a new workspace user</p>
+            </div>
+        </div>
+
+
+    </div>
+
+
+
+    <MudForm Model="@_user" @ref="_form" Validation="@(_validator.ValidateValue)" @bind-IsValid="@_isValid"
+             Class="flex flex-col  w-[50%] gap-3 pt-3">
+        <MudTextField Label="Full Name" Placeholder="Full name" Variant="Variant.Outlined" @bind-Value="_user.Name"
+                      For="@(() => _user.Name)" Immediate="true" />
+
+        <MudTextField Label="Username" Placeholder="Username" Variant="Variant.Outlined" @bind-Value="_user.Username"
+                      For="@(() => _user.Username)" Immediate="true" />
+
+        <MudTextField Label="Email" Placeholder="name@email.com" Variant="Variant.Outlined" @bind-Value="_user.Email"
+                      For="@(() => _user.Email)" Immediate="true" />
+
+        <MudTextField Label="Department" Placeholder="Department" Variant="Variant.Outlined"
+                      @bind-Value="_user.Department" For="@(() => _user.Department)" Immediate="true" />
+
+        <MudTextField Label="Grade" Placeholder="Grade" Variant="Variant.Outlined" @bind-Value="_user.Grade"
+                      For="@(() => _user.Grade)" Immediate="true" />
+
+        <MudNumericField Label="Country Code" Placeholder="256" Variant="Variant.Outlined"
+                         @bind-Value="_user.CountryCode" For="@(() => _user.CountryCode)" HideSpinButtons="true" />
+
+        <MudNumericField Label="Phone Number" Placeholder="700000000" Variant="Variant.Outlined"
+                         @bind-Value="_user.PhoneNumber" For="@(() => _user.PhoneNumber)" HideSpinButtons="true" />
+
+
+        <div class="flex items-center gap-3">
+            <MudFileUpload T="IBrowserFile" FilesChanged="OnSignatureSelected" Accept="image/*" Class="shadow-none">
+                <CustomContent>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Upload" OnClick="@context.OpenFilePickerAsync">
+                        @(string.IsNullOrWhiteSpace(_signatureFileName) ? "Upload signature" : _signatureFileName)
+                    </MudButton>
+                </CustomContent>
+            </MudFileUpload>
+            @if (!string.IsNullOrWhiteSpace(_signatureFileName))
+            {
+                <i class="fa fa-check-circle text-[#1f7b4d]" aria-hidden="true"></i>
+            }
+        </div>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" EndIcon="@Icons.Material.Filled.Send"
+                   Disabled="@_saving" OnClick="Submit">
+            @(_saving ? "Saving..." : "Create User")
+        </MudButton>
+    </MudForm>
+</div>

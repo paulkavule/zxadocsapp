@@ -1,4 +1,6 @@
 @using zxadocsfe.Dtos
+@using zxadocsfe.Services
+@using zxadocslib.Dtos
 @using zxadocsui.Components.Shared
 @using zxadocsui.Helpers
 @using zxadocsui.State
@@ -64,6 +66,13 @@
                         <span class="font-medium whitespace-nowrap sidebar-menu-text">Workflows</span>
                     </NavLink>
 
+                    <NavLink href="/users"
+                             class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                             ActiveClass="bg-[#e0f2df]">
+                        <i class="fa fa-user w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                        <span class="font-medium whitespace-nowrap sidebar-menu-text">Users</span>
+                    </NavLink>
+
                     <!-- DIVIDER -->
                     <div class="border-t border-[#d4ead5] my-4"></div>
 
@@ -92,18 +101,18 @@
                                     <i class="fa-regular fa-chart-bar w-4 text-[#5f8b74] mr-2"></i>
                                     <span class="sidebar-submenu-text">Document activity</span>
                                 </NavLink>
-                                <NavLink href="/reports/approval-times"
+                                @* <NavLink href="/reports/approval-times"
                                          class="flex items-center py-2.5 px-3 text-sm text-[#1e4a33] hover:bg-[#e0f2df] rounded-xl transition"
                                          ActiveClass="bg-[#e0f2df]">
                                     <i class="fa-regular fa-clock w-4 text-[#5f8b74] mr-2"></i>
                                     <span class="sidebar-submenu-text">Approval times</span>
-                                </NavLink>
-                                <NavLink href="/reports/submissions"
+                                </NavLink> *@
+                                @* <NavLink href="/reports/submissions"
                                          class="flex items-center py-2.5 px-3 text-sm text-[#1e4a33] hover:bg-[#e0f2df] rounded-xl transition"
                                          ActiveClass="bg-[#e0f2df]">
                                     <i class="fa-regular fa-user w-4 text-[#5f8b74] mr-2"></i>
                                     <span class="sidebar-submenu-text">User submissions</span>
-                                </NavLink>
+                                </NavLink> *@
                             </div>
                         </div>
 
@@ -125,12 +134,12 @@
                                 <i class="fa-solid fa-gear w-5 text-[#5b8c70] flex-shrink-0"></i>
                                 <span class="font-medium whitespace-nowrap sidebar-menu-text">Settings</span>
                             </NavLink>
-                            <NavLink href="/team"
+                            @* <NavLink href="/team"
                                      class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition menu-item"
                                      ActiveClass="bg-[#e0f2df]">
                                 <i class="fa-solid fa-users w-5 text-[#5b8c70] flex-shrink-0"></i>
                                 <span class="font-medium whitespace-nowrap sidebar-menu-text">Team</span>
-                            </NavLink>
+                            </NavLink> *@
                             <NavLink href="/notifications"
                                      class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition menu-item"
                                      ActiveClass="bg-[#e0f2df]">
@@ -210,6 +219,7 @@
 
 @code {
     [Inject] public IUserSession session { set; get; } = default!;
+    [Inject] public IHttpService httpSvc { set; get; } = default!;
     UserData userData = new();
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

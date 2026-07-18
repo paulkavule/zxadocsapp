@@ -10,6 +10,7 @@ using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using Microsoft.AspNetCore.Components.Forms;
 using System.Runtime.CompilerServices;
+using zxadocsui.State;
 
 namespace zxadocsui.Components.DocWorkflow;
 
@@ -19,8 +20,10 @@ public partial class DocumentEditor
     [Inject] ILogger<DocumentEditor> logger { set; get; } = default!;
     [Inject] IDialogService dialog { set; get; } = default!;
     [Inject] IHttpService httpSvc { get; set; } = default!;
+    [Inject] IUserSession session { get; set; } = default!;
     [Inject] IJSRuntime JS { get; set; } = default!;
     private readonly List<string> activeSignatures = new();
+    [Parameter] public bool DisableEdits { get; set; } = true;
     [Parameter] public Document Document { get; set; } = new();
     [Parameter] public string UserId { get; set; } = string.Empty;
     [Parameter] public string DocId { get; set; } = string.Empty;
@@ -41,17 +44,20 @@ public partial class DocumentEditor
     private bool documentEdited = false;
     private bool hasInitialized = false, addSignature = false, addComment = false, shouldRender = false;
     private List<string> commentList = new List<string>();
+
+    UserData userData = new();
     // [Parameter] public EventCallback<List<DocAttachment>> InitializeAttachments { set; get; }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Console.WriteLine($" OnAfterRenderAsync ---------------> {string.IsNullOrEmpty(FileUrl)}");
         if (firstRender)
         {
-            if (!string.IsNullOrEmpty(UserId))
-                await LoadUserInformation();
+            await LoadUserInformation();
 
             if (!string.IsNullOrEmpty(DocId))
                 await LoadDocumentInformation();
+
+
 
             Console.WriteLine($"OnAfterRenderAsync =================> 1 ");
             _dotRef = DotNetObjectReference.Create(this);
@@ -93,8 +99,20 @@ public partial class DocumentEditor
 
     private async Task LoadUserInformation()
     {
-        var user = await httpSvc.GetAsync<ApiResponse<List<User>>>($"/api/users/{UserId}");
-        signatureUrl = user.data?.Data?.FirstOrDefault()?.Signature ?? string.Empty;
+        userData = await session!.GetCurrentUser();
+        if (userData == null)
+        {
+            Snackbar.Clear();
+            Snackbar.Add("Couldn't retrieve user details. Signature not intialized", Severity.Error);
+            return;
+
+        }
+
+        var (success, user, message) = await httpSvc.GetAsync<ApiResponse<User>>($"/api/users/{userData.UserId}");
+        if (success == false)
+            return;
+
+        signatureUrl = user.Data.Signature ?? string.Empty;
     }
     private async Task LoadDocumentInformation()
     {

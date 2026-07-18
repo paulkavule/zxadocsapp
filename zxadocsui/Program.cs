@@ -22,7 +22,9 @@ builder.Services.AddMudServices(config =>
 });
 builder.Services.AddScoped<IHttpService, HttpService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IUserSession, UserSession>();
+builder.Services.AddScoped<UserSession>();
+builder.Services.AddScoped<IUserSession>(sp => sp.GetRequiredService<UserSession>());
+builder.Services.AddScoped<ITokenProvider>(sp => sp.GetRequiredService<UserSession>());
 
 builder.Services.AddScoped<SideDialogService>();
 builder.Services.AddScoped<AppState>();

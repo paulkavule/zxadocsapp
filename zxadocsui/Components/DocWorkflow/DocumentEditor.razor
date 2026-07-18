@@ -1,12 +1,15 @@
 ﻿@rendermode InteractiveServer
 @using zxadocsfe.Helpers;
 
+
 <div class="w-full flex justify-center items-center p-3">
     <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" OverrideStyles="false"
                     class="flex flex-wrap items-center gap-2 bg-white shadow-md rounded-xl p-2">
 
-        <MudIconButton Icon="@Icons.Material.Filled.ModeEdit" Size="Size.Small" OnClick="AddSign"></MudIconButton>
-        <MudIconButton Icon="@Icons.Material.Filled.Comment" Size="Size.Small" OnClick="AddComment"></MudIconButton>
+        <MudIconButton Icon="@Icons.Material.Filled.ModeEdit" Size="Size.Small" OnClick="AddSign"
+                       Disabled="DisableEdits"></MudIconButton>
+        <MudIconButton Icon="@Icons.Material.Filled.Comment" Size="Size.Small" OnClick="AddComment"
+                       Disabled="DisableEdits"></MudIconButton>
 
         <MudIconButton Icon="@Icons.Material.Filled.ZoomOut" Size="Size.Small" OnClick="ZoomOut" />
         <MudIconButton Icon="@Icons.Material.Filled.ZoomIn" Size="Size.Small" OnClick="ZoomIn" />
@@ -34,7 +37,8 @@
             </div>
 
             <!-- Upload button -->
-            <MudFileUpload T="IBrowserFile" FilesChanged="UploadFileDocument" Class="shadow-none">
+            <MudFileUpload T="IBrowserFile" FilesChanged="UploadFileDocument" Class="shadow-none"
+                           Disabled="DisableEdits">
                 <CustomContent>
                     <MudFab DropShadow="false" Size="Size.Small" OnClick="@context.OpenFilePickerAsync"
                             StartIcon="@Icons.Material.Filled.AttachFile" Class="bg-white" />
@@ -71,7 +75,7 @@
                 </div>
 
                 @if (attachment.Type.Equals(AppConstants.AttachmentType.Signature,
-                                                                                                                                                                                                                                                                                                                                            StringComparison.InvariantCultureIgnoreCase))
+                                                                                                                                                                                                                                                                                                                                                                                                            StringComparison.InvariantCultureIgnoreCase))
                 {
                     <img src="@signatureUrl" style="width:100%; height:100%; pointer-events:none;" />
                 }

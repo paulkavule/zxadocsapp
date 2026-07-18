@@ -1,0 +1,39 @@
+@page "/users"
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <!-- header: title + add-user action -->
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white/90 backdrop-blur-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+                <i class="fas fa-users text-sm"></i>
+            </div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Users</h1>
+        </div>
+        <MudButton Href="/users/add" Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.PersonAdd">
+            Add User
+        </MudButton>
+    </div>
+
+    <div class="p-6">
+        <MudDataGrid T="QueryDto.UserQuery" Items="@_users" Loading="@_loading" Filterable="true" Hideable="true"
+                     QuickFilter="@_quickFilter" Dense="true" Hover="true" Striped="true" Elevation="0">
+            <ToolBarContent>
+                <MudText Typo="Typo.subtitle1" Class="mr-auto">@_users.Count user(s)</MudText>
+                <MudTextField @bind-Value="_searchTerm" Placeholder="Search" Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true"
+                              IconSize="Size.Medium" Class="mt-0" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </ToolBarContent>
+            <Columns>
+                <PropertyColumn Property="x => x.Name" Title="Name" />
+                <PropertyColumn Property="x => x.UserName" Title="Username" />
+                <PropertyColumn Property="x => x.Email" Title="Email" />
+                <PropertyColumn Property="x => x.PhoneNumber" Title="Phone" />
+            </Columns>
+            <NoRecordsContent>
+                <div class="py-8 text-center text-slate-500">No users found.</div>
+            </NoRecordsContent>
+        </MudDataGrid>
+    </div>
+</div>

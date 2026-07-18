@@ -1,0 +1,110 @@
+@*
+    Fused country + phone-number control.
+    The user picks a country first (which sets the dial code); the number field
+    stays disabled until a country is chosen. Bind both DTO fields:
+        <PhoneNumberInput @bind-CountryCode="_user.CountryCode" @bind-PhoneNumber="_user.PhoneNumber" />
+*@
+
+<MudField Label="@Label" Variant="Variant.Outlined" Class="@Class">
+    <div class="flex items-center w-full gap-1">
+        <MudSelect T="int" Value="CountryCode" ValueChanged="OnCountryChanged" Dense="true"
+                   Underline="false" Variant="Variant.Text" Margin="Margin.Dense"
+                   Style="min-width:92px; max-width:130px;" Placeholder="Country"
+                   ToStringFunc="@DialDisplay">
+            @foreach (var c in Countries)
+            {
+                <MudSelectItem T="int" Value="c.Dial">@($"{c.Flag}  {c.Name} (+{c.Dial})")</MudSelectItem>
+            }
+        </MudSelect>
+
+        <div class="w-px self-stretch my-1 bg-[rgba(0,0,0,0.18)]"></div>
+
+        <MudInput T="int?" Value="_phone" ValueChanged="OnPhoneChanged" Underline="false"
+                  InputType="InputType.Telephone" Placeholder="@Placeholder" Class="flex-1 ml-1"
+                  Disabled="@(CountryCode <= 0)" />
+    </div>
+</MudField>
+
+@code {
+    [Parameter] public int CountryCode { get; set; }
+    [Parameter] public EventCallback<int> CountryCodeChanged { get; set; }
+
+    [Parameter] public int PhoneNumber { get; set; }
+    [Parameter] public EventCallback<int> PhoneNumberChanged { get; set; }
+
+    [Parameter] public string Label { get; set; } = "Phone Number";
+    [Parameter] public string Placeholder { get; set; } = "Select a country first";
+    [Parameter] public string? Class { get; set; }
+
+    private int? _phone;
+
+    protected override void OnParametersSet()
+    {
+        _phone = PhoneNumber > 0 ? PhoneNumber : null;
+        Placeholder = CountryCode > 0 ? "700000000" : "Select a country first";
+    }
+
+    private async Task OnCountryChanged(int dial)
+    {
+        CountryCode = dial;
+        await CountryCodeChanged.InvokeAsync(dial);
+    }
+
+    private async Task OnPhoneChanged(int? value)
+    {
+        _phone = value;
+        PhoneNumber = value ?? 0;
+        await PhoneNumberChanged.InvokeAsync(PhoneNumber);
+    }
+
+    private string DialDisplay(int dial)
+    {
+        if (dial <= 0) return string.Empty;
+        var c = Countries.FirstOrDefault(x => x.Dial == dial);
+        return c is null ? $"+{dial}" : $"{c.Flag} +{c.Dial}";
+    }
+
+    private record Country(string Iso, string Name, int Dial)
+    {
+        // Build the flag emoji from the ISO-3166 alpha-2 code (regional indicator symbols).
+        public string Flag => string.Concat(Iso.ToUpperInvariant().Select(ch => char.ConvertFromUtf32(0x1F1E6 + (ch - 'A'))));
+    }
+
+    private static readonly List<Country> Countries = new()
+    {
+        new("UG", "Uganda", 256),
+        new("KE", "Kenya", 254),
+        new("TZ", "Tanzania", 255),
+        new("RW", "Rwanda", 250),
+        new("BI", "Burundi", 257),
+        new("SS", "South Sudan", 211),
+        new("ET", "Ethiopia", 251),
+        new("SO", "Somalia", 252),
+        new("CD", "DR Congo", 243),
+        new("NG", "Nigeria", 234),
+        new("GH", "Ghana", 233),
+        new("ZA", "South Africa", 27),
+        new("EG", "Egypt", 20),
+        new("US", "United States", 1),
+        new("GB", "United Kingdom", 44),
+        new("IE", "Ireland", 353),
+        new("FR", "France", 33),
+        new("DE", "Germany", 49),
+        new("IT", "Italy", 39),
+        new("ES", "Spain", 34),
+        new("NL", "Netherlands", 31),
+        new("BE", "Belgium", 32),
+        new("SE", "Sweden", 46),
+        new("NO", "Norway", 47),
+        new("CH", "Switzerland", 41),
+        new("AE", "United Arab Emirates", 971),
+        new("SA", "Saudi Arabia", 966),
+        new("QA", "Qatar", 974),
+        new("IN", "India", 91),
+        new("PK", "Pakistan", 92),
+        new("CN", "China", 86),
+        new("JP", "Japan", 81),
+        new("AU", "Australia", 61),
+        new("BR", "Brazil", 55),
+    };
+}

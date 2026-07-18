@@ -4,14 +4,12 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
-using Newtonsoft.Json.Linq;
 using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocslib.Helpers;
 using zxadocsui.Components.Pages.LoginComponents;
-using zxadocsui.Dtos;
 using zxadocsui.Srevices;
 using zxadocsui.State;
 
@@ -83,7 +81,7 @@ public partial class Login
             return;
         }
         session!.AddItem(AppConstants.SessionVariables.TOKEN, token.Token);
-        session!.AddItem(AppConstants.SessionVariables.REFRESH_TOKEN, token.Token);
+        session!.AddItem(AppConstants.SessionVariables.REFRESH_TOKEN, token.RefereshToken);
 
         var handler = new JwtSecurityTokenHandler();
         var jwt = handler.ReadJwtToken(token.Token);
@@ -91,12 +89,16 @@ public partial class Login
         var claim2 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "userid");
         var claim3 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "orgid");
         var claim4 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "lable");
+        var claim5 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "orgentityid");
+        var claim6 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "userreference");
 
         var userData = new UserData
         {
             Username = claim1!.Value,
             UserId = claim2!.Value,
             OrgId = claim3!.Value,
+            EntityId = claim5!.Value,
+            UserReference = claim6!.Value,
             RoleName = claim4!.Value,
             RoleId = role.RoleId.ToString(),
             FullName = jwt.Claims.First(dd => dd.Type == ClaimTypes.Name)!.Value,

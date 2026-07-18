@@ -36,7 +36,7 @@ public partial class ViewWorkflow
     // private byte[] fileBytes = default!;
 
     private ListOption ForwardTo = new();
-    bool editMode, success;
+    bool editMode, success, disableEdits;
     string[] errors = { };
     // string[] errors = { };
     protected override async Task OnInitializedAsync()
@@ -99,6 +99,7 @@ public partial class ViewWorkflow
             }
             document = result?.Data?.Where(dd => dd.Id == int.Parse(docId)).FirstOrDefault()!;
 
+            disableEdits = userData.UserId != document.NextActor || document.Status == DocStatus.Archived;
             await loadPriorities();
             await loadDocumentTypes();
             await DocTypeChanged(document.TypeId + "");
@@ -422,7 +423,7 @@ public partial class ViewWorkflow
         Snackbar!.Clear();
         Snackbar!.Add($"Document signed successfully. {result?.Data}", Severity.Success);
         await Task.Delay(2000);
-        navManager.NavigateTo("/new-documents");
+        navManager.NavigateTo("/documents");
     }
 
     private async Task ProcessDocumentUpload()

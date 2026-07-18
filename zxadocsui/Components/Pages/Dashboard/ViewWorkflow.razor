@@ -131,20 +131,22 @@
                 <div class="mt-5 text-center">
 
                     <MudButtonGroup Color="Color.Primary" Variant="Variant.Filled" Class="w-full">
-                        <MudButton Class="w-full" OnClick="() => SubmitDocument()">@approvalStatus.Name</MudButton>
-                        <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown" Style="align-self: auto;">
-                            @foreach (var stat in docStatusList)
-                            {
-                                <MudMenuItem OnClick="() => ApprovalActionSelected(stat)">@stat.Name
-                                </MudMenuItem>
-                            }
-                        </MudMenu>
-                    </MudButtonGroup>
-                </div>
-            </MudForm>
-        </div>
-        <div class="flex-1 inset-2 bg-green-50 rounded-2xl p-3 border border-green-100">
-            <DocumentEditor @ref="childRef" DocId="@DocId" />
+                        <MudButton Class="w-full" OnClick="() => SubmitDocument()" Disabled="disableEdits">
+                            @approvalStatus.Name</MudButton>
+                            <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown" Style="align-self: auto;"
+                                     Disabled="disableEdits">
+                                @foreach (var stat in docStatusList)
+                                {
+                                    <MudMenuItem OnClick="() => ApprovalActionSelected(stat)">@stat.Name
+                                    </MudMenuItem>
+                                }
+                            </MudMenu>
+                        </MudButtonGroup>
+                    </div>
+                </MudForm>
+            </div>
+            <div class="flex-1 inset-2 bg-green-50 rounded-2xl p-3 border border-green-100">
+                <DocumentEditor @ref="childRef" DocId="@DocId" DisableEdits="disableEdits" />
+            </div>
         </div>
     </div>
-</div>
