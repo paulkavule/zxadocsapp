@@ -60,18 +60,15 @@ else
                 </ul>
             </div>
             <div class="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-slate-200 p-5">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Preview</h2>
-                    <MudButton OnClick="DoPreview" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" Disabled="busy">Refresh</MudButton>
-                </div>
-                @if (!string.IsNullOrEmpty(previewDataUrl))
+                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Preview</h2>
+                @if (version is not null && !string.IsNullOrEmpty(templateHtml))
                 {
-                    <embed src="@previewDataUrl" type="application/pdf" class="w-full h-[520px] rounded-xl border border-slate-200" />
+                    <iframe srcdoc="@BuildPreview()" class="w-full h-[520px] rounded-xl border border-slate-200 bg-white" sandbox=""></iframe>
                 }
                 else
                 {
                     <div class="h-[520px] rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
-                        <div class="text-center"><i class="fas fa-file-pdf text-3xl mb-2"></i><p>@(previewError ?? "Click Refresh to render the document")</p></div>
+                        <div class="text-center"><i class="fas fa-file-lines text-3xl mb-2"></i><p>@(loadError ?? "Loading preview…")</p></div>
                     </div>
                 }
             </div>

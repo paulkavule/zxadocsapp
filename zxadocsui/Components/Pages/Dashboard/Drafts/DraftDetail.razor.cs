@@ -1,3 +1,5 @@
+using System.Net;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
@@ -8,11 +10,14 @@ using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Drafts;
 
-// Draft Detail (/drafts/{id}, FR-F7). Field values, PDF preview, and status-driven actions:
-// edit/submit (Draft/Rejected), download + Start signing workflow (Approved), with the
-// hand-off payload carried to /createdocument via DraftHandoffState.
+// Draft Detail (/drafts/{id}, FR-F7). Field values, a live merged HTML preview, and
+// status-driven actions: edit/submit (Draft/Rejected), download + Start signing workflow
+// (Approved), with the hand-off payload carried to /createdocument via DraftHandoffState.
 public partial class DraftDetail
 {
+    // Same token shape as the backend/editor: {{ key }} = any non-'}' run, trimmed.
+    private static readonly Regex TokenPattern = new(@"\{\{\s*([^}]+?)\s*\}\}", RegexOptions.Compiled);
+
     [Inject] private IDraftClientService DraftsApi { get; set; } = default!;
     [Inject] private ITemplateClientService TemplatesApi { get; set; } = default!;
     [Inject] private IPermissionClientService Permissions { get; set; } = default!;
@@ -27,8 +32,8 @@ public partial class DraftDetail
     private bool canManage, canApprove, busy;
 
     private readonly Dictionary<int, string> fieldLabels = new();
-    private string? previewDataUrl;
-    private string? previewError;
+    private TemplateVersionDto? version;          // snapshotted version (field defs)
+    private string templateHtml = string.Empty;   // raw template body (with {{key}} tokens)
 
     private bool rendered;
     private int lastLoadedId = -1;
@@ -64,14 +69,46 @@ public partial class DraftDetail
         if (!ok || data is null) { loadError = error ?? "Draft not found."; draft = null; return; }
         draft = data;
 
-        // Resolve field labels from the snapshotted template version.
-        var (okV, version, _) = await TemplatesApi.GetVersion(draft.TemplateVersionId);
+        // Resolve field defs + labels from the snapshotted template version, and load the body
+        // for the merged preview.
+        var (okV, v, _) = await TemplatesApi.GetVersion(draft.TemplateVersionId);
+        version = okV ? v : null;
         fieldLabels.Clear();
-        if (okV && version is not null)
+        if (version is not null)
+        {
             foreach (var f in version.Fields) fieldLabels[f.Id] = f.Label;
+            var (okC, html, _) = await TemplatesApi.GetVersionContent(version.Id);
+            templateHtml = okC ? html : string.Empty;
+        }
     }
 
     private string FieldLabel(int fieldId) => fieldLabels.TryGetValue(fieldId, out var l) && !string.IsNullOrWhiteSpace(l) ? l : $"Field {fieldId}";
+
+    // Merge the draft's saved values into the template body for an in-browser preview — no
+    // LibreOffice/PDF round-trip needed. Unfilled fields are highlighted; unknown tokens kept.
+    private string BuildPreview()
+    {
+        if (version is null || string.IsNullOrEmpty(templateHtml)) return templateHtml;
+
+        var valueByFieldId = (draft?.FieldValues ?? Array.Empty<DraftFieldValueDto>())
+            .GroupBy(x => x.TemplateFieldId).ToDictionary(g => g.Key, g => g.Last().Value);
+        var byKey = version.Fields
+            .Where(f => !string.IsNullOrWhiteSpace(f.Key))
+            .GroupBy(f => f.Key.Trim())
+            .ToDictionary(g => g.Key, g => g.First());
+
+        return TokenPattern.Replace(templateHtml, m =>
+        {
+            var key = m.Groups[1].Value.Trim();
+            if (!byKey.TryGetValue(key, out var field)) return m.Value; // unknown token — leave visible
+
+            var val = valueByFieldId.GetValueOrDefault(field.Id, string.Empty);
+            if (!string.IsNullOrWhiteSpace(val)) return WebUtility.HtmlEncode(val);
+
+            var label = string.IsNullOrWhiteSpace(field.Label) ? key : field.Label;
+            return $"<mark style=\"background:#fef08a;color:#713f12;padding:0 3px;border-radius:3px\">{WebUtility.HtmlEncode(label)}</mark>";
+        });
+    }
 
     private async Task Submit()
     {
@@ -82,19 +119,6 @@ public partial class DraftDetail
             if (!ok) { Snackbar.Add(error ?? "Submit failed.", Severity.Error); return; }
             Snackbar.Add("Submitted for approval.", Severity.Success);
             await Load();
-        }
-        finally { busy = false; }
-    }
-
-    private async Task DoPreview()
-    {
-        busy = true;
-        previewError = null; previewDataUrl = null;
-        try
-        {
-            var (ok, pdf, error) = await DraftsApi.Preview(Id);
-            if (!ok || pdf is null) { previewError = error ?? "Preview failed."; return; }
-            previewDataUrl = "data:application/pdf;base64," + Convert.ToBase64String(pdf);
         }
         finally { busy = false; }
     }
