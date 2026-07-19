@@ -86,6 +86,8 @@ public interface IHttpService
         CancellationToken cancellationToken = default);
     IAsyncEnumerable<byte[]> DownloadDocumentFileAsync(int docId, int bufferSize = 81920, bool isSignature = false, CancellationToken ct = default);
 
+    // Raw bytes for an arbitrary GET (e.g. draft preview/download PDFs) — no JSON deserialisation.
+    Task<(bool success, byte[]? data, string? error)> GetBytesAsync(string endpoint, CancellationToken ct = default);
 
 }
 
@@ -337,6 +339,26 @@ public class HttpService : IHttpService
         }
     }
 
+
+    public async Task<(bool success, byte[]? data, string? error)> GetBytesAsync(string endpoint, CancellationToken ct = default)
+    {
+        ApplyAuthorization();
+        try
+        {
+            var response = await _client!.GetAsync(endpoint, ct);
+            if (response.IsSuccessStatusCode)
+                return (true, await response.Content.ReadAsByteArrayAsync(ct), null);
+
+            var error = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogWarning("GET(bytes) {Endpoint} failed with status {Status}: {Error}", endpoint, response.StatusCode, error);
+            return (false, null, error);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GET(bytes) {Endpoint} failed with exception", endpoint);
+            return (false, null, ex.Message);
+        }
+    }
 
     public async IAsyncEnumerable<byte[]> DownloadDocumentFileAsync(int docId, int bufferSize = 81920, bool isSignature = false, CancellationToken ct = default)
     {

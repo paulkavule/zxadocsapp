@@ -30,6 +30,11 @@ builder.Services.AddScoped<SideDialogService>();
 builder.Services.AddScoped<AppState>();
 builder.Services.AddScoped<RequestsContext>();
 
+// Legal Templates client services (ZD-16 / FE-01) — scoped per user/circuit.
+builder.Services.AddScoped<ITemplateClientService, TemplateClientService>();
+builder.Services.AddScoped<IDraftClientService, DraftClientService>();
+builder.Services.AddScoped<IPermissionClientService, PermissionClientService>();
+
 builder.Services.AddScoped<HttpCoreIntercetpor>();
 
 builder.Services.AddHttpClient("Api", conf =>
