@@ -1,0 +1,123 @@
+using System.Globalization;
+using Microsoft.AspNetCore.Components;
+using MudBlazor;
+using zxadocsfe.Services;
+using zxadocslib.Dtos;
+using zxadocslib.Helpers;
+
+namespace zxadocsui.Components.Pages.Dashboard.Drafts;
+
+// Draft Editor (/drafts/new/{templateId}, /drafts/{id}/edit — FR-F5). Renders a form
+// generated from the template version's fields (one input per TemplateFieldType), saves
+// the draft (create or update), previews the rendered PDF, and submits for approval.
+public partial class DraftEditor
+{
+    [Inject] private ITemplateClientService TemplatesApi { get; set; } = default!;
+    [Inject] private IDraftClientService DraftsApi { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private TemplateVersionDto? version;   // the approved version being filled
+    private int draftId;                   // 0 until saved/loaded
+    private string title = string.Empty;
+    private string? loadError;
+    private bool busy;
+
+    private readonly Dictionary<int, string> values = new();
+    private string? previewDataUrl;
+    private string? previewError;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id > 0) await LoadExisting();
+        else await LoadForTemplate();
+    }
+
+    private async Task LoadForTemplate()
+    {
+        var (ok, template, error) = await TemplatesApi.Get(TemplateId);
+        if (!ok || template is null) { loadError = error ?? "Template not found."; return; }
+        if (template.Status != TemplateStatus.Approved || template.CurrentVersion is null)
+        {
+            Snackbar.Add("Drafts can only be started from an approved template.", Severity.Warning);
+            Nav.NavigateTo($"/templates/{TemplateId}");
+            return;
+        }
+        version = template.CurrentVersion;
+    }
+
+    private async Task LoadExisting()
+    {
+        var (ok, draft, error) = await DraftsApi.Get(Id);
+        if (!ok || draft is null) { loadError = error ?? "Draft not found."; return; }
+        draftId = draft.Id;
+        title = draft.Title;
+        foreach (var v in draft.FieldValues) values[v.TemplateFieldId] = v.Value;
+
+        // The draft snapshots a template version id; fetch that version for its field defs.
+        var (okV, v2, verr) = await TemplatesApi.GetVersion(draft.TemplateVersionId);
+        if (!okV || v2 is null) { loadError = verr ?? "Template version not found."; return; }
+        version = v2;
+    }
+
+    // ---- value helpers ----
+    private string Get(int fieldId) => values.TryGetValue(fieldId, out var v) ? v : string.Empty;
+    private void Set(int fieldId, string value) => values[fieldId] = value ?? string.Empty;
+
+    private DateTime? GetDate(int fieldId) =>
+        DateTime.TryParse(Get(fieldId), CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d : null;
+    private void SetDate(int fieldId, DateTime? d) => values[fieldId] = d?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty;
+
+    private bool GetBool(int fieldId) => Get(fieldId).Equals("true", StringComparison.OrdinalIgnoreCase);
+    private void SetBool(int fieldId, bool b) => values[fieldId] = b ? "true" : "false";
+
+    // ---- actions ----
+    private async Task<bool> SaveDraft()
+    {
+        if (string.IsNullOrWhiteSpace(title)) { Snackbar.Add("A title is required.", Severity.Warning); return false; }
+        if (version is null) return false;
+
+        var inputs = values.Select(kv => new DraftFieldValueInput { TemplateFieldId = kv.Key, Value = kv.Value }).ToList();
+        busy = true;
+        try
+        {
+            if (draftId == 0)
+            {
+                var (ok, draft, error) = await DraftsApi.Create(new CreateDraftRequest
+                {
+                    TemplateVersionId = version.Id,
+                    Title = title.Trim(),
+                    FieldValues = inputs,
+                });
+                if (!ok || draft is null) { Snackbar.Add(error ?? "Could not save the draft.", Severity.Error); return false; }
+                draftId = draft.Id;
+            }
+            else
+            {
+                var (ok, _, error) = await DraftsApi.Update(draftId, new UpdateDraftRequest { Title = title.Trim(), FieldValues = inputs });
+                if (!ok) { Snackbar.Add(error ?? "Could not update the draft.", Severity.Error); return false; }
+            }
+            Snackbar.Add("Draft saved.", Severity.Success);
+            return true;
+        }
+        finally { busy = false; }
+    }
+
+    private async Task DoPreview()
+    {
+        if (!await SaveDraft()) return;
+        previewError = null; previewDataUrl = null;
+        var (ok, pdf, error) = await DraftsApi.Preview(draftId);
+        if (!ok || pdf is null) { previewError = error ?? "Preview failed."; return; }
+        previewDataUrl = "data:application/pdf;base64," + Convert.ToBase64String(pdf);
+    }
+
+    private async Task SubmitDraft()
+    {
+        if (draftId == 0 && !await SaveDraft()) return;
+        var (ok, _, error) = await DraftsApi.Submit(draftId);
+        if (!ok) { Snackbar.Add(error ?? "Submit failed.", Severity.Error); return; }
+        Snackbar.Add("Submitted for approval.", Severity.Success);
+        Nav.NavigateTo($"/drafts/{draftId}");
+    }
+}
