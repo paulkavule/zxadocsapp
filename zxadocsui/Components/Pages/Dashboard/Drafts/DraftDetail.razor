@@ -1,53 +1,83 @@
 @page "/drafts/{Id:int}"
 @layout DashboardLayout
+@using zxadocslib.Dtos
+@using zxadocslib.Helpers
 
-@* LAYOUT SCAFFOLD (ZD-23 / FR-F7) — static placeholders, no data wiring yet. *@
-
-<div class="w-full space-y-6">
-    <!-- header -->
-    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-        <div class="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white/90">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
-                    <i class="fas fa-file-signature text-sm"></i>
+@if (draft is null)
+{
+    <div class="py-20 text-center text-slate-500">@(loadError ?? "Loading…")</div>
+}
+else
+{
+    <div class="w-full space-y-6">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white/90">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+                        <i class="fas fa-file-signature text-sm"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-semibold text-slate-800 tracking-tight">@draft.Title</h1>
+                        <p class="text-xs text-slate-500">draft #@draft.Id</p>
+                    </div>
+                    <MudChip T="string" Size="Size.Small" Color="@StatusColor(draft.Status)" Variant="Variant.Filled">@Label(draft.Status)</MudChip>
                 </div>
-                <div>
-                    <h1 class="text-xl font-semibold text-slate-800 tracking-tight">ACME NDA</h1>
-                    <p class="text-xs text-slate-500">from “Mutual NDA” · draft #@Id</p>
+                <div class="flex items-center gap-2">
+                    @if (canManage && (draft.Status == DraftStatus.Draft || draft.Status == DraftStatus.Rejected))
+                    {
+                        <MudButton Href="@($"/drafts/{draft.Id}/edit")" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit">Edit</MudButton>
+                        <MudButton OnClick="Submit" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send" Disabled="busy">Submit</MudButton>
+                    }
+                    @if (draft.Status == DraftStatus.Approved || draft.Status == DraftStatus.SentToWorkflow)
+                    {
+                        <MudButton OnClick="Download" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download" Disabled="busy">Download</MudButton>
+                    }
+                    @if (canManage && draft.Status == DraftStatus.Approved)
+                    {
+                        <MudButton OnClick="StartSigning" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Gavel" Disabled="busy">Start signing workflow</MudButton>
+                    }
                 </div>
-                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">Approved</MudChip>
             </div>
-            <div class="flex items-center gap-2">
-                <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit">Edit</MudButton>
-                <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send">Submit</MudButton>
-                <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download">Download</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Gavel">Start signing workflow</MudButton>
+            @if (draft.Status == DraftStatus.SentToWorkflow)
+            {
+                <div class="px-6 py-3 text-sm text-slate-600 bg-green-50 border-t border-green-100">
+                    Sent to the signing workflow · reference <code>@draft.DocumentReference</code>
+                </div>
+            }
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1 bg-white rounded-2xl shadow-xl border border-slate-200 p-5">
+                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Field values</h2>
+                <ul class="space-y-2 text-sm">
+                    @foreach (var v in draft.FieldValues)
+                    {
+                        <li class="flex justify-between gap-3">
+                            <span class="text-slate-500">@FieldLabel(v.TemplateFieldId)</span>
+                            <span class="text-slate-800 text-right">@v.Value</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+            <div class="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-slate-200 p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Preview</h2>
+                    <MudButton OnClick="DoPreview" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" Disabled="busy">Refresh</MudButton>
+                </div>
+                @if (!string.IsNullOrEmpty(previewDataUrl))
+                {
+                    <embed src="@previewDataUrl" type="application/pdf" class="w-full h-[520px] rounded-xl border border-slate-200" />
+                }
+                else
+                {
+                    <div class="h-[520px] rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
+                        <div class="text-center"><i class="fas fa-file-pdf text-3xl mb-2"></i><p>@(previewError ?? "Click Refresh to render the document")</p></div>
+                    </div>
+                }
             </div>
         </div>
     </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- values -->
-        <div class="lg:col-span-1 bg-white rounded-2xl shadow-xl border border-slate-200 p-5">
-            <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Field values</h2>
-            <ul class="space-y-2 text-sm">
-                <li class="flex justify-between"><span class="text-slate-500">Party name</span><span class="text-slate-800">Acme Ltd</span></li>
-                <li class="flex justify-between"><span class="text-slate-500">Effective date</span><span class="text-slate-800">05 Jul 2026</span></li>
-                <li class="flex justify-between"><span class="text-slate-500">Jurisdiction</span><span class="text-slate-800">Uganda</span></li>
-            </ul>
-        </div>
-        <!-- preview -->
-        <div class="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-slate-200 p-5">
-            <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Preview</h2>
-            <div class="h-[520px] rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
-                <div class="text-center">
-                    <i class="fas fa-file-pdf text-3xl mb-2"></i>
-                    <p>Generated document preview</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+}
 
 @code {
     [Parameter] public int Id { get; set; }
