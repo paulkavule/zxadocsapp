@@ -1,0 +1,111 @@
+@page "/templates/new"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+@using zxadocslib.Helpers
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90 backdrop-blur-sm">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-file-circle-plus text-sm"></i>
+        </div>
+        <h1 class="text-xl font-semibold text-slate-800 tracking-tight">New template</h1>
+    </div>
+
+    <div class="p-6 space-y-8 max-w-4xl">
+        <!-- 1. Details -->
+        <section>
+            <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Details</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <MudTextField @bind-Value="name" Label="Template name" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudSelect T="int" @bind-Value="categoryId" Label="Category" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var c in categories)
+                    {
+                        <MudSelectItem Value="c.Id">@c.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <div class="md:col-span-2">
+                    <MudTextField @bind-Value="description" Label="Description" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Template file -->
+        <section>
+            <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Template file (PDF or DOCX, ≤ @MaxMb MB)</h2>
+            <div class="flex items-center gap-3">
+                <MudFileUpload T="IBrowserFile" FilesChanged="OnFileSelected" Accept=".pdf,.docx">
+                    <ActivatorContent>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile">
+                            Choose file
+                        </MudButton>
+                    </ActivatorContent>
+                </MudFileUpload>
+                @if (!string.IsNullOrEmpty(fileName))
+                {
+                    <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Description">@fileName</MudChip>
+                }
+            </div>
+            @if (!string.IsNullOrEmpty(fileError))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Error" Class="mt-1">@fileError</MudText>
+            }
+            <MudText Typo="Typo.caption" Class="mt-1 text-slate-500">
+                DOCX supports <code>{{key}}</code> merge tokens; a PDF is stored as a static document.
+            </MudText>
+        </section>
+
+        <!-- 3. Merge fields -->
+        <section>
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Merge fields</h2>
+                <MudButton OnClick="AddField" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
+                    Add field
+                </MudButton>
+            </div>
+
+            @if (fields.Count == 0)
+            {
+                <div class="py-6 text-center text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                    No merge fields. Add one per <code>{{key}}</code> token used in the template.
+                </div>
+            }
+            else
+            {
+                <div class="space-y-3">
+                    @foreach (var f in fields)
+                    {
+                        <div class="grid grid-cols-12 gap-2 items-center border border-slate-200 rounded-xl p-3">
+                            <MudTextField @bind-Value="f.Key" Label="Key" Placeholder="party_name" Variant="Variant.Outlined" Margin="Margin.Dense" Class="col-span-2" />
+                            <MudTextField @bind-Value="f.Label" Label="Label" Variant="Variant.Outlined" Margin="Margin.Dense" Class="col-span-3" />
+                            <MudSelect T="TemplateFieldType" @bind-Value="f.Type" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense" Class="col-span-2">
+                                @foreach (var t in Enum.GetValues<TemplateFieldType>())
+                                {
+                                    <MudSelectItem Value="t">@t</MudSelectItem>
+                                }
+                            </MudSelect>
+                            <MudTextField @bind-Value="f.OptionsCsv" Label="Options (comma-sep)" Disabled="@(f.Type != TemplateFieldType.Dropdown)"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="col-span-3" />
+                            <MudCheckBox @bind-Value="f.Required" Label="Req." Class="col-span-1" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                           OnClick="@(() => RemoveField(f))" Class="col-span-1" />
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        @if (busy && uploadProgress > 0)
+        {
+            <MudProgressLinear Color="Color.Primary" Value="uploadProgress" Class="my-2" />
+        }
+
+        <!-- actions -->
+        <div class="flex items-center gap-3 pt-2 border-t border-slate-200">
+            <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy"
+                       StartIcon="@Icons.Material.Filled.Save">
+                @(busy ? "Saving…" : "Save template")
+            </MudButton>
+            <MudButton Href="/templates" Variant="Variant.Text" Disabled="busy">Cancel</MudButton>
+        </div>
+    </div>
+</div>
