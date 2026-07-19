@@ -1,6 +1,7 @@
 @using zxadocsfe.Dtos
 @using zxadocsfe.Services
 @using zxadocslib.Dtos
+@using zxadocslib.Helpers
 @using zxadocsui.Components.Shared
 @using zxadocsui.Helpers
 @using zxadocsui.State
@@ -73,30 +74,40 @@
                         <span class="font-medium whitespace-nowrap sidebar-menu-text">Users</span>
                     </NavLink>
 
-                    <!-- CONTRACTS SECTION (collapsible submenu: Templates + Drafts) -->
-                    <div id="contractsToggle"
-                         class="flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer hover:bg-[#e0f2df] transition group menu-item">
-                        <div class="flex items-center space-x-3">
-                            <i class="fa-solid fa-file-signature w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
-                            <span class="font-medium whitespace-nowrap sidebar-menu-text">Contracts</span>
+                    <!-- CONTRACTS SECTION (collapsible submenu: Templates + Drafts) —
+                         hidden unless the user's effective permissions grant access to at least
+                         one sub-area (ZD-81). Server enforces regardless; this only drives the nav. -->
+                    <div style="@(showContracts ? "" : "display:none")">
+                        <div id="contractsToggle"
+                             class="flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer hover:bg-[#e0f2df] transition group menu-item">
+                            <div class="flex items-center space-x-3">
+                                <i class="fa-solid fa-file-signature w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                <span class="font-medium whitespace-nowrap sidebar-menu-text">Contracts</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-[#5f8b74] transition-transform duration-200"
+                               id="contractsChevron"></i>
                         </div>
-                        <i class="fa-solid fa-chevron-down text-[#5f8b74] transition-transform duration-200"
-                           id="contractsChevron"></i>
-                    </div>
-                    <div id="contractsSubmenu" class="submenu max-h-0 opacity-0">
-                        <div class="pl-12 pr-4 space-y-1 mt-1">
-                            <NavLink href="/templates"
-                                     class="flex items-center py-2.5 px-3 text-sm text-[#1e4a33] hover:bg-[#e0f2df] rounded-xl transition"
-                                     ActiveClass="bg-[#e0f2df]">
-                                <i class="fa-regular fa-file-lines w-4 text-[#5f8b74] mr-2"></i>
-                                <span class="sidebar-submenu-text">Templates</span>
-                            </NavLink>
-                            <NavLink href="/drafts"
-                                     class="flex items-center py-2.5 px-3 text-sm text-[#1e4a33] hover:bg-[#e0f2df] rounded-xl transition"
-                                     ActiveClass="bg-[#e0f2df]">
-                                <i class="fa-regular fa-pen-to-square w-4 text-[#5f8b74] mr-2"></i>
-                                <span class="sidebar-submenu-text">Drafts</span>
-                            </NavLink>
+                        <div id="contractsSubmenu" class="submenu max-h-0 opacity-0">
+                            <div class="pl-12 pr-4 space-y-1 mt-1">
+                                @if (canTemplates)
+                                {
+                                    <NavLink href="/templates"
+                                             class="flex items-center py-2.5 px-3 text-sm text-[#1e4a33] hover:bg-[#e0f2df] rounded-xl transition"
+                                             ActiveClass="bg-[#e0f2df]">
+                                        <i class="fa-regular fa-file-lines w-4 text-[#5f8b74] mr-2"></i>
+                                        <span class="sidebar-submenu-text">Templates</span>
+                                    </NavLink>
+                                }
+                                @if (canDrafts)
+                                {
+                                    <NavLink href="/drafts"
+                                             class="flex items-center py-2.5 px-3 text-sm text-[#1e4a33] hover:bg-[#e0f2df] rounded-xl transition"
+                                             ActiveClass="bg-[#e0f2df]">
+                                        <i class="fa-regular fa-pen-to-square w-4 text-[#5f8b74] mr-2"></i>
+                                        <span class="sidebar-submenu-text">Drafts</span>
+                                    </NavLink>
+                                }
+                            </div>
                         </div>
                     </div>
 
@@ -247,12 +258,29 @@
 @code {
     [Inject] public IUserSession session { set; get; } = default!;
     [Inject] public IHttpService httpSvc { set; get; } = default!;
+    [Inject] public IPermissionClientService permissions { set; get; } = default!;
     UserData userData = new();
+
+    // Contracts nav visibility, driven by the caller's effective permissions (ZD-81).
+    // Fail closed: everything stays hidden until permissions load.
+    bool canTemplates;
+    bool canDrafts;
+    bool showContracts => canTemplates || canDrafts;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             userData = await session.GetCurrentUser();
+
+            var perms = await permissions.GetPermissions();
+            canTemplates = perms.Contains(Permission.ViewTemplates)
+                        || perms.Contains(Permission.CreateTemplate)
+                        || perms.Contains(Permission.ApproveTemplate);
+            canDrafts = perms.Contains(Permission.ViewDrafts)
+                     || perms.Contains(Permission.CreateDraft)
+                     || perms.Contains(Permission.ApproveDraft);
+
             StateHasChanged();
         }
     }

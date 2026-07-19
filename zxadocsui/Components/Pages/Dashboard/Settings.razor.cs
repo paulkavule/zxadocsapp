@@ -27,6 +27,7 @@ public partial class Settings
     private int editingId;
     private string editName = string.Empty;
     private bool busy;
+    private int orgId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -37,6 +38,7 @@ public partial class Settings
             Nav.NavigateTo("/dashboard");
             return;
         }
+        int.TryParse(user.OrgId, out orgId);
         await LoadValues();
     }
 
@@ -50,7 +52,7 @@ public partial class Settings
     private async Task LoadValues()
     {
         values.Clear();
-        var (ok, data, error) = await ListOptions.Get(selectedType);
+        var (ok, data, error) = await ListOptions.Get(orgId, selectedType);
         if (!ok) { Snackbar.Add(error ?? "Failed to load values.", Severity.Error); return; }
         values.AddRange(data);
     }
@@ -65,8 +67,8 @@ public partial class Settings
         try
         {
             var (ok, error) = editingId == 0
-                ? await ListOptions.Create(editName.Trim(), selectedType)
-                : await ListOptions.Update(editingId, editName.Trim(), selectedType);
+                ? await ListOptions.Create(orgId, editName.Trim(), selectedType)
+                : await ListOptions.Update(orgId, editingId, editName.Trim(), selectedType);
             if (!ok) { Snackbar.Add(error ?? "Save failed.", Severity.Error); return; }
             Snackbar.Add(editingId == 0 ? "Value added." : "Value updated.", Severity.Success);
             CancelEdit();
@@ -80,7 +82,7 @@ public partial class Settings
         busy = true;
         try
         {
-            var (ok, error) = await ListOptions.Delete(v.Id);
+            var (ok, error) = await ListOptions.Delete(orgId, v.Id);
             if (!ok) { Snackbar.Add(error ?? "Delete failed.", Severity.Error); return; }
             Snackbar.Add("Value deleted.", Severity.Success);
             if (editingId == v.Id) CancelEdit();
