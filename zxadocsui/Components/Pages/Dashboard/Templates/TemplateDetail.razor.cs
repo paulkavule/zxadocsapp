@@ -6,6 +6,7 @@ using zxadocslib.Dtos;
 using zxadocslib.Helpers;
 using zxadocsui.Components.Custom;
 using zxadocsui.Components.Custom.Dialogs;
+using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Templates;
 
@@ -16,6 +17,7 @@ public partial class TemplateDetail
 {
     [Inject] private ITemplateClientService TemplatesApi { get; set; } = default!;
     [Inject] private IPermissionClientService Permissions { get; set; } = default!;
+    [Inject] private IUserSession Session { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private IDialogService Dialogs { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
@@ -38,8 +40,32 @@ public partial class TemplateDetail
     private TemplateVersionDto? pendingVersion =>
         template?.Versions.Where(v => v.Status == TemplateStatus.PendingApproval).OrderByDescending(v => v.VersionNo).FirstOrDefault();
 
+    private bool rendered;
+    private int lastLoadedId = -1;
+
+    // The initial load runs in OnAfterRenderAsync: that's the first point JS interop is available,
+    // so the auth token can be hydrated from ProtectedLocalStorage before any authed API call
+    // (loading here in OnParametersSetAsync would fire tokenless on a cold reload/deep-link -> 401).
+    // OnParametersSetAsync still handles route-param changes (/templates/5 -> /templates/8) once
+    // the session is ready.
     protected override async Task OnParametersSetAsync()
     {
+        if (rendered && Id != lastLoadedId)
+            await LoadAll();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        rendered = true;
+        await LoadAll();
+        StateHasChanged();
+    }
+
+    private async Task LoadAll()
+    {
+        lastLoadedId = Id;
+        await Session.GetCurrentUser();   // hydrate the auth token before any authed call
         canManage = await Permissions.Has(Permission.CreateTemplate);
         canApprove = await Permissions.Has(Permission.ApproveTemplate);
         canDraft = await Permissions.Has(Permission.CreateDraft);

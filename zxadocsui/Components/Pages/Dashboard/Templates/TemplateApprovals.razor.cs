@@ -4,6 +4,7 @@ using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocslib.Helpers;
 using zxadocsui.Components.Custom.Dialogs;
+using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Templates;
 
@@ -14,6 +15,7 @@ public partial class TemplateApprovals
 {
     [Inject] private ITemplateClientService TemplatesApi { get; set; } = default!;
     [Inject] private IPermissionClientService Permissions { get; set; } = default!;
+    [Inject] private IUserSession Session { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private IDialogService Dialogs { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
@@ -24,8 +26,13 @@ public partial class TemplateApprovals
     private string previewHtml = string.Empty;
     private bool busy;
 
-    protected override async Task OnInitializedAsync()
+    // Guard + load run in OnAfterRenderAsync: it is the first point JS interop is available, so the
+    // auth token can be hydrated before the permission/queue calls (running in OnInitializedAsync
+    // would fire tokenless on a cold reload/deep-link and wrongly bounce an authorized approver).
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender) return;
+        await Session.GetCurrentUser();   // hydrate the auth token before any authed call
         if (!await Permissions.Has(Permission.ApproveTemplate))
         {
             Snackbar.Add("You don't have permission to approve templates.", Severity.Warning);
@@ -33,6 +40,7 @@ public partial class TemplateApprovals
             return;
         }
         await LoadQueue();
+        StateHasChanged();
     }
 
     private async Task LoadQueue()

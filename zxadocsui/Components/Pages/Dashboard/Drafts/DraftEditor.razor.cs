@@ -4,6 +4,7 @@ using MudBlazor;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocslib.Helpers;
+using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Drafts;
 
@@ -14,6 +15,7 @@ public partial class DraftEditor
 {
     [Inject] private ITemplateClientService TemplatesApi { get; set; } = default!;
     [Inject] private IDraftClientService DraftsApi { get; set; } = default!;
+    [Inject] private IUserSession Session { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
@@ -27,8 +29,33 @@ public partial class DraftEditor
     private string? previewDataUrl;
     private string? previewError;
 
+    private bool rendered;
+    private int lastId = -1, lastTemplateId = -1;
+
+    // The initial load runs in OnAfterRenderAsync: it is the first point JS interop is available,
+    // so the auth token can be hydrated from ProtectedLocalStorage before any authed API call
+    // (loading here in OnParametersSetAsync would fire tokenless on a cold reload/deep-link -> 401).
+    // OnParametersSetAsync still handles route changes (new template / editing a different draft)
+    // once the session is ready.
     protected override async Task OnParametersSetAsync()
     {
+        if (rendered && (Id != lastId || TemplateId != lastTemplateId))
+            await LoadAll();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        rendered = true;
+        await LoadAll();
+        StateHasChanged();
+    }
+
+    private async Task LoadAll()
+    {
+        lastId = Id;
+        lastTemplateId = TemplateId;
+        await Session.GetCurrentUser();   // hydrate the auth token before any authed call
         if (Id > 0) await LoadExisting();
         else await LoadForTemplate();
     }
