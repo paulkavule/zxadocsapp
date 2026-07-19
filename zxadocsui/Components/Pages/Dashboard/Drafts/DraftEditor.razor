@@ -4,7 +4,7 @@
 @using zxadocslib.Dtos
 @using zxadocslib.Helpers
 
-<div class="w-full grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div class="w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- form -->
     <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
         <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
@@ -31,11 +31,11 @@
                             @switch (f.FieldType)
                             {
                                 case TemplateFieldType.MultilineText:
-                                    <MudTextField T="string" Label="@f.Label" Value="@Get(f.Id)" ValueChanged="@(v => Set(f.Id, v))" Lines="3" Required="f.IsRequired" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                    <MudTextField T="string" Label="@f.Label" Value="@Get(f.Id)" ValueChanged="@(v => Set(f.Id, v))" Immediate="true" Lines="3" Required="f.IsRequired" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                     break;
                                 case TemplateFieldType.Number:
                                 case TemplateFieldType.Currency:
-                                    <MudTextField T="string" Label="@f.Label" Value="@Get(f.Id)" ValueChanged="@(v => Set(f.Id, v))" InputType="InputType.Number" Required="f.IsRequired" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                    <MudTextField T="string" Label="@f.Label" Value="@Get(f.Id)" ValueChanged="@(v => Set(f.Id, v))" Immediate="true" InputType="InputType.Number" Required="f.IsRequired" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                     break;
                                 case TemplateFieldType.Date:
                                     <MudDatePicker Label="@f.Label" Date="@GetDate(f.Id)" DateChanged="@(d => SetDate(f.Id, d))" Required="f.IsRequired" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -52,7 +52,7 @@
                                     </MudSelect>
                                     break;
                                 default:
-                                    <MudTextField T="string" Label="@f.Label" Value="@Get(f.Id)" ValueChanged="@(v => Set(f.Id, v))" Required="f.IsRequired" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                    <MudTextField T="string" Label="@f.Label" Value="@Get(f.Id)" ValueChanged="@(v => Set(f.Id, v))" Immediate="true" Required="f.IsRequired" Variant="Variant.Outlined" Margin="Margin.Dense" />
                                     break;
                             }
                         </div>
@@ -61,24 +61,26 @@
 
                 <div class="flex items-center gap-2 pt-4 border-t border-slate-200">
                     <MudButton OnClick="SaveDraft" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy" StartIcon="@Icons.Material.Filled.Save">Save draft</MudButton>
-                    <MudButton OnClick="DoPreview" Variant="Variant.Text" Color="Color.Primary" Disabled="busy" StartIcon="@Icons.Material.Filled.Visibility">Preview</MudButton>
                     <MudButton OnClick="SubmitDraft" Variant="Variant.Text" Color="Color.Primary" Disabled="@(busy || draftId == 0)" StartIcon="@Icons.Material.Filled.Send">Submit</MudButton>
                 </div>
             </div>
         }
     </div>
 
-    <!-- preview -->
-    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-5 flex flex-col">
-        <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Preview</h2>
-        @if (!string.IsNullOrEmpty(previewDataUrl))
+    <!-- live preview: template body with the current values merged in, updates as you edit -->
+    <div class="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-slate-200 p-5 flex flex-col">
+        <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">
+            Live preview
+            <span class="normal-case font-normal text-slate-400">— unfilled fields are highlighted</span>
+        </h2>
+        @if (version is not null && !string.IsNullOrEmpty(templateHtml))
         {
-            <embed src="@previewDataUrl" type="application/pdf" class="w-full h-[560px] rounded-xl border border-slate-200" />
+            <iframe srcdoc="@BuildPreview()" class="w-full h-[560px] rounded-xl border border-slate-200 bg-white" sandbox=""></iframe>
         }
         else
         {
             <div class="flex-1 min-h-[520px] rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
-                <div class="text-center"><i class="fas fa-file-pdf text-3xl mb-2"></i><p>@(previewError ?? "Save, then Preview to render the document")</p></div>
+                <div class="text-center"><i class="fas fa-file-lines text-3xl mb-2"></i><p>@(loadError ?? "Loading template…")</p></div>
             </div>
         }
     </div>

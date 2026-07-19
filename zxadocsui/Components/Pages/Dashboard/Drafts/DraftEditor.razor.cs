@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Net;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using zxadocsfe.Services;
@@ -8,11 +10,15 @@ using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Drafts;
 
-// Draft Editor (/drafts/new/{templateId}, /drafts/{id}/edit — FR-F5). Renders a form
-// generated from the template version's fields (one input per TemplateFieldType), saves
-// the draft (create or update), previews the rendered PDF, and submits for approval.
+// Draft Editor (/drafts/new/{templateId}, /drafts/{id}/edit — FR-F5). Left column: a form
+// generated from the template version's fields (one input per TemplateFieldType). Right
+// column: a LIVE preview of the template body with the current values merged in, updated on
+// every edit. Saves the draft (create or update) and submits for approval.
 public partial class DraftEditor
 {
+    // Same token shape the backend HtmlTokenMerger uses: {{ key }} with optional whitespace.
+    private static readonly Regex TokenPattern = new(@"\{\{\s*([\w.\-]+)\s*\}\}", RegexOptions.Compiled);
+
     [Inject] private ITemplateClientService TemplatesApi { get; set; } = default!;
     [Inject] private IDraftClientService DraftsApi { get; set; } = default!;
     [Inject] private IUserSession Session { get; set; } = default!;
@@ -26,8 +32,7 @@ public partial class DraftEditor
     private bool busy;
 
     private readonly Dictionary<int, string> values = new();
-    private string? previewDataUrl;
-    private string? previewError;
+    private string templateHtml = string.Empty;   // raw template body (with {{key}} tokens)
 
     private bool rendered;
     private int lastId = -1, lastTemplateId = -1;
@@ -71,6 +76,7 @@ public partial class DraftEditor
             return;
         }
         version = template.CurrentVersion;
+        await LoadTemplateBody(version.Id);
     }
 
     private async Task LoadExisting()
@@ -85,6 +91,13 @@ public partial class DraftEditor
         var (okV, v2, verr) = await TemplatesApi.GetVersion(draft.TemplateVersionId);
         if (!okV || v2 is null) { loadError = verr ?? "Template version not found."; return; }
         version = v2;
+        await LoadTemplateBody(version.Id);
+    }
+
+    private async Task LoadTemplateBody(int versionId)
+    {
+        var (ok, html, _) = await TemplatesApi.GetVersionContent(versionId);
+        templateHtml = ok ? html : string.Empty;
     }
 
     // ---- value helpers ----
@@ -130,13 +143,30 @@ public partial class DraftEditor
         finally { busy = false; }
     }
 
-    private async Task DoPreview()
+    // Build the live preview: the template body with each {{key}} replaced by its current value
+    // (HTML-encoded, mirroring the backend merge). Fields not yet filled are shown as a highlighted
+    // placeholder so the user can see what's outstanding; unknown tokens are left intact. This is a
+    // rendering aid only — it never mutates the saved draft or the final rendered PDF.
+    private string BuildPreview()
     {
-        if (!await SaveDraft()) return;
-        previewError = null; previewDataUrl = null;
-        var (ok, pdf, error) = await DraftsApi.Preview(draftId);
-        if (!ok || pdf is null) { previewError = error ?? "Preview failed."; return; }
-        previewDataUrl = "data:application/pdf;base64," + Convert.ToBase64String(pdf);
+        if (version is null || string.IsNullOrEmpty(templateHtml)) return templateHtml;
+
+        var byKey = version.Fields
+            .Where(f => !string.IsNullOrWhiteSpace(f.Key))
+            .GroupBy(f => f.Key)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        return TokenPattern.Replace(templateHtml, m =>
+        {
+            var key = m.Groups[1].Value;
+            if (!byKey.TryGetValue(key, out var field)) return m.Value; // unknown token — leave visible
+
+            var value = Get(field.Id);
+            if (!string.IsNullOrWhiteSpace(value)) return WebUtility.HtmlEncode(value);
+
+            var label = string.IsNullOrWhiteSpace(field.Label) ? key : field.Label;
+            return $"<mark style=\"background:#fef08a;color:#713f12;padding:0 3px;border-radius:3px\">{WebUtility.HtmlEncode(label)}</mark>";
+        });
     }
 
     private async Task SubmitDraft()
