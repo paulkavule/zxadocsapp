@@ -9,8 +9,8 @@
 }
 else
 {
-    <div class="w-full space-y-6">
-        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="draft-detail w-full flex flex-col gap-6">
+        <div class="detail-head bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
             <div class="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white/90">
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
@@ -46,10 +46,10 @@ else
             }
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-1 bg-white rounded-2xl shadow-xl border border-slate-200 p-5">
-                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Field values</h2>
-                <ul class="space-y-2 text-sm">
+        <div class="detail-grid grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="pane lg:col-span-1 bg-white rounded-2xl shadow-xl border border-slate-200 p-5 flex flex-col">
+                <h2 class="pane-head text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Field values</h2>
+                <ul class="pane-body space-y-2 text-sm">
                     @foreach (var v in draft.FieldValues)
                     {
                         <li class="flex justify-between gap-3">
@@ -59,15 +59,15 @@ else
                     }
                 </ul>
             </div>
-            <div class="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-slate-200 p-5">
-                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Preview</h2>
+            <div class="pane lg:col-span-2 bg-white rounded-2xl shadow-xl border border-slate-200 p-5 flex flex-col">
+                <h2 class="pane-head text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Preview</h2>
                 @if (version is not null && !string.IsNullOrEmpty(templateHtml))
                 {
-                    <iframe srcdoc="@BuildPreview()" class="w-full h-[520px] rounded-xl border border-slate-200 bg-white" sandbox=""></iframe>
+                    <iframe srcdoc="@BuildPreview()" class="preview-frame w-full rounded-xl border border-slate-200 bg-white" sandbox=""></iframe>
                 }
                 else
                 {
-                    <div class="h-[520px] rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
+                    <div class="preview-placeholder rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
                         <div class="text-center"><i class="fas fa-file-lines text-3xl mb-2"></i><p>@(loadError ?? "Loading preview…")</p></div>
                     </div>
                 }

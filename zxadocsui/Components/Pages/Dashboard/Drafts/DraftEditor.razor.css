@@ -1,0 +1,53 @@
+/* Full-height two-pane draft editor: form on the left, live preview on the right.
+   On large screens the grid fills the viewport (minus the 5rem header + 4rem page
+   padding = 9rem) and each pane scrolls internally, so nothing overlaps and the
+   whole page never grows a second scrollbar. Below lg the panes stack naturally
+   with capped heights. */
+
+@media (min-width: 1024px) {
+    .draft-editor {
+        height: calc(100vh - 9rem);
+        /* stretch the single grid row to the full container height so both panes
+           are equal, full height (grid rows are auto-sized otherwise) */
+        grid-auto-rows: minmax(0, 1fr);
+    }
+}
+
+/* let flex/grid children shrink below their content so overflow can scroll */
+.pane {
+    min-height: 0;
+}
+
+/* scrollable region of a pane (form fields / field list) */
+.pane-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* pinned action bar at the bottom of the form pane */
+.pane-foot {
+    flex: 0 0 auto;
+}
+
+/* header row of a pane stays fixed */
+.pane-head {
+    flex: 0 0 auto;
+}
+
+/* the preview fills the remaining pane height; the document scrolls inside it */
+.preview-frame,
+.preview-placeholder {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+@media (max-width: 1023px) {
+    .preview-frame,
+    .preview-placeholder {
+        height: 70vh;
+    }
+    .pane-body {
+        max-height: 70vh;
+    }
+}

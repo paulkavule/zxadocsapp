@@ -4,10 +4,10 @@
 @using zxadocslib.Dtos
 @using zxadocslib.Helpers
 
-<div class="w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="draft-editor w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- form -->
-    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-        <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
+    <div class="pane bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col">
+        <div class="pane-head px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
             <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
                 <i class="fas fa-pen-to-square text-sm"></i>
             </div>
@@ -20,7 +20,7 @@
         }
         else
         {
-            <div class="p-6 space-y-4">
+            <div class="pane-body p-6 space-y-4">
                 <MudTextField @bind-Value="title" Label="Title" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
 
                 <div class="border-t border-slate-100 pt-4 space-y-4">
@@ -58,28 +58,28 @@
                         </div>
                     }
                 </div>
+            </div>
 
-                <div class="flex items-center gap-2 pt-4 border-t border-slate-200">
-                    <MudButton OnClick="SaveDraft" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy" StartIcon="@Icons.Material.Filled.Save">Save draft</MudButton>
-                    <MudButton OnClick="SubmitDraft" Variant="Variant.Text" Color="Color.Primary" Disabled="@(busy || draftId == 0)" StartIcon="@Icons.Material.Filled.Send">Submit</MudButton>
-                </div>
+            <div class="pane-foot flex items-center gap-2 px-6 py-4 border-t border-slate-200 bg-white/90">
+                <MudButton OnClick="SaveDraft" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy" StartIcon="@Icons.Material.Filled.Save">Save draft</MudButton>
+                <MudButton OnClick="SubmitDraft" Variant="Variant.Text" Color="Color.Primary" Disabled="@(busy || draftId == 0)" StartIcon="@Icons.Material.Filled.Send">Submit</MudButton>
             </div>
         }
     </div>
 
     <!-- live preview: template body with the current values merged in, updates as you edit -->
-    <div class="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-slate-200 p-5 flex flex-col">
-        <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">
+    <div class="pane lg:col-span-2 bg-white rounded-2xl shadow-xl border border-slate-200 p-5 flex flex-col">
+        <h2 class="pane-head text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">
             Live preview
             <span class="normal-case font-normal text-slate-400">— unfilled fields are highlighted</span>
         </h2>
         @if (version is not null && !string.IsNullOrEmpty(templateHtml))
         {
-            <iframe srcdoc="@BuildPreview()" class="w-full h-[560px] rounded-xl border border-slate-200 bg-white" sandbox=""></iframe>
+            <iframe srcdoc="@BuildPreview()" class="preview-frame w-full rounded-xl border border-slate-200 bg-white" sandbox=""></iframe>
         }
         else
         {
-            <div class="flex-1 min-h-[520px] rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
+            <div class="preview-placeholder rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
                 <div class="text-center"><i class="fas fa-file-lines text-3xl mb-2"></i><p>@(loadError ?? "Loading template…")</p></div>
             </div>
         }
