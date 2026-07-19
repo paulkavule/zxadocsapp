@@ -1,34 +1,28 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocslib.Helpers;
+using zxadocsui.Components.Custom;
 
 namespace zxadocsui.Components.Pages.Dashboard.Templates;
 
-// Create/Upload template + merge-field builder (/templates/new, FR-F2). Flow: create the
-// template metadata -> upload version 1 (with progress) -> persist the merge fields ->
-// navigate to the detail page. Requires the CreateTemplate permission (server also enforces).
+// Create template + merge-field builder + rich-text body (/templates/new, FR-F2). The
+// contract is authored in a rich text editor as HTML with {{key}} tokens. Flow: create the
+// template -> upload the HTML body as version 1 -> persist the merge fields -> navigate.
+// Requires the CreateTemplate permission (server also enforces).
 public partial class TemplateCreate
 {
-    private const int MaxMb = 10;
-    private const long MaxBytes = MaxMb * 1024L * 1024L;
-
     [Inject] private ITemplateClientService TemplatesApi { get; set; } = default!;
     [Inject] private IPermissionClientService Permissions { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
+    private RichTextEditor? editorRef;
     private List<TemplateCategoryDto> categories = new();
     private string name = string.Empty;
     private int categoryId;
     private string description = string.Empty;
-
-    private IBrowserFile? file;
-    private string fileName = string.Empty;
-    private string fileContentType = string.Empty;
-    private string fileError = string.Empty;
 
     private readonly List<FieldRow> fields = new();
     private bool busy;
@@ -46,29 +40,6 @@ public partial class TemplateCreate
         if (ok) categories = cats.ToList();
     }
 
-    private void OnFileSelected(IBrowserFile selected)
-    {
-        fileError = string.Empty;
-        var ext = Path.GetExtension(selected.Name).ToLowerInvariant();
-        if (ext is not (".pdf" or ".docx"))
-        {
-            fileError = "Only PDF or DOCX files are accepted.";
-            file = null; fileName = string.Empty;
-            return;
-        }
-        if (selected.Size > MaxBytes)
-        {
-            fileError = $"File exceeds the {MaxMb} MB limit.";
-            file = null; fileName = string.Empty;
-            return;
-        }
-        file = selected;
-        fileName = selected.Name;
-        fileContentType = ext == ".pdf"
-            ? "application/pdf"
-            : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    }
-
     private void AddField() => fields.Add(new FieldRow { Order = fields.Count });
     private void RemoveField(FieldRow row) => fields.Remove(row);
 
@@ -76,12 +47,15 @@ public partial class TemplateCreate
     {
         if (string.IsNullOrWhiteSpace(name)) { Snackbar.Add("Template name is required.", Severity.Warning); return; }
         if (categoryId <= 0) { Snackbar.Add("Please choose a category.", Severity.Warning); return; }
-        if (file is null) { Snackbar.Add("Please choose a template file.", Severity.Warning); return; }
 
         var keys = fields.Select(f => (f.Key ?? "").Trim()).ToList();
         if (keys.Any(string.IsNullOrEmpty)) { Snackbar.Add("Every merge field needs a key.", Severity.Warning); return; }
         if (keys.Count != keys.Distinct(StringComparer.OrdinalIgnoreCase).Count())
         { Snackbar.Add("Merge-field keys must be unique.", Severity.Warning); return; }
+
+        var bodyHtml = editorRef is null ? string.Empty : await editorRef.GetHtmlAsync();
+        if (string.IsNullOrWhiteSpace(StripTags(bodyHtml)))
+        { Snackbar.Add("The contract body is empty.", Severity.Warning); return; }
 
         busy = true;
         uploadProgress = 0;
@@ -92,17 +66,14 @@ public partial class TemplateCreate
                 new CreateTemplateRequest { Name = name.Trim(), Description = description ?? "", CategoryId = categoryId });
             if (!okCreate || template is null) { Snackbar.Add(createErr ?? "Could not create the template.", Severity.Error); return; }
 
-            // 2. Upload version 1 (buffer to memory so upload progress has a known length).
-            using var ms = new MemoryStream();
-            await using (var read = file.OpenReadStream(MaxBytes))
-                await read.CopyToAsync(ms);
-            ms.Position = 0;
-
+            // 2. Upload the authored HTML as version 1.
+            var bytes = System.Text.Encoding.UTF8.GetBytes(WrapHtml(name.Trim(), bodyHtml));
+            using var ms = new MemoryStream(bytes);
             var progress = new Progress<double>(v => { uploadProgress = v; InvokeAsync(StateHasChanged); });
-            var (okUpload, version, uploadErr) = await TemplatesApi.UploadVersion(template.Id, ms, fileName, progress);
+            var (okUpload, version, uploadErr) = await TemplatesApi.UploadVersion(template.Id, ms, "template.html", progress);
             if (!okUpload || version is null)
             {
-                Snackbar.Add(uploadErr ?? "Template created, but the file upload failed.", Severity.Error);
+                Snackbar.Add(uploadErr ?? "Template created, but saving the body failed.", Severity.Error);
                 Nav.NavigateTo($"/templates/{template.Id}");
                 return;
             }
@@ -112,7 +83,7 @@ public partial class TemplateCreate
             {
                 var req = new SetFieldsRequest { Fields = fields.Select(ToDto).ToList() };
                 var (okFields, _, fieldsErr) = await TemplatesApi.SetFields(version.Id, req);
-                if (!okFields) Snackbar.Add(fieldsErr ?? "Template uploaded, but saving fields failed.", Severity.Warning);
+                if (!okFields) Snackbar.Add(fieldsErr ?? "Body saved, but saving fields failed.", Severity.Warning);
             }
 
             Snackbar.Add("Template created.", Severity.Success);
@@ -127,6 +98,16 @@ public partial class TemplateCreate
             busy = false;
         }
     }
+
+    // Wrap the editor's body HTML in a print-friendly document so LibreOffice paginates it well.
+    private static string WrapHtml(string title, string body) =>
+        $"<!doctype html><html><head><meta charset=\"utf-8\"><title>{System.Net.WebUtility.HtmlEncode(title)}</title>" +
+        "<style>body{font-family:'Liberation Serif',serif;font-size:12pt;line-height:1.5;margin:2.5cm;color:#111}" +
+        "h1{font-size:18pt}h2{font-size:14pt}ul,ol{margin-left:1.2em}</style></head><body>" +
+        body + "</body></html>";
+
+    private static string StripTags(string html) =>
+        System.Text.RegularExpressions.Regex.Replace(html ?? string.Empty, "<[^>]+>", string.Empty).Trim();
 
     private TemplateFieldDto ToDto(FieldRow f) => new()
     {

@@ -2,6 +2,7 @@
 @layout DashboardLayout
 @using zxadocslib.Dtos
 @using zxadocslib.Helpers
+@using zxadocsui.Components.Custom
 
 <div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
     <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90 backdrop-blur-sm">
@@ -29,32 +30,7 @@
             </div>
         </section>
 
-        <!-- 2. Template file -->
-        <section>
-            <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Template file (PDF or DOCX, ≤ @MaxMb MB)</h2>
-            <div class="flex items-center gap-3">
-                <MudFileUpload T="IBrowserFile" FilesChanged="OnFileSelected" Accept=".pdf,.docx">
-                    <ActivatorContent>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile">
-                            Choose file
-                        </MudButton>
-                    </ActivatorContent>
-                </MudFileUpload>
-                @if (!string.IsNullOrEmpty(fileName))
-                {
-                    <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Description">@fileName</MudChip>
-                }
-            </div>
-            @if (!string.IsNullOrEmpty(fileError))
-            {
-                <MudText Typo="Typo.caption" Color="Color.Error" Class="mt-1">@fileError</MudText>
-            }
-            <MudText Typo="Typo.caption" Class="mt-1 text-slate-500">
-                DOCX supports <code>{{key}}</code> merge tokens; a PDF is stored as a static document.
-            </MudText>
-        </section>
-
-        <!-- 3. Merge fields -->
+        <!-- 2. Merge fields (defined first so they can be inserted into the body) -->
         <section>
             <div class="flex items-center justify-between mb-3">
                 <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Merge fields</h2>
@@ -92,6 +68,15 @@
                     }
                 </div>
             }
+        </section>
+
+        <!-- 3. Contract body (rich text) -->
+        <section>
+            <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">
+                Contract body
+                <span class="normal-case font-normal text-slate-400">— write the contract and use “Insert field” to drop <code>{{key}}</code> tokens</span>
+            </h2>
+            <RichTextEditor @ref="editorRef" Tokens="@fields.Select(f => f.Key).Where(k => !string.IsNullOrWhiteSpace(k))" />
         </section>
 
         @if (busy && uploadProgress > 0)

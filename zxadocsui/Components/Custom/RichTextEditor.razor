@@ -1,0 +1,63 @@
+@inject IJSRuntime JS
+
+@* Reusable rich-text editor for authoring/editing contract templates. Author writes the
+   contract body; "Insert field" drops a {{key}} token at the caret. The parent reads the
+   HTML back on save via GetHtmlAsync(). *@
+
+<div class="border border-slate-300 rounded-xl overflow-hidden">
+    <div class="flex flex-wrap items-center gap-1 border-b border-slate-200 bg-slate-50 px-2 py-1">
+        <MudIconButton Icon="@Icons.Material.Filled.FormatBold" Size="Size.Small" OnClick="@(() => Exec("bold"))" Title="Bold" />
+        <MudIconButton Icon="@Icons.Material.Filled.FormatItalic" Size="Size.Small" OnClick="@(() => Exec("italic"))" Title="Italic" />
+        <MudIconButton Icon="@Icons.Material.Filled.FormatUnderlined" Size="Size.Small" OnClick="@(() => Exec("underline"))" Title="Underline" />
+        <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
+        <MudIconButton Icon="@Icons.Material.Filled.Title" Size="Size.Small" OnClick="@(() => Exec("formatBlock", "H1"))" Title="Heading 1" />
+        <MudIconButton Icon="@Icons.Material.Filled.TextFields" Size="Size.Small" OnClick="@(() => Exec("formatBlock", "H2"))" Title="Heading 2" />
+        <MudIconButton Icon="@Icons.Material.Filled.FormatListBulleted" Size="Size.Small" OnClick="@(() => Exec("insertUnorderedList"))" Title="Bulleted list" />
+        <MudIconButton Icon="@Icons.Material.Filled.FormatListNumbered" Size="Size.Small" OnClick="@(() => Exec("insertOrderedList"))" Title="Numbered list" />
+        <MudIconButton Icon="@Icons.Material.Filled.FormatClear" Size="Size.Small" OnClick="@(() => Exec("removeFormat"))" Title="Clear formatting" />
+
+        @if (Tokens is not null && Tokens.Any())
+        {
+            <MudDivider Vertical="true" FlexItem="true" Class="mx-1" />
+            <MudMenu Label="Insert field" StartIcon="@Icons.Material.Filled.DataObject" Color="Color.Primary"
+                     Variant="Variant.Text" Size="Size.Small" Dense="true">
+                @foreach (var key in Tokens)
+                {
+                    <MudMenuItem OnClick="@(() => InsertToken(key))">@($"{{{{{key}}}}}")</MudMenuItem>
+                }
+            </MudMenu>
+        }
+    </div>
+
+    <div @ref="editor" contenteditable="true"
+         class="min-h-[360px] max-h-[560px] overflow-y-auto p-4 focus:outline-none prose max-w-none text-slate-800"></div>
+</div>
+
+@code {
+    [Parameter] public string? InitialHtml { get; set; }
+
+    /// <summary>Merge-field keys offered in the "Insert field" menu (inserted as {{key}}).</summary>
+    [Parameter] public IEnumerable<string>? Tokens { get; set; }
+
+    private ElementReference editor;
+    private bool initialised;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("zxRichText.setHtml", editor, InitialHtml ?? string.Empty);
+            initialised = true;
+        }
+    }
+
+    public ValueTask<string> GetHtmlAsync() => JS.InvokeAsync<string>("zxRichText.getHtml", editor);
+
+    public ValueTask SetHtmlAsync(string html) => JS.InvokeVoidAsync("zxRichText.setHtml", editor, html);
+
+    private ValueTask Exec(string command, string? value = null) =>
+        JS.InvokeVoidAsync("zxRichText.exec", editor, command, value);
+
+    private ValueTask InsertToken(string key) =>
+        JS.InvokeVoidAsync("zxRichText.insertText", editor, $"{{{{{key}}}}}");
+}

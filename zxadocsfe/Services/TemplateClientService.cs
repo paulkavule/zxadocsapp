@@ -22,6 +22,7 @@ public interface ITemplateClientService
     Task<(bool ok, TemplateVersionDto? data, string? error)> UploadVersion(
         int templateId, Stream file, string fileName, IProgress<double> progress, CancellationToken ct = default);
     Task<(bool ok, TemplateVersionDto? data, string? error)> SetFields(int versionId, SetFieldsRequest req);
+    Task<(bool ok, string html, string? error)> GetVersionContent(int versionId);
 
     Task<(bool ok, TemplateVersionDto? data, string? error)> Submit(int versionId);
     Task<(bool ok, TemplateVersionDto? data, string? error)> Approve(int versionId);
@@ -69,6 +70,15 @@ public class TemplateClientService : ITemplateClientService
 
     public Task<(bool ok, TemplateVersionDto? data, string? error)> SetFields(int versionId, SetFieldsRequest req) =>
         Send<TemplateVersionDto>(HttpVerb.Put, $"api/templates/versions/{versionId}/fields", req);
+
+    public async Task<(bool ok, string html, string? error)> GetVersionContent(int versionId)
+    {
+        http.Initialize("Api");
+        var (ok, bytes, error) = await http.GetBytesAsync($"api/templates/versions/{versionId}/content");
+        return ok
+            ? (true, System.Text.Encoding.UTF8.GetString(bytes ?? Array.Empty<byte>()), null)
+            : (false, string.Empty, ErrorMessage.Extract(error));
+    }
 
     public Task<(bool ok, TemplateVersionDto? data, string? error)> Submit(int versionId) =>
         Send<TemplateVersionDto>(HttpVerb.Post, $"api/templates/versions/{versionId}/submit");
