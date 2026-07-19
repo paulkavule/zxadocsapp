@@ -6,6 +6,7 @@ using MudBlazor;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocslib.Helpers;
+using zxadocsui.Components.Custom.Dialogs;
 using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Drafts;
@@ -24,6 +25,7 @@ public partial class DraftDetail
     [Inject] private IUserSession Session { get; set; } = default!;
     [Inject] private DraftHandoffState Handoff { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private IDialogService Dialogs { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
@@ -121,6 +123,47 @@ public partial class DraftDetail
             await Load();
         }
         finally { busy = false; }
+    }
+
+    private async Task Approve()
+    {
+        busy = true;
+        try
+        {
+            var (ok, _, error) = await DraftsApi.Approve(Id);
+            if (!ok) { Snackbar.Add(error ?? "Approve failed.", Severity.Error); return; }
+            Snackbar.Add("Draft approved.", Severity.Success);
+            await Load();
+        }
+        finally { busy = false; }
+    }
+
+    private async Task Reject()
+    {
+        var reason = await PromptReason();
+        if (string.IsNullOrWhiteSpace(reason)) return;
+
+        busy = true;
+        try
+        {
+            var (ok, _, error) = await DraftsApi.Reject(Id, reason!);
+            if (!ok) { Snackbar.Add(error ?? "Reject failed.", Severity.Error); return; }
+            Snackbar.Add("Draft rejected.", Severity.Success);
+            await Load();
+        }
+        finally { busy = false; }
+    }
+
+    private async Task<string?> PromptReason()
+    {
+        var parameters = new DialogParameters<TextInputDialog>
+        {
+            { x => x.Title, "Reject draft" },
+            { x => x.Lable, "Reason" },
+        };
+        var dialog = await Dialogs.ShowAsync<TextInputDialog>("Reject draft", parameters);
+        var result = await dialog.Result;
+        return result is { Canceled: false, Data: string s } && !string.IsNullOrWhiteSpace(s) ? s : null;
     }
 
     private async Task Download()

@@ -107,24 +107,6 @@
                                         <span class="sidebar-submenu-text">Drafts</span>
                                     </NavLink>
                                 }
-                                @if (canApproveTemplates)
-                                {
-                                    <NavLink href="/templates/approvals"
-                                             class="flex items-center py-2.5 px-3 text-sm text-[#1e4a33] hover:bg-[#e0f2df] rounded-xl transition"
-                                             ActiveClass="bg-[#e0f2df]">
-                                        <i class="fa-regular fa-circle-check w-4 text-[#5f8b74] mr-2"></i>
-                                        <span class="sidebar-submenu-text">Template approvals</span>
-                                    </NavLink>
-                                }
-                                @if (canApproveDrafts)
-                                {
-                                    <NavLink href="/drafts/approvals"
-                                             class="flex items-center py-2.5 px-3 text-sm text-[#1e4a33] hover:bg-[#e0f2df] rounded-xl transition"
-                                             ActiveClass="bg-[#e0f2df]">
-                                        <i class="fa-regular fa-circle-check w-4 text-[#5f8b74] mr-2"></i>
-                                        <span class="sidebar-submenu-text">Draft approvals</span>
-                                    </NavLink>
-                                }
                             </div>
                         </div>
                     </div>
@@ -283,8 +265,6 @@
     // Fail closed: everything stays hidden until permissions load.
     bool canTemplates;
     bool canDrafts;
-    bool canApproveTemplates;
-    bool canApproveDrafts;
     bool showContracts => canTemplates || canDrafts;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -300,8 +280,6 @@
             canDrafts = perms.Contains(Permission.ViewDrafts)
                      || perms.Contains(Permission.CreateDraft)
                      || perms.Contains(Permission.ApproveDraft);
-            canApproveTemplates = perms.Contains(Permission.ApproveTemplate);
-            canApproveDrafts = perms.Contains(Permission.ApproveDraft);
 
             StateHasChanged();
         }

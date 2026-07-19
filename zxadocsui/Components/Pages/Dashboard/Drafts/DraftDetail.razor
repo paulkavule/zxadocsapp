@@ -28,6 +28,11 @@ else
                         <MudButton Href="@($"/drafts/{draft.Id}/edit")" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit">Edit</MudButton>
                         <MudButton OnClick="Submit" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send" Disabled="busy">Submit</MudButton>
                     }
+                    @if (canApprove && draft.Status == DraftStatus.PendingApproval)
+                    {
+                        <MudButton OnClick="Approve" Variant="Variant.Text" Color="Color.Success" StartIcon="@Icons.Material.Filled.CheckCircle" Disabled="busy">Approve</MudButton>
+                        <MudButton OnClick="Reject" Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel" Disabled="busy">Reject</MudButton>
+                    }
                     @if (draft.Status == DraftStatus.Approved || draft.Status == DraftStatus.SentToWorkflow)
                     {
                         <MudButton OnClick="Download" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download" Disabled="busy">Download</MudButton>
