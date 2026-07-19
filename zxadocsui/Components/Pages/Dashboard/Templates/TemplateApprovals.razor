@@ -1,7 +1,7 @@
 @page "/templates/approvals"
 @layout DashboardLayout
-
-@* LAYOUT SCAFFOLD (ZD-20 / FR-F4) — static placeholders, no data wiring yet. *@
+@using zxadocslib.Dtos
+@using zxadocslib.Helpers
 
 <div class="w-full grid grid-cols-1 lg:grid-cols-2 gap-6">
     <!-- queue -->
@@ -13,12 +13,17 @@
             <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Template approvals</h1>
         </div>
         <div class="p-4 space-y-2">
-            @foreach (var name in new[] { "Master Services Agreement", "Employment Contract", "Vendor NDA" })
+            @if (pending.Count == 0)
             {
-                <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                <div class="py-10 text-center text-slate-400">Nothing awaiting approval.</div>
+            }
+            @foreach (var t in pending)
+            {
+                <div @onclick="@(() => Select(t.Id))"
+                     class="flex items-center justify-between p-3 rounded-xl border cursor-pointer @(selected?.Id == t.Id ? "border-green-400 bg-green-50" : "border-slate-200 hover:bg-slate-50")">
                     <div>
-                        <p class="font-medium text-slate-800">@name</p>
-                        <p class="text-xs text-slate-500">v1 · submitted 2h ago</p>
+                        <p class="font-medium text-slate-800">@t.Name</p>
+                        <p class="text-xs text-slate-500">@t.CategoryName</p>
                     </div>
                     <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">Pending</MudChip>
                 </div>
@@ -26,18 +31,25 @@
         </div>
     </div>
 
-    <!-- preview + actions -->
+    <!-- review -->
     <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-5 flex flex-col">
         <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Review</h2>
-        <div class="flex-1 min-h-[420px] rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
-            <div class="text-center">
-                <i class="fas fa-file-pdf text-3xl mb-2"></i>
-                <p>Select a template to preview</p>
+        @if (selected is null)
+        {
+            <div class="flex-1 min-h-[420px] rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
+                <div class="text-center"><i class="fas fa-file-contract text-3xl mb-2"></i><p>Select a template to review</p></div>
             </div>
-        </div>
-        <div class="flex items-center gap-2 pt-4 border-t border-slate-200 mt-4">
-            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.CheckCircle">Approve</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel">Reject</MudButton>
-        </div>
+        }
+        else
+        {
+            <div class="mb-2 text-sm text-slate-600"><strong>@selected.Name</strong> · v@(pendingVersion?.VersionNo)</div>
+            <iframe srcdoc="@previewHtml" class="flex-1 min-h-[420px] rounded-xl border border-slate-200 bg-white" sandbox=""></iframe>
+            <div class="flex items-center gap-2 pt-4 border-t border-slate-200 mt-4">
+                <MudButton OnClick="Approve" Variant="Variant.Filled" Color="Color.Success" Disabled="busy" StartIcon="@Icons.Material.Filled.CheckCircle">Approve</MudButton>
+                <MudButton OnClick="Reject" Variant="Variant.Filled" Color="Color.Error" Disabled="busy" StartIcon="@Icons.Material.Filled.Cancel">Reject</MudButton>
+            </div>
+        }
     </div>
 </div>
+
+@code { }
