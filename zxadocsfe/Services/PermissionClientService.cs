@@ -35,10 +35,17 @@ public class PermissionClientService : IPermissionClientService
 
         http.Initialize("Api");
         var (ok, resp, _) = await http.GetAsync<ApiResponse<PermissionItem[]>>("api/me/permissions");
-        cache = ok && resp?.Data is not null
-            ? resp.Data.Select(p => (Permission)p.Value).ToHashSet()
-            : new HashSet<Permission>();
-        return cache;
+
+        // Only cache a SUCCESSFUL fetch. A failed call (e.g. a tokenless request before the auth
+        // token is hydrated on a cold load) must not be cached — otherwise the empty set would
+        // poison the whole circuit and every permission-gated button would stay hidden. Returning
+        // an un-cached empty set lets the next call retry once the token is available.
+        if (ok && resp?.Data is not null)
+        {
+            cache = resp.Data.Select(p => (Permission)p.Value).ToHashSet();
+            return cache;
+        }
+        return new HashSet<Permission>();
     }
 
     public async Task<bool> Has(Permission permission) =>

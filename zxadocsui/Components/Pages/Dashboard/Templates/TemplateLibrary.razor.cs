@@ -3,6 +3,7 @@ using MudBlazor;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocslib.Helpers;
+using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Templates;
 
@@ -13,6 +14,7 @@ public partial class TemplateLibrary
 {
     [Inject] private ITemplateClientService TemplatesApi { get; set; } = default!;
     [Inject] private IPermissionClientService Permissions { get; set; } = default!;
+    [Inject] private IUserSession Session { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
@@ -23,11 +25,16 @@ public partial class TemplateLibrary
     private bool canCreate;
     private List<TemplateCategoryDto> categories = new();
 
-    protected override async Task OnInitializedAsync()
+    // Permission check + authed loads run in OnAfterRenderAsync so the token is hydrated first;
+    // in OnInitializedAsync the tokenless call would 401 and hide the "New template" button.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender) return;
+        await Session.GetCurrentUser();   // hydrate the auth token before any authed call
         canCreate = await Permissions.Has(Permission.CreateTemplate);
         var (ok, cats, _) = await TemplatesApi.GetCategories();
         if (ok) categories = cats.ToList();
+        StateHasChanged();
     }
 
     private async Task<TableData<TemplateDto>> LoadData(TableState state, CancellationToken token)

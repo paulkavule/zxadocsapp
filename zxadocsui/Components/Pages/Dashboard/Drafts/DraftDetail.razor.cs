@@ -16,6 +16,7 @@ public partial class DraftDetail
     [Inject] private IDraftClientService DraftsApi { get; set; } = default!;
     [Inject] private ITemplateClientService TemplatesApi { get; set; } = default!;
     [Inject] private IPermissionClientService Permissions { get; set; } = default!;
+    [Inject] private IUserSession Session { get; set; } = default!;
     [Inject] private DraftHandoffState Handoff { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
@@ -29,8 +30,29 @@ public partial class DraftDetail
     private string? previewDataUrl;
     private string? previewError;
 
+    private bool rendered;
+    private int lastLoadedId = -1;
+
+    // Initial load runs in OnAfterRenderAsync so the token is hydrated before the authed calls;
+    // OnParametersSetAsync handles route-param changes (/drafts/5 -> /drafts/8) once ready.
     protected override async Task OnParametersSetAsync()
     {
+        if (rendered && Id != lastLoadedId)
+            await LoadAll();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        rendered = true;
+        await LoadAll();
+        StateHasChanged();
+    }
+
+    private async Task LoadAll()
+    {
+        lastLoadedId = Id;
+        await Session.GetCurrentUser();   // hydrate the auth token before any authed call
         canManage = await Permissions.Has(Permission.CreateDraft);
         canApprove = await Permissions.Has(Permission.ApproveDraft);
         await Load();

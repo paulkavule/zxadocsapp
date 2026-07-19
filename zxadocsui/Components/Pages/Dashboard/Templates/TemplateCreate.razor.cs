@@ -4,6 +4,7 @@ using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocslib.Helpers;
 using zxadocsui.Components.Custom;
+using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Templates;
 
@@ -15,6 +16,7 @@ public partial class TemplateCreate
 {
     [Inject] private ITemplateClientService TemplatesApi { get; set; } = default!;
     [Inject] private IPermissionClientService Permissions { get; set; } = default!;
+    [Inject] private IUserSession Session { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
@@ -28,8 +30,13 @@ public partial class TemplateCreate
     private bool busy;
     private double uploadProgress;
 
-    protected override async Task OnInitializedAsync()
+    // Guard + authed loads run in OnAfterRenderAsync so the token is hydrated first; in
+    // OnInitializedAsync the tokenless permission call would 401 and wrongly bounce an authorized
+    // creator on a cold load / refresh.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender) return;
+        await Session.GetCurrentUser();   // hydrate the auth token before any authed call
         if (!await Permissions.Has(Permission.CreateTemplate))
         {
             Snackbar.Add("You don't have permission to create templates.", Severity.Warning);
@@ -38,8 +45,9 @@ public partial class TemplateCreate
         }
         var (ok, cats, _) = await TemplatesApi.GetCategories();
         if (ok) categories = cats.ToList();
-        // Categories are configured per organisation (see /templates/categories).
+        // Categories are configured per organisation (maintained under Organisation settings).
         if (categoryId == 0 && categories.Count > 0) categoryId = categories[0].Id;
+        StateHasChanged();
     }
 
     private void AddField() => fields.Add(new FieldRow { Order = fields.Count });
