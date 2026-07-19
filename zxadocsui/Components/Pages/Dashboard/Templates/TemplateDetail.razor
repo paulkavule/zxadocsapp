@@ -1,74 +1,128 @@
 @page "/templates/{Id:int}"
 @layout DashboardLayout
+@using zxadocslib.Dtos
+@using zxadocslib.Helpers
+@using zxadocsui.Components.Custom
 
-@* LAYOUT SCAFFOLD (ZD-19 / FR-F3) — static placeholders, no data wiring yet. *@
-
-<div class="w-full space-y-6">
-    <!-- header card: name + status + actions -->
-    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-        <div class="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white/90">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
-                    <i class="fas fa-file-contract text-sm"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Mutual NDA</h1>
-                    <p class="text-xs text-slate-500">Contracts · created 12 Jul 2026</p>
-                </div>
-                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">Approved</MudChip>
-            </div>
-            <div class="flex items-center gap-2">
-                <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit">New version</MudButton>
-                <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send">Submit</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.NoteAdd">Use / Draft</MudButton>
-                <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Archive">Archive</MudButton>
-            </div>
-        </div>
-        <div class="px-6 py-4 text-sm text-slate-600">
-            A mutual non-disclosure agreement between two parties. Route param: <code>@Id</code>.
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- left: fields + versions -->
-        <div class="lg:col-span-1 space-y-6">
-            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-5">
-                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Merge fields</h2>
-                <ul class="space-y-2 text-sm">
-                    <li class="flex justify-between"><span class="text-slate-700">party_name</span><span class="text-slate-400">Text · required</span></li>
-                    <li class="flex justify-between"><span class="text-slate-700">effective_date</span><span class="text-slate-400">Date</span></li>
-                    <li class="flex justify-between"><span class="text-slate-700">jurisdiction</span><span class="text-slate-400">Dropdown</span></li>
-                </ul>
-            </div>
-            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-5">
-                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Version history</h2>
-                <ul class="space-y-2 text-sm">
-                    <li class="flex justify-between items-center">
-                        <span class="text-slate-700">v2 · current</span>
-                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">Approved</MudChip>
-                    </li>
-                    <li class="flex justify-between items-center">
-                        <span class="text-slate-700">v1</span>
-                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Archived</MudChip>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- right: preview -->
-        <div class="lg:col-span-2">
-            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-5 h-full">
-                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Preview</h2>
-                <div class="h-[520px] rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
-                    <div class="text-center">
-                        <i class="fas fa-file-pdf text-3xl mb-2"></i>
-                        <p>Document preview (DocumentEditor, read-only)</p>
+@if (template is null)
+{
+    <div class="py-20 text-center text-slate-500">@(loadError ?? "Loading…")</div>
+}
+else
+{
+    <div class="w-full space-y-6">
+        <!-- header -->
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white/90">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+                        <i class="fas fa-file-contract text-sm"></i>
                     </div>
+                    <div>
+                        <h1 class="text-xl font-semibold text-slate-800 tracking-tight">@template.Name</h1>
+                        <p class="text-xs text-slate-500">@template.CategoryName · created @template.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</p>
+                    </div>
+                    <MudChip T="string" Size="Size.Small" Color="@StatusColor(template.Status)" Variant="Variant.Filled">@template.Status</MudChip>
+                </div>
+                <div class="flex items-center gap-2">
+                    @if (canManage && !editing)
+                    {
+                        <MudButton OnClick="StartEdit" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit" Disabled="busy">New version</MudButton>
+                    }
+                    @if (canManage && draftVersion is not null)
+                    {
+                        <MudButton OnClick="Submit" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send" Disabled="busy">Submit</MudButton>
+                    }
+                    @if (canApprove && pendingVersion is not null)
+                    {
+                        <MudButton OnClick="Approve" Variant="Variant.Text" Color="Color.Success" StartIcon="@Icons.Material.Filled.CheckCircle" Disabled="busy">Approve</MudButton>
+                        <MudButton OnClick="Reject" Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel" Disabled="busy">Reject</MudButton>
+                    }
+                    @if (canDraft && template.Status == TemplateStatus.Approved)
+                    {
+                        <MudButton OnClick="@(() => Nav.NavigateTo($"/drafts/new/{template.Id}"))" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.NoteAdd">Use / Draft</MudButton>
+                    }
+                    @if (canManage && template.Status != TemplateStatus.Archived)
+                    {
+                        <MudButton OnClick="Archive" Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Archive" Disabled="busy">Archive</MudButton>
+                    }
+                </div>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(template.Description))
+            {
+                <div class="px-6 py-4 text-sm text-slate-600">@template.Description</div>
+            }
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- fields + versions -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-5">
+                    <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Merge fields</h2>
+                    @if (Fields.Count == 0)
+                    {
+                        <p class="text-sm text-slate-400">No merge fields.</p>
+                    }
+                    else
+                    {
+                        <ul class="space-y-2 text-sm">
+                            @foreach (var f in Fields)
+                            {
+                                <li class="flex justify-between">
+                                    <span class="text-slate-700">@f.Key</span>
+                                    <span class="text-slate-400">@f.FieldType@(f.IsRequired ? " · required" : "")</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+                <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-5">
+                    <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Version history</h2>
+                    <ul class="space-y-2 text-sm">
+                        @foreach (var v in template.Versions.OrderByDescending(v => v.VersionNo))
+                        {
+                            <li class="flex justify-between items-center">
+                                <span class="text-slate-700">v@(v.VersionNo)@(v.Id == template.CurrentVersionId ? " · current" : "")</span>
+                                <MudChip T="string" Size="Size.Small" Color="@StatusColor(v.Status)" Variant="Variant.Outlined">@v.Status</MudChip>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+
+            <!-- preview / edit -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-5 h-full">
+                    @if (editing)
+                    {
+                        <div class="flex items-center justify-between mb-3">
+                            <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Edit — new version</h2>
+                            <div class="flex gap-2">
+                                <MudButton OnClick="SaveVersion" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="busy" StartIcon="@Icons.Material.Filled.Save">Save version</MudButton>
+                                <MudButton OnClick="@(() => editing = false)" Variant="Variant.Text" Size="Size.Small" Disabled="busy">Cancel</MudButton>
+                            </div>
+                        </div>
+                        <RichTextEditor @ref="editorRef" InitialHtml="@editHtml" Tokens="@Fields.Select(f => f.Key)" />
+                    }
+                    else
+                    {
+                        <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Preview</h2>
+                        @if (!string.IsNullOrEmpty(previewHtml))
+                        {
+                            <iframe srcdoc="@previewHtml" class="w-full h-[560px] rounded-xl border border-slate-200 bg-white" sandbox=""></iframe>
+                        }
+                        else
+                        {
+                            <div class="h-[520px] rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
+                                <div class="text-center"><i class="fas fa-file-lines text-3xl mb-2"></i><p>@(previewError ?? "No preview available")</p></div>
+                            </div>
+                        }
+                    }
                 </div>
             </div>
         </div>
     </div>
-</div>
+}
 
 @code {
     [Parameter] public int Id { get; set; }

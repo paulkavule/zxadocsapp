@@ -1,0 +1,164 @@
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Components;
+using MudBlazor;
+using zxadocsfe.Services;
+using zxadocslib.Dtos;
+using zxadocslib.Helpers;
+using zxadocsui.Components.Custom;
+using zxadocsui.Components.Custom.Dialogs;
+
+namespace zxadocsui.Components.Pages.Dashboard.Templates;
+
+// Template Detail (/templates/{id}, FR-F3). Shows metadata, merge fields, version history
+// and a preview; supports editing (new version via the rich text editor) and the approval
+// state machine (submit/approve/reject/archive), all gated by permission + status.
+public partial class TemplateDetail
+{
+    [Inject] private ITemplateClientService TemplatesApi { get; set; } = default!;
+    [Inject] private IPermissionClientService Permissions { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private IDialogService Dialogs { get; set; } = default!;
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private TemplateDto? template;
+    private string? loadError;
+    private bool canManage, canApprove, canDraft, busy, editing;
+
+    private RichTextEditor? editorRef;
+    private string editHtml = string.Empty;
+    private string previewHtml = string.Empty;
+    private string? previewError;
+
+    // The version the fields/preview reflect: the current (approved) one, else the latest.
+    private TemplateVersionDto? ActiveVersion =>
+        template?.CurrentVersion ?? template?.Versions.OrderByDescending(v => v.VersionNo).FirstOrDefault();
+    private IReadOnlyList<TemplateFieldDto> Fields => ActiveVersion?.Fields ?? Array.Empty<TemplateFieldDto>();
+    private TemplateVersionDto? draftVersion =>
+        template?.Versions.Where(v => v.Status == TemplateStatus.Draft).OrderByDescending(v => v.VersionNo).FirstOrDefault();
+    private TemplateVersionDto? pendingVersion =>
+        template?.Versions.Where(v => v.Status == TemplateStatus.PendingApproval).OrderByDescending(v => v.VersionNo).FirstOrDefault();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        canManage = await Permissions.Has(Permission.CreateTemplate);
+        canApprove = await Permissions.Has(Permission.ApproveTemplate);
+        canDraft = await Permissions.Has(Permission.CreateDraft);
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        var (ok, data, error) = await TemplatesApi.Get(Id);
+        if (!ok || data is null) { loadError = error ?? "Template not found."; template = null; return; }
+        template = data;
+        await LoadPreview();
+    }
+
+    private async Task LoadPreview()
+    {
+        previewHtml = string.Empty; previewError = null;
+        var version = ActiveVersion;
+        if (version is null) { previewError = "No version yet."; return; }
+
+        var (ok, html, error) = await TemplatesApi.GetVersionContent(version.Id);
+        if (ok) previewHtml = html;
+        else previewError = error ?? "Preview unavailable.";
+    }
+
+    private async Task StartEdit()
+    {
+        var version = ActiveVersion;
+        editHtml = string.Empty;
+        if (version is not null)
+        {
+            var (ok, html, _) = await TemplatesApi.GetVersionContent(version.Id);
+            if (ok) editHtml = ExtractBody(html);
+        }
+        editing = true;
+    }
+
+    private async Task SaveVersion()
+    {
+        if (editorRef is null) return;
+        var body = await editorRef.GetHtmlAsync();
+        if (string.IsNullOrWhiteSpace(StripTags(body))) { Snackbar.Add("The contract body is empty.", Severity.Warning); return; }
+
+        busy = true;
+        try
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(WrapHtml(template!.Name, body));
+            using var ms = new MemoryStream(bytes);
+            var (ok, version, error) = await TemplatesApi.UploadVersion(template.Id, ms, "template.html", new Progress<double>());
+            if (!ok || version is null) { Snackbar.Add(error ?? "Could not save the version.", Severity.Error); return; }
+
+            // Carry the existing merge fields onto the new version.
+            if (Fields.Count > 0)
+                await TemplatesApi.SetFields(version.Id, new SetFieldsRequest { Fields = Fields.ToList() });
+
+            Snackbar.Add("New version saved.", Severity.Success);
+            editing = false;
+            await Load();
+        }
+        finally { busy = false; }
+    }
+
+    private Task Submit() => Act(async () => { var r = await TemplatesApi.Submit(draftVersion!.Id); return (r.ok, r.error); }, "Submitted for approval.");
+    private Task Approve() => Act(async () => { var r = await TemplatesApi.Approve(pendingVersion!.Id); return (r.ok, r.error); }, "Approved.");
+    private Task Archive() => Act(async () => { var r = await TemplatesApi.Archive(template!.Id); return (r.ok, r.error); }, "Archived.");
+
+    private async Task Reject()
+    {
+        var reason = await PromptReason("Reject version");
+        if (string.IsNullOrWhiteSpace(reason)) return;
+        await Act(async () => { var r = await TemplatesApi.Reject(pendingVersion!.Id, reason!); return (r.ok, r.error); }, "Rejected.");
+    }
+
+    private async Task<string?> PromptReason(string title)
+    {
+        var parameters = new DialogParameters<TextInputDialog>
+        {
+            { x => x.Title, title },
+            { x => x.Lable, "Reason" },
+        };
+        var dialog = await Dialogs.ShowAsync<TextInputDialog>(title, parameters);
+        var result = await dialog.Result;
+        return result is { Canceled: false, Data: string s } && !string.IsNullOrWhiteSpace(s) ? s : null;
+    }
+
+    private async Task Act(Func<Task<(bool ok, string? error)>> action, string success)
+    {
+        busy = true;
+        try
+        {
+            var (ok, error) = await action();
+            if (!ok) { Snackbar.Add(error ?? "Action failed.", Severity.Error); return; }
+            Snackbar.Add(success, Severity.Success);
+            await Load();
+        }
+        finally { busy = false; }
+    }
+
+    private static string ExtractBody(string html)
+    {
+        var m = Regex.Match(html ?? string.Empty, "<body[^>]*>(.*?)</body>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+        return m.Success ? m.Groups[1].Value : (html ?? string.Empty);
+    }
+
+    private static string WrapHtml(string title, string body) =>
+        $"<!doctype html><html><head><meta charset=\"utf-8\"><title>{System.Net.WebUtility.HtmlEncode(title)}</title>" +
+        "<style>body{font-family:'Liberation Serif',serif;font-size:12pt;line-height:1.5;margin:2.5cm;color:#111}" +
+        "h1{font-size:18pt}h2{font-size:14pt}ul,ol{margin-left:1.2em}</style></head><body>" +
+        body + "</body></html>";
+
+    private static string StripTags(string html) =>
+        Regex.Replace(html ?? string.Empty, "<[^>]+>", string.Empty).Trim();
+
+    private static Color StatusColor(TemplateStatus status) => status switch
+    {
+        TemplateStatus.Approved => Color.Success,
+        TemplateStatus.PendingApproval => Color.Warning,
+        TemplateStatus.Rejected => Color.Error,
+        TemplateStatus.Archived => Color.Dark,
+        _ => Color.Default,
+    };
+}
