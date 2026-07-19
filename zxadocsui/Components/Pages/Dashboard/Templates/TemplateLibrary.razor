@@ -1,0 +1,85 @@
+@page "/templates"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+@using zxadocslib.Helpers
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <!-- header: title + create action (permission-gated) -->
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white/90 backdrop-blur-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+                <i class="fas fa-file-contract text-sm"></i>
+            </div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Template Library</h1>
+        </div>
+        @if (canCreate)
+        {
+            <MudButton Href="/templates/new" Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add">
+                New template
+            </MudButton>
+        }
+    </div>
+
+    <div class="p-6">
+        <!-- filters -->
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+            <MudTextField T="string" Value="search" ValueChanged="OnSearchChanged" Placeholder="Search templates"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true" DebounceInterval="400" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Class="mt-0 flex-grow" Style="max-width:360px" />
+
+            <MudSelect T="int" Value="statusFilter" ValueChanged="OnStatusChanged" Label="Status"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:170px">
+                <MudSelectItem Value="-1">All statuses</MudSelectItem>
+                <MudSelectItem Value="0">Draft</MudSelectItem>
+                <MudSelectItem Value="1">Pending approval</MudSelectItem>
+                <MudSelectItem Value="2">Approved</MudSelectItem>
+                <MudSelectItem Value="3">Rejected</MudSelectItem>
+                <MudSelectItem Value="4">Archived</MudSelectItem>
+            </MudSelect>
+
+            <MudSelect T="int" Value="categoryFilter" ValueChanged="OnCategoryChanged" Label="Category"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:190px">
+                <MudSelectItem Value="0">All categories</MudSelectItem>
+                @foreach (var c in categories)
+                {
+                    <MudSelectItem Value="c.Id">@c.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <MudTable @ref="table" T="TemplateDto" ServerData="LoadData" Hover="true" Dense="true" Striped="true"
+                  Elevation="0" OnRowClick="Open" RowClass="cursor-pointer">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Category</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Current version</MudTh>
+                <MudTh>Created</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">@context.Name</MudTd>
+                <MudTd DataLabel="Category">@context.CategoryName</MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)" Variant="Variant.Filled">
+                        @context.Status
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Current version">
+                    @(context.CurrentVersionId.HasValue ? $"v{context.CurrentVersion?.VersionNo}" : "—")
+                </MudTd>
+                <MudTd DataLabel="Created">@context.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="py-10 text-center text-slate-500">No templates found.</div>
+            </NoRecordsContent>
+            <LoadingContent>
+                <div class="py-10 text-center text-slate-500">Loading templates…</div>
+            </LoadingContent>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 10, 20, 50 }" />
+            </PagerContent>
+        </MudTable>
+    </div>
+</div>
