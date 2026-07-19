@@ -18,8 +18,14 @@ function initializeSidebar() {
   const reportsSubmenu = document.getElementById("reportsSubmenu");
   const reportsChevron = document.getElementById("reportsChevron");
 
+  // contracts submenu elements (Templates + Drafts)
+  const contractsToggle = document.getElementById("contractsToggle");
+  const contractsSubmenu = document.getElementById("contractsSubmenu");
+  const contractsChevron = document.getElementById("contractsChevron");
+
   let sidebarCollapsed = false;
   let reportsExpanded = false;
+  let contractsExpanded = false;
 
   // Load saved state from localStorage
   try {
@@ -51,6 +57,16 @@ function initializeSidebar() {
         reportsSubmenu.classList.remove("max-h-0", "opacity-0");
         reportsSubmenu.classList.add("max-h-96", "opacity-100");
         reportsChevron.style.transform = "rotate(180deg)";
+      }
+    }
+
+    const savedContractsState = localStorage.getItem("zxadocs_contracts_expanded");
+    if (savedContractsState !== null && contractsSubmenu) {
+      contractsExpanded = savedContractsState === "true";
+      if (contractsExpanded) {
+        contractsSubmenu.classList.remove("max-h-0", "opacity-0");
+        contractsSubmenu.classList.add("max-h-96", "opacity-100");
+        contractsChevron.style.transform = "rotate(180deg)";
       }
     }
   } catch (e) {
@@ -126,6 +142,29 @@ function initializeSidebar() {
         localStorage.setItem("zxadocs_reports_expanded", reportsExpanded);
       } catch (e) {
         console.warn("Could not save reports state", e);
+      }
+    });
+  }
+
+  // contracts submenu toggle (Templates + Drafts)
+  if (contractsToggle) {
+    contractsToggle.addEventListener("click", function (e) {
+      e.preventDefault();
+      if (contractsExpanded) {
+        contractsSubmenu.classList.remove("max-h-96", "opacity-100");
+        contractsSubmenu.classList.add("max-h-0", "opacity-0");
+        contractsChevron.style.transform = "rotate(0deg)";
+      } else {
+        contractsSubmenu.classList.remove("max-h-0", "opacity-0");
+        contractsSubmenu.classList.add("max-h-96", "opacity-100");
+        contractsChevron.style.transform = "rotate(180deg)";
+      }
+      contractsExpanded = !contractsExpanded;
+
+      try {
+        localStorage.setItem("zxadocs_contracts_expanded", contractsExpanded);
+      } catch (e) {
+        console.warn("Could not save contracts state", e);
       }
     });
   }

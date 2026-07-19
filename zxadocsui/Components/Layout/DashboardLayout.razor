@@ -73,6 +73,33 @@
                         <span class="font-medium whitespace-nowrap sidebar-menu-text">Users</span>
                     </NavLink>
 
+                    <!-- CONTRACTS SECTION (collapsible submenu: Templates + Drafts) -->
+                    <div id="contractsToggle"
+                         class="flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer hover:bg-[#e0f2df] transition group menu-item">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-file-signature w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                            <span class="font-medium whitespace-nowrap sidebar-menu-text">Contracts</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-[#5f8b74] transition-transform duration-200"
+                           id="contractsChevron"></i>
+                    </div>
+                    <div id="contractsSubmenu" class="submenu max-h-0 opacity-0">
+                        <div class="pl-12 pr-4 space-y-1 mt-1">
+                            <NavLink href="/templates"
+                                     class="flex items-center py-2.5 px-3 text-sm text-[#1e4a33] hover:bg-[#e0f2df] rounded-xl transition"
+                                     ActiveClass="bg-[#e0f2df]">
+                                <i class="fa-regular fa-file-lines w-4 text-[#5f8b74] mr-2"></i>
+                                <span class="sidebar-submenu-text">Templates</span>
+                            </NavLink>
+                            <NavLink href="/drafts"
+                                     class="flex items-center py-2.5 px-3 text-sm text-[#1e4a33] hover:bg-[#e0f2df] rounded-xl transition"
+                                     ActiveClass="bg-[#e0f2df]">
+                                <i class="fa-regular fa-pen-to-square w-4 text-[#5f8b74] mr-2"></i>
+                                <span class="sidebar-submenu-text">Drafts</span>
+                            </NavLink>
+                        </div>
+                    </div>
+
                     <!-- DIVIDER -->
                     <div class="border-t border-[#d4ead5] my-4"></div>
 
