@@ -11,8 +11,9 @@ namespace zxadocsfe.Services;
 
 public interface ITemplateClientService
 {
+    // Categories are org-configurable list values (managed in Settings via ListOptions);
+    // this is just the read-only dropdown source.
     Task<(bool ok, TemplateCategoryDto[] data, string? error)> GetCategories();
-    Task<(bool ok, TemplateCategoryDto? data, string? error)> CreateCategory(string name, string description);
 
     Task<(bool ok, ApiPaginatedResponse<TemplateDto[]>? page, string? error)> List(
         int status, int categoryId, string search, int page, int pageSize);
@@ -38,12 +39,6 @@ public class TemplateClientService : ITemplateClientService
 
     public Task<(bool, TemplateCategoryDto[], string?)> GetCategories() =>
         GetArray<TemplateCategoryDto>("api/template-categories");
-
-    public async Task<(bool ok, TemplateCategoryDto? data, string? error)> CreateCategory(string name, string description)
-    {
-        var body = new { Name = name, Description = description };
-        return await Send<TemplateCategoryDto>(HttpVerb.Post, "api/template-categories", body);
-    }
 
     public async Task<(bool ok, ApiPaginatedResponse<TemplateDto[]>? page, string? error)> List(
         int status, int categoryId, string search, int page, int pageSize)

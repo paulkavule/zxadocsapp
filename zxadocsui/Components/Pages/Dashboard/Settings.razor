@@ -1,1 +1,69 @@
 @page "/settings"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden max-w-4xl">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-sliders text-sm"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Organisation settings</h1>
+            <p class="text-xs text-slate-500">List values — the configurable lookups used across the app</p>
+        </div>
+    </div>
+
+    <div class="p-6 space-y-6">
+        <!-- which list -->
+        <MudSelect T="string" Value="selectedType" ValueChanged="OnListChanged" Label="List"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:320px">
+            @foreach (var l in lists)
+            {
+                <MudSelectItem Value="l.Type">@l.Label</MudSelectItem>
+            }
+        </MudSelect>
+
+        <!-- add / edit -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center border border-slate-200 rounded-xl p-4">
+            <MudTextField @bind-Value="editName" Label="Value" Variant="Variant.Outlined" Margin="Margin.Dense" Class="md:col-span-8" />
+            <div class="md:col-span-4 flex gap-2">
+                <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy"
+                           StartIcon="@(editingId == 0 ? Icons.Material.Filled.Add : Icons.Material.Filled.Save)">
+                    @(editingId == 0 ? "Add" : "Update")
+                </MudButton>
+                @if (editingId != 0)
+                {
+                    <MudButton OnClick="CancelEdit" Variant="Variant.Text" Disabled="busy">Cancel</MudButton>
+                }
+            </div>
+        </div>
+
+        <!-- values -->
+        <table class="w-full text-sm border border-slate-200 rounded-xl overflow-hidden">
+            <thead class="bg-slate-50 text-slate-500">
+                <tr class="text-left">
+                    <th class="px-3 py-2 font-medium">Value</th>
+                    <th class="px-3 py-2 font-medium w-[100px] text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (values.Count == 0)
+                {
+                    <tr><td colspan="2" class="px-3 py-8 text-center text-slate-400">No values yet. Add the first above.</td></tr>
+                }
+                @foreach (var v in values)
+                {
+                    <tr class="border-t border-slate-100">
+                        <td class="px-3 py-2 text-slate-800">@v.Name</td>
+                        <td class="px-3 py-2 text-right">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => Edit(v))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => Delete(v))" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code { }

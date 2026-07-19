@@ -38,6 +38,8 @@ public partial class TemplateCreate
         }
         var (ok, cats, _) = await TemplatesApi.GetCategories();
         if (ok) categories = cats.ToList();
+        // Categories are configured per organisation (see /templates/categories).
+        if (categoryId == 0 && categories.Count > 0) categoryId = categories[0].Id;
     }
 
     private void AddField() => fields.Add(new FieldRow { Order = fields.Count });

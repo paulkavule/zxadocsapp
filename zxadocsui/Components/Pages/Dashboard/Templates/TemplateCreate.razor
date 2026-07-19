@@ -18,12 +18,20 @@
             <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Details</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <MudTextField @bind-Value="name" Label="Template name" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                <MudSelect T="int" @bind-Value="categoryId" Label="Category" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
-                    @foreach (var c in categories)
+                <div>
+                    <MudSelect T="int" @bind-Value="categoryId" Label="Category" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var c in categories)
+                        {
+                            <MudSelectItem Value="c.Id">@c.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                    @if (categories.Count == 0)
                     {
-                        <MudSelectItem Value="c.Id">@c.Name</MudSelectItem>
+                        <MudText Typo="Typo.caption" Class="text-slate-500">
+                            No categories yet — add “Template category” values in <MudLink Href="/settings">Organisation settings</MudLink> first.
+                        </MudText>
                     }
-                </MudSelect>
+                </div>
                 <div class="md:col-span-2">
                     <MudTextField @bind-Value="description" Label="Description" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </div>
@@ -39,35 +47,55 @@
                 </MudButton>
             </div>
 
-            @if (fields.Count == 0)
-            {
-                <div class="py-6 text-center text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                    No merge fields. Add one per <code>{{key}}</code> token used in the template.
-                </div>
-            }
-            else
-            {
-                <div class="space-y-3">
+            <table class="w-full text-sm border border-slate-200 rounded-xl overflow-hidden">
+                <thead class="bg-slate-50 text-slate-500">
+                    <tr class="text-left">
+                        <th class="px-3 py-2 font-medium w-[18%]">Key</th>
+                        <th class="px-3 py-2 font-medium w-[22%]">Label</th>
+                        <th class="px-3 py-2 font-medium w-[16%]">Type</th>
+                        <th class="px-3 py-2 font-medium w-[28%]">Options (Dropdown)</th>
+                        <th class="px-3 py-2 font-medium w-[8%] text-center">Required</th>
+                        <th class="px-3 py-2 font-medium w-[8%]"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (fields.Count == 0)
+                    {
+                        <tr><td colspan="6" class="px-3 py-6 text-center text-slate-400">
+                            No merge fields. Add one per <code>{{key}}</code> token used in the contract.
+                        </td></tr>
+                    }
                     @foreach (var f in fields)
                     {
-                        <div class="grid grid-cols-12 gap-2 items-center border border-slate-200 rounded-xl p-3">
-                            <MudTextField @bind-Value="f.Key" Label="Key" Placeholder="party_name" Variant="Variant.Outlined" Margin="Margin.Dense" Class="col-span-2" />
-                            <MudTextField @bind-Value="f.Label" Label="Label" Variant="Variant.Outlined" Margin="Margin.Dense" Class="col-span-3" />
-                            <MudSelect T="TemplateFieldType" @bind-Value="f.Type" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense" Class="col-span-2">
-                                @foreach (var t in Enum.GetValues<TemplateFieldType>())
-                                {
-                                    <MudSelectItem Value="t">@t</MudSelectItem>
-                                }
-                            </MudSelect>
-                            <MudTextField @bind-Value="f.OptionsCsv" Label="Options (comma-sep)" Disabled="@(f.Type != TemplateFieldType.Dropdown)"
-                                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="col-span-3" />
-                            <MudCheckBox @bind-Value="f.Required" Label="Req." Class="col-span-1" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                           OnClick="@(() => RemoveField(f))" Class="col-span-1" />
-                        </div>
+                        <tr class="border-t border-slate-100 align-top">
+                            <td class="px-2 py-1">
+                                <MudTextField @bind-Value="f.Key" Placeholder="party_name" Variant="Variant.Text" Margin="Margin.Dense" />
+                            </td>
+                            <td class="px-2 py-1">
+                                <MudTextField @bind-Value="f.Label" Placeholder="Party name" Variant="Variant.Text" Margin="Margin.Dense" />
+                            </td>
+                            <td class="px-2 py-1">
+                                <MudSelect T="TemplateFieldType" @bind-Value="f.Type" Variant="Variant.Text" Margin="Margin.Dense">
+                                    @foreach (var t in Enum.GetValues<TemplateFieldType>())
+                                    {
+                                        <MudSelectItem Value="t">@t</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </td>
+                            <td class="px-2 py-1">
+                                <MudTextField @bind-Value="f.OptionsCsv" Placeholder="Option A, Option B" Disabled="@(f.Type != TemplateFieldType.Dropdown)"
+                                              Variant="Variant.Text" Margin="Margin.Dense" />
+                            </td>
+                            <td class="px-2 py-1 text-center">
+                                <MudCheckBox @bind-Value="f.Required" />
+                            </td>
+                            <td class="px-2 py-1 text-right">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveField(f))" />
+                            </td>
+                        </tr>
                     }
-                </div>
-            }
+                </tbody>
+            </table>
         </section>
 
         <!-- 3. Contract body (rich text) -->
