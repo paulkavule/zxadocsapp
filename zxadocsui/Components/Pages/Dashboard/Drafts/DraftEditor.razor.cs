@@ -16,8 +16,9 @@ namespace zxadocsui.Components.Pages.Dashboard.Drafts;
 // every edit. Saves the draft (create or update) and submits for approval.
 public partial class DraftEditor
 {
-    // Same token shape the backend HtmlTokenMerger uses: {{ key }} with optional whitespace.
-    private static readonly Regex TokenPattern = new(@"\{\{\s*([\w.\-]+)\s*\}\}", RegexOptions.Compiled);
+    // Same token shape the backend HtmlTokenMerger uses: {{ key }} where the key is any run of
+    // non-'}' characters (trimmed) — so multi-word keys like {{contract date}} merge too.
+    private static readonly Regex TokenPattern = new(@"\{\{\s*([^}]+?)\s*\}\}", RegexOptions.Compiled);
 
     [Inject] private ITemplateClientService TemplatesApi { get; set; } = default!;
     [Inject] private IDraftClientService DraftsApi { get; set; } = default!;
@@ -153,12 +154,12 @@ public partial class DraftEditor
 
         var byKey = version.Fields
             .Where(f => !string.IsNullOrWhiteSpace(f.Key))
-            .GroupBy(f => f.Key)
+            .GroupBy(f => f.Key.Trim())
             .ToDictionary(g => g.Key, g => g.First());
 
         return TokenPattern.Replace(templateHtml, m =>
         {
-            var key = m.Groups[1].Value;
+            var key = m.Groups[1].Value.Trim();
             if (!byKey.TryGetValue(key, out var field)) return m.Value; // unknown token — leave visible
 
             var value = Get(field.Id);
