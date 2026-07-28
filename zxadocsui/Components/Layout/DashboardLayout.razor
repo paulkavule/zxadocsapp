@@ -259,7 +259,13 @@
     [Inject] public IUserSession session { set; get; } = default!;
     [Inject] public IHttpService httpSvc { set; get; } = default!;
     [Inject] public IPermissionClientService permissions { set; get; } = default!;
+    [Inject] public IJSRuntime JS { set; get; } = default!;
     UserData userData = new();
+
+    // Wire up sidebar interactions (collapse toggle + submenus) once the DOM exists.
+    // Owned by the layout so it works on every page and after a full refresh — not
+    // just when the Dashboard page happens to load.
+    bool sidebarInitialized;
 
     // Contracts nav visibility, driven by the caller's effective permissions (ZD-81).
     // Fail closed: everything stays hidden until permissions load.
@@ -282,6 +288,15 @@
                      || perms.Contains(Permission.ApproveDraft);
 
             StateHasChanged();
+            return;
+        }
+
+        // Runs on the render triggered by StateHasChanged above, so the
+        // permission-gated sidebar markup (e.g. Contracts submenu) is present.
+        if (!sidebarInitialized)
+        {
+            sidebarInitialized = true;
+            await JS.InvokeVoidAsync("initializeSidebar");
         }
     }
 

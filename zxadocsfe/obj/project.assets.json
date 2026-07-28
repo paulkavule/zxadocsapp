@@ -277,15 +277,6 @@
           "lib/netstandard1.0/_._": {}
         }
       },
-      "pkavule.zxadocslib/1.1.20": {
-        "type": "package",
-        "compile": {
-          "lib/net10.0/zxadocslib.dll": {}
-        },
-        "runtime": {
-          "lib/net10.0/zxadocslib.dll": {}
-        }
-      },
       "runtime.native.System/4.3.0": {
         "type": "package",
         "dependencies": {
@@ -337,6 +328,16 @@
             "assetType": "runtime",
             "rid": "win"
           }
+        }
+      },
+      "pkavule.zxadocslib/1.1.20": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/pkavule.zxadocslib.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/pkavule.zxadocslib.dll": {}
         }
       }
     }
@@ -811,17 +812,6 @@
         "runtime.json"
       ]
     },
-    "pkavule.zxadocslib/1.1.20": {
-      "sha512": "PDMshZRcAOV+0RPPfA7CfjOy2LrfBhrjPAOOEiIbMMmtUL5tLq/9PIQ5QooLH/nOaUo4wvrp1CIDmuP1Hw3RJQ==",
-      "type": "package",
-      "path": "pkavule.zxadocslib/1.1.20",
-      "files": [
-        ".nupkg.metadata",
-        "lib/net10.0/zxadocslib.dll",
-        "pkavule.zxadocslib.1.1.20.nupkg.sha512",
-        "pkavule.zxadocslib.nuspec"
-      ]
-    },
     "runtime.native.System/4.3.0": {
       "sha512": "c/qWt2LieNZIj1jGnVNsE2Kl23Ya2aSTBuXMD6V7k9KWr6l16Tqdwq+hJScEpWER9753NWC8h96PaVNY5Ld7Jw==",
       "type": "package",
@@ -905,6 +895,11 @@
         "system.net.http.4.3.4.nupkg.sha512",
         "system.net.http.nuspec"
       ]
+    },
+    "pkavule.zxadocslib/1.1.20": {
+      "type": "project",
+      "path": "../../zxadocslib/zxadocslib/zxadocslib.csproj",
+      "msbuildProject": "../../zxadocslib/zxadocslib/zxadocslib.csproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -941,7 +936,11 @@
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "/Users/pkavule/Projects/Zxabu/Zxadocs/zxadocslib/zxadocslib/zxadocslib.csproj": {
+              "projectPath": "/Users/pkavule/Projects/Zxabu/Zxadocs/zxadocslib/zxadocslib/zxadocslib.csproj"
+            }
+          }
         }
       },
       "warningProperties": {
@@ -971,10 +970,6 @@
           "System.Net.Http": {
             "target": "Package",
             "version": "[4.3.4, )"
-          },
-          "pkavule.zxadocslib": {
-            "target": "Package",
-            "version": "[1.1.20, )"
           }
         },
         "imports": [

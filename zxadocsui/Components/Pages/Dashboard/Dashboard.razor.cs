@@ -38,8 +38,6 @@ public partial class Dashboard
             await GetDashboardStats();
             await GetRecentActivity();
             await GetWeeklyStatistic();
-            Console.WriteLine("Intializing the menu");
-            await JSRuntime.InvokeVoidAsync("initializeSidebar");
 
             StateHasChanged();
         }

@@ -145,6 +145,24 @@ Approver queue for drafts (mirrors FR-F4).
 **Test cases**
 - TF9-a: approve → draft `Approved`; TF9-b: reject with reason → draft `Rejected`, creator notified; TF9-c: page hidden for non-approvers.
 
+### FR-F10 — Rich-text template authoring editor (Quill)
+Author a template body as rich HTML with merge-field tokens, tables, and images. Used by `TemplateCreate` (FR-F2) and template editing in `TemplateDetail` (FR-F3).
+
+**Editor:** **Quill 2** (MIT — no licensing cost/risk, decisive for public-sector use) + **`quill-table-better`** for full table editing. Replaces the previous hand-rolled `contenteditable`/`execCommand` editor, which is removed. Loaded from CDN (matching the app's existing pdf.js/Font-Awesome pattern); reusable `RichTextEditor.razor` keeps its API (`InitialHtml`, `Tokens`, `GetHtmlAsync`, `SetHtmlAsync`).
+
+**Acceptance criteria**
+- Formatting toolbar: headings (H1–H3), bold/italic/underline, ordered/bulleted lists, link, clear formatting.
+- **Tables:** insert a table and edit it — add/delete rows & columns, merge/split cells, drag-resize (via `quill-table-better`).
+- **Images:** insert images via the toolbar; embedded as base64 data URIs by default (self-contained, survive the merge-to-PDF step). Production may later switch to backend upload + URL — see backend note below.
+- **Merge fields:** an "Insert field" control drops a `{{key}}` token at the caret as **plain text** (must survive the field-merge untouched); the token list is supplied by the parent from the template's field keys.
+- On save, the parent reads the body as **HTML** (`GetHtmlAsync`); on edit, existing HTML is loaded (`SetHtmlAsync`) with tables/images intact.
+- Editor is theme/brand consistent and fits within the page without breaking layout.
+
+**Test cases**
+- TF10-a: insert a 3×3 table, merge two cells, save → HTML round-trips on reopen; TF10-b: insert an image → appears in body and in the generated PDF preview; TF10-c: insert a `{{party_name}}` token → stored literally, not styled; TF10-d: bold/list/heading render; TF10-e: reopening a saved template shows tables/images unchanged.
+
+> **Backend implication (for the API / PDF renderer):** the merge-to-PDF step must faithfully render Quill HTML — include `quill-table-better` table CSS so tables render, and support base64 `data:` image URIs (or resolved image URLs if backend upload is adopted).
+
 ---
 
 ## 4. Cross-Cutting UI Requirements
