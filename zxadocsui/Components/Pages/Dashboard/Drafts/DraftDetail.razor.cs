@@ -7,6 +7,7 @@ using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocslib.Helpers;
 using zxadocsui.Components.Custom.Dialogs;
+using zxadocsui.Components.Pages.Dashboard.Templates;
 using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Drafts;
@@ -71,17 +72,24 @@ public partial class DraftDetail
         if (!ok || data is null) { loadError = error ?? "Draft not found."; draft = null; return; }
         draft = data;
 
-        // Resolve field defs + labels from the snapshotted template version, and load the body
-        // for the merged preview.
-        var (okV, v, _) = await TemplatesApi.GetVersion(draft.TemplateVersionId);
-        version = okV ? v : null;
+        // Field defs, labels and the body all come from the DRAFT's own endpoint. Reading them
+        // from the template endpoints returned 403 for an approver holding only ApproveDraft,
+        // which silently left the labels and the preview blank.
+        var (okT, tpl, tplError) = await DraftsApi.GetTemplate(Id);
+        version = okT ? tpl?.Version : null;
         fieldLabels.Clear();
-        if (version is not null)
+        templateHtml = string.Empty;
+
+        if (version is null)
         {
-            foreach (var f in version.Fields) fieldLabels[f.Id] = f.Label;
-            var (okC, html, _) = await TemplatesApi.GetVersionContent(version.Id);
-            templateHtml = okC ? html : string.Empty;
+            // Surface it rather than rendering a blank panel with no explanation.
+            loadError = tplError ?? "The template for this draft could not be loaded.";
+            return;
         }
+
+        foreach (var f in version.Fields) fieldLabels[f.Id] = f.Label;
+        // Stored image URLs are host-relative and unsigned; sign them so the iframe can load them.
+        templateHtml = await TemplateHtml.WithDisplayableImagesAsync(tpl!.ContentHtml, TemplatesApi);
     }
 
     private string FieldLabel(int fieldId) => fieldLabels.TryGetValue(fieldId, out var l) && !string.IsNullOrWhiteSpace(l) ? l : $"Field {fieldId}";
@@ -186,7 +194,7 @@ public partial class DraftDetail
         {
             var (ok, payload, error) = await DraftsApi.GenerateForSigning(Id);
             if (!ok || payload is null) { Snackbar.Add(error ?? "Could not start the signing workflow.", Severity.Error); return; }
-            Handoff.Set(payload);
+            Handoff.Set(payload, Id);
             Nav.NavigateTo("/createdocument");
         }
         finally { busy = false; }

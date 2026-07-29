@@ -37,7 +37,10 @@ window.zxQuill = {
   },
 
   // Create a Quill editor on el. The instance is retrievable via Quill.find(el).
-  init: function (el, initialHtml) {
+  // dotNet (optional) receives image uploads: Quill's default handler inlines a base64
+  // data URI, so it is replaced with one that hands the file to .NET and inserts the
+  // returned URL instead (ZD-84).
+  init: function (el, initialHtml, dotNet) {
     if (!el || !window.Quill) return;
     if (window.Quill.find(el)) return; // already initialised
     this.ensureRegistered();
@@ -57,6 +60,17 @@ window.zxQuill = {
       table: false, // disable Quill's minimal built-in table module
       toolbar,
     };
+
+    // Route the toolbar's image button through .NET so the binary is uploaded rather than
+    // embedded. Without a dotNet reference the default base64 behaviour is left alone.
+    if (dotNet) {
+      modules.toolbar = {
+        container: toolbar,
+        handlers: {
+          image: () => this.pickAndUpload(el, dotNet),
+        },
+      };
+    }
 
     // Enable full table editing when the plugin is present.
     if (window.QuillTableBetter) {
@@ -85,14 +99,91 @@ window.zxQuill = {
     }
   },
 
+  // Max image width in px for an A4 page with 2.5cm margins (~16cm at 96dpi).
+  maxImageWidth: 600,
+
+  // Export the body for storage. Images get explicit width/height attributes because
+  // LibreOffice's HTML import ignores CSS sizing (max-width, style width, a lone width
+  // attribute) and places an image at its native pixel size — a phone photo then runs off
+  // the page. Only width AND height together are honoured. Done on a clone so the live
+  // editor is untouched.
   getHtml: function (el) {
     const quill = this.instance(el);
-    return quill ? quill.root.innerHTML : "";
+    if (!quill) return "";
+
+    const clone = quill.root.cloneNode(true);
+    const live = quill.root.querySelectorAll("img");
+    clone.querySelectorAll("img").forEach((img, i) => {
+      const source = live[i];
+      if (!source || !source.naturalWidth || !source.naturalHeight) return;
+      const width = Math.min(source.naturalWidth, this.maxImageWidth);
+      img.setAttribute("width", Math.round(width));
+      img.setAttribute("height", Math.round(source.naturalHeight * (width / source.naturalWidth)));
+    });
+    return clone.innerHTML;
   },
 
   setHtml: function (el, html) {
     const quill = this.instance(el);
     if (quill) quill.clipboard.dangerouslyPasteHTML(html || "");
+  },
+
+  // Prompt for a file and hand it to .NET as base64. The caret index is captured BEFORE
+  // the await: the file dialog drops the editor selection, so reading it afterwards would
+  // append the image at the end of the document instead of where the author was typing.
+  pickAndUpload: function (el, dotNet) {
+    const quill = this.instance(el);
+    if (!quill) return;
+
+    const range = quill.getSelection(true);
+    const index = range ? range.index : quill.getLength() - 1;
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/png,image/jpeg,image/gif,image/webp";
+    input.onchange = async () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      // .NET validates type/size and uploads; it calls back insertImage on success.
+      await dotNet.invokeMethodAsync("UploadImageAsync", file.name, file.type, btoa(binary), index);
+    };
+    input.click();
+  },
+
+  // Place an uploaded image at the remembered caret position.
+  insertImage: function (el, url, index) {
+    const quill = this.instance(el);
+    if (!quill) return;
+    const at = typeof index === "number" ? Math.min(index, quill.getLength() - 1) : quill.getLength() - 1;
+    quill.insertEmbed(at, "image", url, "user");
+    quill.setSelection(at + 1, 0);
+  },
+
+  // Swap canonical image URLs for their signed, loadable equivalents (display only).
+  applyDisplayUrls: function (el, pairs) {
+    const quill = this.instance(el);
+    if (!quill || !pairs) return;
+    quill.root.querySelectorAll("img").forEach((img) => {
+      const src = img.getAttribute("src") || "";
+      const match = pairs.find((p) => src.includes("id=" + p.id));
+      if (match) img.setAttribute("src", match.displayUrl);
+    });
+  },
+
+  // Ids of images currently referenced by the content, so the caller can have them signed.
+  imageIds: function (el) {
+    const quill = this.instance(el);
+    if (!quill) return [];
+    const ids = [];
+    quill.root.querySelectorAll("img").forEach((img) => {
+      const m = /[?&](?:amp;)?id=([A-Za-z0-9-]+)/.exec(img.getAttribute("src") || "");
+      if (m && !ids.includes(m[1])) ids.push(m[1]);
+    });
+    return ids;
   },
 
   // Insert the token as plain text at the caret so {{key}} survives the merge.

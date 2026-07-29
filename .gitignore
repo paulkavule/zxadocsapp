@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Local test credentials (kept outside the repos; ignored here too)
+local-credentials.md

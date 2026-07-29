@@ -46,7 +46,12 @@ builder.Services.AddHttpClient("Api", conf =>
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents()
+    // Editor images reach .NET as base64 over a JS interop call (ZD-84). SignalR's default
+    // 32 KB cap silently drops the circuit for anything larger — about a 24 KB image — so it
+    // is raised to cover the configured image limit plus base64's 4/3 overhead. The real
+    // ceiling stays the server-side Templates:MaxImageFileMb check, which rejects with 413.
+    .AddHubOptions(o => o.MaximumReceiveMessageSize = 8 * 1024 * 1024);
 
 var app = builder.Build();
 

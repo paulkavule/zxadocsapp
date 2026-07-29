@@ -22,6 +22,12 @@ public interface ITemplateClientService
 
     Task<(bool ok, TemplateVersionDto? data, string? error)> UploadVersion(
         int templateId, Stream file, string fileName, IProgress<double> progress, CancellationToken ct = default);
+    // Editor images (ZD-84). UploadImage returns the canonical Url to STORE plus a signed
+    // DisplayUrl the browser can load; SignImages re-signs ids when reopening saved content.
+    Task<(bool ok, TemplateImageDto? data, string? error)> UploadImage(
+        Stream file, string fileName, IProgress<double> progress, CancellationToken ct = default);
+    Task<(bool ok, TemplateImageDto[] data, string? error)> SignImages(string[] ids);
+
     Task<(bool ok, TemplateVersionDto? data, string? error)> SetFields(int versionId, SetFieldsRequest req);
     Task<(bool ok, TemplateVersionDto? data, string? error)> GetVersion(int versionId);
     Task<(bool ok, string html, string? error)> GetVersionContent(int versionId);
@@ -62,6 +68,24 @@ public class TemplateClientService : ITemplateClientService
         var (ok, resp, error) = await http.UploadFileWithProgressAsync<ApiResponse<TemplateVersionDto>>(
             $"api/templates/{templateId}/versions", file, fileName, new Dictionary<string, string>(), progress, ct);
         return ok ? (true, resp!.Data, resp.Message) : (false, null, Clean(error));
+    }
+
+    public async Task<(bool ok, TemplateImageDto? data, string? error)> UploadImage(
+        Stream file, string fileName, IProgress<double> progress, CancellationToken ct = default)
+    {
+        http.Initialize("Api");
+        var (ok, resp, error) = await http.UploadFileWithProgressAsync<ApiResponse<TemplateImageDto>>(
+            "api/templates/images", file, fileName, new Dictionary<string, string>(), progress, ct);
+        return ok ? (true, resp!.Data, resp.Message) : (false, null, Clean(error));
+    }
+
+    public async Task<(bool ok, TemplateImageDto[] data, string? error)> SignImages(string[] ids)
+    {
+        http.Initialize("Api");
+        var (ok, resp, error) = await http.ExecuteRequestAsync<ApiResponse<TemplateImageDto[]>>(
+            HttpVerb.Post, "api/templates/images/sign", new { Ids = ids });
+        return ok ? (true, resp!.Data ?? Array.Empty<TemplateImageDto>(), null)
+                  : (false, Array.Empty<TemplateImageDto>(), Clean(error));
     }
 
     public Task<(bool ok, TemplateVersionDto? data, string? error)> SetFields(int versionId, SetFieldsRequest req) =>

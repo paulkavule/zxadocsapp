@@ -29,6 +29,10 @@ public partial class DocumentEditor
     [Parameter] public string DocId { get; set; } = string.Empty;
     [Parameter] public EventCallback<int> OnPageChanged { get; set; }
 
+    // Already-rendered PDF handed off from an approved draft (FR-F8). When set, the viewer
+    // loads it instead of waiting for a manual upload.
+    [Parameter] public byte[]? SeedPdf { get; set; }
+
     private DotNetObjectReference<DocumentEditor>? _dotRef;
     private string _containerId = $"pdf_{Guid.NewGuid():N}", base64File;
     private string signatureUrl = string.Empty;
@@ -43,10 +47,23 @@ public partial class DocumentEditor
     public double Scale { get; private set; } = 1;
     private bool documentEdited = false;
     private bool hasInitialized = false, addSignature = false, addComment = false, shouldRender = false;
+    private bool seedApplied = false;
     private List<string> commentList = new List<string>();
 
     UserData userData = new();
     // [Parameter] public EventCallback<List<DocAttachment>> InitializeAttachments { set; get; }
+    // Applied here rather than in OnInitialized because the parent downloads the handed-off
+    // PDF asynchronously, so SeedPdf can arrive after this component has already rendered.
+    protected override void OnParametersSet()
+    {
+        if (SeedPdf is null || seedApplied) return;
+        seedApplied = true;
+        base64File = Convert.ToBase64String(SeedPdf);
+        attachments.RemoveAll(a => a.Type == AppConstants.AttachmentType.Document);
+        attachments.Add(new DocAttachment { Content = base64File, Type = AppConstants.AttachmentType.Document });
+        hasInitialized = false;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Console.WriteLine($" OnAfterRenderAsync ---------------> {string.IsNullOrEmpty(FileUrl)}");

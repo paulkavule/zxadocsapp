@@ -87,7 +87,9 @@ public partial class TemplateDetail
         if (version is null) { previewError = "No version yet."; return; }
 
         var (ok, html, error) = await TemplatesApi.GetVersionContent(version.Id);
-        if (ok) previewHtml = html;
+        // Stored image URLs are host-relative; inside the iframe they would resolve against
+        // this app rather than the API, so sign them for display.
+        if (ok) previewHtml = await TemplateHtml.WithDisplayableImagesAsync(html, TemplatesApi);
         else previewError = error ?? "Preview unavailable.";
     }
 
@@ -170,11 +172,7 @@ public partial class TemplateDetail
         return m.Success ? m.Groups[1].Value : (html ?? string.Empty);
     }
 
-    private static string WrapHtml(string title, string body) =>
-        $"<!doctype html><html><head><meta charset=\"utf-8\"><title>{System.Net.WebUtility.HtmlEncode(title)}</title>" +
-        "<style>body{font-family:'Liberation Serif',serif;font-size:12pt;line-height:1.5;margin:2.5cm;color:#111}" +
-        "h1{font-size:18pt}h2{font-size:14pt}ul,ol{margin-left:1.2em}</style></head><body>" +
-        body + "</body></html>";
+    private static string WrapHtml(string title, string body) => TemplateHtml.Wrap(title, body);
 
     private static string StripTags(string html) =>
         Regex.Replace(html ?? string.Empty, "<[^>]+>", string.Empty).Trim();

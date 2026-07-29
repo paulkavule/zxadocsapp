@@ -12,6 +12,10 @@ public interface IDraftClientService
     Task<(bool ok, DraftDto? data, string? error)> Create(CreateDraftRequest req);
     Task<(bool ok, DraftDto? data, string? error)> Update(int id, UpdateDraftRequest req);
     Task<(bool ok, DraftDto? data, string? error)> Get(int id);
+
+    // Field defs + body of the draft's snapshotted template, under draft permissions — the
+    // template endpoints are closed to an approver who holds only ApproveDraft.
+    Task<(bool ok, DraftTemplateDto? data, string? error)> GetTemplate(int id);
     Task<(bool ok, ApiPaginatedResponse<DraftDto[]>? page, string? error)> List(int status, int page, int pageSize);
 
     Task<(bool ok, DraftDto? data, string? error)> Submit(int id);
@@ -36,6 +40,9 @@ public class DraftClientService : IDraftClientService
 
     public Task<(bool ok, DraftDto? data, string? error)> Get(int id) =>
         Send<DraftDto>(HttpVerb.Get, $"api/drafts/{id}");
+
+    public Task<(bool ok, DraftTemplateDto? data, string? error)> GetTemplate(int id) =>
+        Send<DraftTemplateDto>(HttpVerb.Get, $"api/drafts/{id}/template");
 
     public async Task<(bool ok, ApiPaginatedResponse<DraftDto[]>? page, string? error)> List(int status, int page, int pageSize)
     {

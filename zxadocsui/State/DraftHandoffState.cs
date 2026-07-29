@@ -9,12 +9,22 @@ public class DraftHandoffState
 {
     public GenerateForSigningResponse? Payload { get; private set; }
 
-    public void Set(GenerateForSigningResponse payload) => Payload = payload;
+    // The originating draft, needed to fetch the rendered PDF via api/drafts/{id}/download.
+    // Carried here rather than on the response DTO so the shared contract stays unchanged.
+    public int DraftId { get; private set; }
 
-    public GenerateForSigningResponse? Consume()
+    public void Set(GenerateForSigningResponse payload, int draftId)
+    {
+        Payload = payload;
+        DraftId = draftId;
+    }
+
+    public (GenerateForSigningResponse? Payload, int DraftId) Consume()
     {
         var p = Payload;
+        var id = DraftId;
         Payload = null;
-        return p;
+        DraftId = 0;
+        return (p, id);
     }
 }

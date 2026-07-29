@@ -19,6 +19,8 @@ public partial class CreateWorkflow
     [Inject] IUserSession? Session { get; set; }
     [Inject] ISnackbar? Snackbar { get; set; }
     [Inject] NavigationManager? Navigator { get; set; }
+    [Inject] DraftHandoffState? Handoff { get; set; }
+    [Inject] IDraftClientService? DraftsApi { get; set; }
     private DocumentsWorkflow? wkflowRef;
     private DocumentEditor? childRef;
     private DocumentDetails? docRef;
@@ -28,12 +30,44 @@ public partial class CreateWorkflow
     Document document = new();
     UserData userData = new();
     bool validForm;
+
+    // Set when this wizard was entered from an approved draft (FR-F8). The PDF is already
+    // staged server-side under handoffReference, so step 3 must not re-upload it.
+    private string handoffReference = string.Empty;
+    private string handoffPath = string.Empty;
+    private byte[]? handoffPdf;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             userData = await Session!.GetCurrentUser();
+            await ApplyDraftHandoff();
         }
+    }
+
+    // Consumes the draft hand-off (once) and pre-fills step 1 plus the step 3 viewer.
+    private async Task ApplyDraftHandoff()
+    {
+        var (payload, draftId) = Handoff!.Consume();
+        if (payload is null) return;
+
+        document.Title = payload.Title;
+        document.TypeId = payload.TypeId ?? 0;
+        document.CategoryId = payload.CategoryId ?? 0;
+        document.DocumentReference = payload.DocumentReference;
+        document.Path = payload.FilePath;
+        handoffReference = payload.DocumentReference;
+        handoffPath = payload.FilePath;
+
+        var (ok, pdf, error) = await DraftsApi!.Download(draftId);
+        if (!ok || pdf is null)
+        {
+            Snackbar!.Add(error ?? "Could not load the generated document.", Severity.Error);
+            return;
+        }
+        handoffPdf = pdf;
+        StateHasChanged();
     }
     private async Task OnPreviewInteraction(StepperInteractionEventArgs arg)
     {
@@ -115,18 +149,32 @@ public partial class CreateWorkflow
 
     private async Task<bool> ProcessDocumentUpload()
     {
-        string docRef = Guid.NewGuid().ToString();
-        var (uploaded, uploadResult) = await UploadDocumentToServer(docRef);
-        if (uploaded == false)
+        string docRef, path;
+        if (!string.IsNullOrEmpty(handoffReference))
         {
-            // show toaster, message = "Document reference has not yet been generated"
-            Snackbar!.Add(uploadResult, Severity.Error);
-            return false;
+            // Hand-off (FR-F8): the PDF was staged by generate-for-signing, so skip the upload
+            // and let CreateDocument resolve the existing DocumentUpload by reference. Drop the
+            // document attachment so it is not resent as an amendment, matching the upload path.
+            docRef = handoffReference;
+            path = handoffPath;
+            attachmentList.RemoveAll(a => a.Type == AppConstants.AttachmentType.Document);
+        }
+        else
+        {
+            docRef = Guid.NewGuid().ToString();
+            var (uploaded, uploadResult) = await UploadDocumentToServer(docRef);
+            if (uploaded == false)
+            {
+                // show toaster, message = "Document reference has not yet been generated"
+                Snackbar!.Add(uploadResult, Severity.Error);
+                return false;
+            }
+            path = uploadResult;
         }
         document.AuthorId = int.Parse(userData.UserId);
         document.NextActor = workflowList[0].ActorId + "";
         document.DocumentReference = docRef;
-        document.Path = uploadResult;
+        document.Path = path;
         document.Workflows = workflowList.Select(fl => new DocumentWorkflow { ActorId = fl.ActorId, IsFinal = fl.IsFinal, Level = fl.Level, WorkflowType = fl.WorkflowType }).ToArray();
         document.ExtraFields = extraFields.Select(dd => new DocumentExtraField { FieldId = dd.FieldId, FieldValue = dd.SelectedValue }).ToArray();
         document.Amendments = attachmentList.Select(dd => new DocumentAmendment

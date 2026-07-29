@@ -65,7 +65,8 @@ public partial class TemplateApprovals
         if (pendingVersion is not null)
         {
             var (okC, html, _) = await TemplatesApi.GetVersionContent(pendingVersion.Id);
-            if (okC) previewHtml = html;
+            // An approver must see the images they are approving, so resolve them for display.
+            if (okC) previewHtml = await TemplateHtml.WithDisplayableImagesAsync(html, TemplatesApi);
         }
     }
 

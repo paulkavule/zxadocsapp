@@ -110,11 +110,7 @@ public partial class TemplateCreate
     }
 
     // Wrap the editor's body HTML in a print-friendly document so LibreOffice paginates it well.
-    private static string WrapHtml(string title, string body) =>
-        $"<!doctype html><html><head><meta charset=\"utf-8\"><title>{System.Net.WebUtility.HtmlEncode(title)}</title>" +
-        "<style>body{font-family:'Liberation Serif',serif;font-size:12pt;line-height:1.5;margin:2.5cm;color:#111}" +
-        "h1{font-size:18pt}h2{font-size:14pt}ul,ol{margin-left:1.2em}</style></head><body>" +
-        body + "</body></html>";
+    private static string WrapHtml(string title, string body) => TemplateHtml.Wrap(title, body);
 
     private static string StripTags(string html) =>
         System.Text.RegularExpressions.Regex.Replace(html ?? string.Empty, "<[^>]+>", string.Empty).Trim();

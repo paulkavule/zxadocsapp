@@ -1,10 +1,17 @@
+@using zxadocsfe.Services
 @inject IJSRuntime JS
+@inject ITemplateClientService TemplatesApi
+@inject ISnackbar Snackbar
+@implements IAsyncDisposable
 
 @* Reusable rich-text editor for authoring/editing contract templates, backed by Quill 2
-   (+ quill-table-better for tables, base64 images). Author writes the contract body in the
-   Quill Snow toolbar; "Insert field" drops a {{key}} token at the caret. The parent reads
-   the HTML back on save via GetHtmlAsync(). Public API is unchanged from the previous
-   contenteditable implementation. *@
+   (+ quill-table-better for tables). Author writes the contract body in the Quill Snow
+   toolbar; "Insert field" drops a {{key}} token at the caret. The parent reads the HTML
+   back on save via GetHtmlAsync().
+
+   Images are uploaded to the backend and referenced by URL rather than inlined as base64
+   (ZD-84). Saved HTML holds the canonical ?id= URL; the browser cannot send a bearer token
+   for an img src, so a short-lived signed URL is swapped in for display only. *@
 
 <div class="border border-slate-300 rounded-xl overflow-hidden">
     @if (Tokens is not null && Tokens.Any())
@@ -20,29 +27,112 @@
         </div>
     }
 
+    @if (uploading)
+    {
+        <MudProgressLinear Color="Color.Primary" Value="@uploadProgress" Class="rounded-0" />
+    }
+
     <div @ref="editor" class="min-h-[360px] max-h-[560px] overflow-y-auto"></div>
 </div>
 
 @code {
+    private static readonly string[] AllowedTypes = { "image/png", "image/jpeg", "image/gif", "image/webp" };
+
     [Parameter] public string? InitialHtml { get; set; }
 
     /// <summary>Merge-field keys offered in the "Insert field" menu (inserted as {{key}}).</summary>
     [Parameter] public IEnumerable<string>? Tokens { get; set; }
 
+    /// <summary>Client-side size gate; mirrors the backend's Templates:MaxImageFileMb.</summary>
+    [Parameter] public int MaxImageMb { get; set; } = 5;
+
     private ElementReference editor;
+    private DotNetObjectReference<RichTextEditor>? selfRef;
+    private bool uploading;
+    private double uploadProgress;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            await JS.InvokeVoidAsync("zxQuill.init", editor, InitialHtml ?? string.Empty);
-        }
+        if (!firstRender) return;
+
+        selfRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("zxQuill.init", editor, InitialHtml ?? string.Empty, selfRef);
+        await RefreshImageUrlsAsync();
     }
 
     public ValueTask<string> GetHtmlAsync() => JS.InvokeAsync<string>("zxQuill.getHtml", editor);
 
-    public ValueTask SetHtmlAsync(string html) => JS.InvokeVoidAsync("zxQuill.setHtml", editor, html);
+    public async ValueTask SetHtmlAsync(string html)
+    {
+        await JS.InvokeVoidAsync("zxQuill.setHtml", editor, html);
+        await RefreshImageUrlsAsync();
+    }
+
+    // Called from JS when the author picks an image. Validation mirrors the backend so a
+    // rejectable file never leaves the browser.
+    [JSInvokable]
+    public async Task UploadImageAsync(string fileName, string contentType, string base64, int index)
+    {
+        var bytes = Convert.FromBase64String(base64);
+
+        if (!AllowedTypes.Contains(contentType, StringComparer.OrdinalIgnoreCase))
+        {
+            Snackbar.Add("Unsupported image type. Use PNG, JPEG, GIF or WEBP.", Severity.Error);
+            return;
+        }
+        if (bytes.LongLength > (long)MaxImageMb * 1024 * 1024)
+        {
+            Snackbar.Add($"Image exceeds the {MaxImageMb} MB limit.", Severity.Error);
+            return;
+        }
+
+        uploading = true;
+        uploadProgress = 0;
+        StateHasChanged();
+        try
+        {
+            var progress = new Progress<double>(p => { uploadProgress = p; StateHasChanged(); });
+            using var stream = new MemoryStream(bytes);
+            var (ok, image, error) = await TemplatesApi.UploadImage(stream, fileName, progress);
+
+            if (!ok || image is null)
+            {
+                // The editor content is untouched on failure — nothing was inserted.
+                Snackbar.Add(error ?? "Image upload failed.", Severity.Error);
+                return;
+            }
+
+            // The signed URL is what displays; the server normalises it back to the canonical
+            // form when the template is saved.
+            await JS.InvokeVoidAsync("zxQuill.insertImage", editor,
+                string.IsNullOrEmpty(image.DisplayUrl) ? image.Url : image.DisplayUrl, index);
+        }
+        finally
+        {
+            uploading = false;
+            StateHasChanged();
+        }
+    }
+
+    // Saved HTML carries canonical URLs a browser cannot load; exchange them for signed ones.
+    private async Task RefreshImageUrlsAsync()
+    {
+        var ids = await JS.InvokeAsync<string[]>("zxQuill.imageIds", editor);
+        if (ids.Length == 0) return;
+
+        var (ok, signed, _) = await TemplatesApi.SignImages(ids);
+        if (!ok || signed.Length == 0) return;
+
+        await JS.InvokeVoidAsync("zxQuill.applyDisplayUrls", editor,
+            signed.Select(s => new { id = s.Id, displayUrl = s.DisplayUrl }));
+    }
 
     private ValueTask InsertToken(string key) =>
         JS.InvokeVoidAsync("zxQuill.insertText", editor, $"{{{{{key}}}}}");
+
+    public ValueTask DisposeAsync()
+    {
+        selfRef?.Dispose();
+        return ValueTask.CompletedTask;
+    }
 }
