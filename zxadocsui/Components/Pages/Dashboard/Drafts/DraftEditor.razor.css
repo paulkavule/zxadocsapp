@@ -35,15 +35,15 @@
     flex: 0 0 auto;
 }
 
-/* the preview fills the remaining pane height; the document scrolls inside it */
-.preview-frame,
+/* The placeholder shown before the template loads. PagePreview replaced the iframe that used to
+   carry .preview-frame here, and it sizes itself — a parent's scope attribute is not stamped onto a
+   child component's root, so these rules never applied to it. */
 .preview-placeholder {
     flex: 1 1 auto;
     min-height: 0;
 }
 
 @media (max-width: 1023px) {
-    .preview-frame,
     .preview-placeholder {
         height: 70vh;
     }

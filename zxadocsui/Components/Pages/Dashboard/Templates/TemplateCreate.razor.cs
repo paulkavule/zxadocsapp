@@ -64,7 +64,8 @@ public partial class TemplateCreate
         { Snackbar.Add("Merge-field keys must be unique.", Severity.Warning); return; }
 
         var bodyHtml = editorRef is null ? string.Empty : await editorRef.GetHtmlAsync();
-        if (string.IsNullOrWhiteSpace(StripTags(bodyHtml)))
+        var bodyDelta = editorRef is null ? string.Empty : await editorRef.GetDeltaAsync();
+        if (TemplateHtml.IsBodyEmpty(bodyHtml))
         { Snackbar.Add("The contract body is empty.", Severity.Warning); return; }
 
         busy = true;
@@ -77,7 +78,7 @@ public partial class TemplateCreate
             if (!okCreate || template is null) { Snackbar.Add(createErr ?? "Could not create the template.", Severity.Error); return; }
 
             // 2. Upload the authored HTML as version 1.
-            var bytes = System.Text.Encoding.UTF8.GetBytes(WrapHtml(name.Trim(), bodyHtml));
+            var bytes = System.Text.Encoding.UTF8.GetBytes(DocumentHtml.Wrap(name.Trim(), bodyHtml, bodyDelta));
             using var ms = new MemoryStream(bytes);
             var progress = new Progress<double>(v => { uploadProgress = v; InvokeAsync(StateHasChanged); });
             var (okUpload, version, uploadErr) = await TemplatesApi.UploadVersion(template.Id, ms, "template.html", progress);
@@ -108,12 +109,6 @@ public partial class TemplateCreate
             busy = false;
         }
     }
-
-    // Wrap the editor's body HTML in a print-friendly document so LibreOffice paginates it well.
-    private static string WrapHtml(string title, string body) => TemplateHtml.Wrap(title, body);
-
-    private static string StripTags(string html) =>
-        System.Text.RegularExpressions.Regex.Replace(html ?? string.Empty, "<[^>]+>", string.Empty).Trim();
 
     private TemplateFieldDto ToDto(FieldRow f) => new()
     {

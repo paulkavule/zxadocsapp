@@ -3,16 +3,18 @@
 @using zxadocslib.Dtos
 @using zxadocslib.Helpers
 
-<div class="w-full grid grid-cols-1 lg:grid-cols-2 gap-6">
+@* Two columns at >=1024px come from TemplateApprovals.razor.css, not `lg:grid-cols-2` — that
+   utility is absent from the committed Tailwind build and never did anything. *@
+<div class="approvals w-full grid grid-cols-1 gap-6">
     <!-- queue -->
-    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="pane bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col">
         <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
             <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
                 <i class="fas fa-inbox text-sm"></i>
             </div>
             <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Template approvals</h1>
         </div>
-        <div class="p-4 space-y-2">
+        <div class="pane-body p-4 space-y-2">
             @if (pending.Count == 0)
             {
                 <div class="py-10 text-center text-slate-400">Nothing awaiting approval.</div>
@@ -32,18 +34,21 @@
     </div>
 
     <!-- review -->
-    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-5 flex flex-col">
+    <div class="pane bg-white rounded-2xl shadow-xl border border-slate-200 p-5 flex flex-col">
         <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Review</h2>
         @if (selected is null)
         {
-            <div class="flex-1 min-h-[420px] rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
+            <div class="preview-pane rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
                 <div class="text-center"><i class="fas fa-file-contract text-3xl mb-2"></i><p>Select a template to review</p></div>
             </div>
         }
         else
         {
             <div class="mb-2 text-sm text-slate-600"><strong>@selected.Name</strong> · v@(pendingVersion?.VersionNo)</div>
-            <iframe srcdoc="@previewHtml" class="flex-1 min-h-[420px] rounded-xl border border-slate-200 bg-white" sandbox=""></iframe>
+            @* Wrapped so this page can size it: scoped CSS cannot reach the component's own root. *@
+            <div class="preview-pane">
+                <PagePreview Html="@previewHtml" Class="h-full rounded-xl border border-slate-200" />
+            </div>
             <div class="flex items-center gap-2 pt-4 border-t border-slate-200 mt-4">
                 <MudButton OnClick="Approve" Variant="Variant.Filled" Color="Color.Success" Disabled="busy" StartIcon="@Icons.Material.Filled.CheckCircle">Approve</MudButton>
                 <MudButton OnClick="Reject" Variant="Variant.Filled" Color="Color.Error" Disabled="busy" StartIcon="@Icons.Material.Filled.Cancel">Reject</MudButton>

@@ -75,7 +75,7 @@
         </h2>
         @if (version is not null && !string.IsNullOrEmpty(templateHtml))
         {
-            <iframe srcdoc="@BuildPreview()" class="preview-frame w-full rounded-xl border border-slate-200 bg-white" sandbox=""></iframe>
+            <PagePreview Html="@BuildPreview()" Class="rounded-xl border border-slate-200" />
         }
         else
         {

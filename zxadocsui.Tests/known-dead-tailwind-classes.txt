@@ -1,0 +1,30 @@
+# Arbitrary Tailwind classes already present in the templates/drafting module that are NOT in the
+# committed wwwroot/ctailwindcss.css, and therefore do nothing at runtime.
+#
+# These are pre-existing and cosmetic — placeholder heights, the draft-approvals PDF embed height,
+# and merge-field table column widths. None affects image or table render fidelity, so they are
+# recorded here rather than restyled as a side effect of adding this guard.
+#
+# The guard fails for any arbitrary class NOT listed here, which is the point: new dead styling
+# cannot be introduced silently. Delete a line when you fix it (replace with scoped CSS in the
+# component's .razor.css, or an inline style).
+#
+# Effect of each being dead: the element falls back to its intrinsic size / auto width, and a dead
+# responsive variant means the layout never changes at that breakpoint.
+
+TemplateDetail.razor: h-[520px]
+TemplateCreate.razor: w-[18%]
+TemplateCreate.razor: w-[22%]
+TemplateCreate.razor: w-[16%]
+TemplateCreate.razor: w-[28%]
+TemplateCreate.razor: w-[8%]
+DraftApprovals.razor: min-h-[420px]
+
+# Dead responsive variants. TemplateApprovals declares its two columns in TemplateApprovals.razor.css
+# instead, because a single full-width column is what made its preview ~2120px tall (ZD-90). The rest
+# are cosmetic and pre-existing: DraftApprovals is likewise single-column at every width, and the
+# col-span utilities leave their elements at the default single span.
+DraftApprovals.razor: lg:grid-cols-2
+DraftDetail.razor: lg:col-span-1
+TemplateDetail.razor: lg:col-span-1
+TemplateCreate.razor: md:col-span-2

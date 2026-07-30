@@ -1,0 +1,47 @@
+/* Two-pane approvals: the queue on the left, the reviewed page on the right. Mirrors
+   DraftEditor.razor.css, and for the same reason — the preview is page-shaped, so if nothing bounds
+   it, it grows to about 1.4x its own width. In the ~770px review pane of a 1600px viewport that is
+   ~1090px tall, which pushed Approve and Reject below the fold: the approver could see the document
+   but not act on it. Bounding the pane and letting the preview fill it keeps the actions on screen.
+
+   Blazor CSS isolation cannot size PagePreview's root from here — a parent's scope attribute is not
+   stamped onto a child component's element — so the preview is wrapped in .preview-pane, which this
+   page does own, and fills it via the global `h-full` utility. */
+
+@media (min-width: 1024px) {
+    /* The two columns are declared here because `lg:grid-cols-2` is NOT in the committed
+       ctailwindcss.css (there is no build step that regenerates it), so the markup's utility did
+       nothing and the page has always been a single full-width column. That is what made the
+       preview ~2120px tall in a 1600px viewport and put Approve at y=2511 — a page-shaped preview
+       is 1.41x its own width, so the column width is the whole problem. */
+    .approvals {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        height: calc(100vh - 9rem);
+    }
+}
+
+/* both panes may shrink below their content, or the grid row stretches to the taller one */
+.pane {
+    min-height: 0;
+}
+
+/* the queue scrolls on its own rather than growing the page */
+.pane-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* the preview takes the height left over after the heading and the action bar */
+.preview-pane {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* Stacked single column: there is no pane height to fill, so cap the preview instead of letting a
+   whole page's worth of height push the actions away. */
+@media (max-width: 1023px) {
+    .preview-pane {
+        height: 70vh;
+    }
+}

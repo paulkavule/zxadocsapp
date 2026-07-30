@@ -1,0 +1,38 @@
+/* A page-width sheet scaled to fit its pane. --zx-page-w comes from PageGeometry; --zx-scale is
+   set by pagepreview.js from the host's measured width. */
+
+/* The host sizes itself to the page's own proportions. It must not depend on the caller for a
+   height: the sheet is absolutely positioned, so a host with no height collapses and the preview
+   disappears entirely — measured at 2px tall when it relied on an `h-[560px]` utility that the
+   committed Tailwind build does not contain. Blazor's CSS isolation also keeps a calling page's
+   own rules off this element, so the caller could not fix it either. A definite height set by the
+   caller (a flex pane) still wins, because aspect-ratio yields to it. */
+.zx-preview {
+    position: relative;
+    overflow: hidden;
+    background: #f1f5f9;
+    width: 100%;
+    aspect-ratio: var(--zx-page-ratio);
+}
+
+/* A whole page, laid out at real page dimensions and scaled from its top-left corner to fit the
+   pane, then centred on both axes. The document inside reflows exactly as it will when printed,
+   and scrolls within the sheet to reach later pages. */
+.zx-sheet {
+    position: absolute;
+    top: calc((100% - (var(--zx-page-h) * var(--zx-scale, 1))) / 2);
+    left: calc((100% - (var(--zx-page-w) * var(--zx-scale, 1))) / 2);
+    width: var(--zx-page-w);
+    height: var(--zx-page-h);
+    transform: scale(var(--zx-scale, 1));
+    transform-origin: top left;
+    background: #fff;
+    box-shadow: 0 1px 3px rgb(15 23 42 / 12%);
+}
+
+.zx-frame {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}

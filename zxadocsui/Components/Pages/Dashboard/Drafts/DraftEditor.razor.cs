@@ -6,6 +6,7 @@ using MudBlazor;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocslib.Helpers;
+using zxadocsui.Components.Pages.Dashboard.Templates;
 using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Drafts;
@@ -98,7 +99,9 @@ public partial class DraftEditor
     private async Task LoadTemplateBody(int versionId)
     {
         var (ok, html, _) = await TemplatesApi.GetVersionContent(versionId);
-        templateHtml = ok ? html : string.Empty;
+        // Stored image URLs are canonical and unsigned; a preview iframe cannot send a bearer
+        // token, so they must be exchanged for signed ones or every image renders broken.
+        templateHtml = ok ? await TemplateHtml.WithDisplayableImagesAsync(html, TemplatesApi) : string.Empty;
     }
 
     // ---- value helpers ----

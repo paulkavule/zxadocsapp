@@ -40,10 +40,14 @@ window.zxQuill = {
   // dotNet (optional) receives image uploads: Quill's default handler inlines a base64
   // data URI, so it is replaced with one that hands the file to .NET and inserts the
   // returned URL instead (ZD-84).
-  init: function (el, initialHtml, dotNet) {
+  // contentWidth is the printable width in CSS px, passed from PageGeometry so the editor
+  // and the PDF share one number instead of each assuming a page (ZD-90).
+  init: function (el, initialHtml, dotNet, contentWidth, initialDelta) {
     if (!el || !window.Quill) return;
     if (window.Quill.find(el)) return; // already initialised
     this.ensureRegistered();
+
+    if (contentWidth > 0) el.dataset.zxContentWidth = contentWidth;
 
     const toolbar = [
       [{ header: [1, 2, 3, false] }],
@@ -94,38 +98,107 @@ window.zxQuill = {
     }
 
     const quill = new window.Quill(el, { theme: "snow", modules });
-    if (initialHtml) {
+    // Prefer the Delta: it restores tables, which the HTML path cannot. The HTML is the fallback
+    // for documents saved before the Delta was stored, or if the stored payload is unreadable.
+    if (!this.setDelta(el, initialDelta) && initialHtml) {
       quill.clipboard.dangerouslyPasteHTML(initialHtml);
     }
   },
 
-  // Max image width in px for an A4 page with 2.5cm margins (~16cm at 96dpi).
-  maxImageWidth: 600,
+  // Printable width in CSS px, supplied by PageGeometry at init. There is deliberately no
+  // fallback: a literal here would be a second source of truth for the page, and the previous
+  // one (a hardcoded 600px image cap chosen to approximate A4 minus margins) is exactly the
+  // defect this change set removed. init always supplies the value, so its absence is a wiring
+  // bug worth hearing about rather than papering over with a page-shaped guess.
+  contentWidth: function (el) {
+    const declared = el && Number(el.dataset.zxContentWidth);
+    if (declared > 0) return declared;
+    throw new Error("zxQuill: no content width — zxQuill.init was not given PageGeometry's");
+  },
 
   // Export the body for storage. Images get explicit width/height attributes because
   // LibreOffice's HTML import ignores CSS sizing (max-width, style width, a lone width
   // attribute) and places an image at its native pixel size — a phone photo then runs off
   // the page. Only width AND height together are honoured. Done on a clone so the live
   // editor is untouched.
+  //
+  // The exported width is the width the author is LOOKING at (the laid-out box), not the
+  // image's native size: quill-resize-module lets them scale an image down, and stamping the
+  // native size instead would print something larger than the editor ever showed. The height
+  // always comes from the natural aspect ratio, so a resize can never distort the image.
   getHtml: function (el) {
     const quill = this.instance(el);
     if (!quill) return "";
 
+    const max = this.contentWidth(el);
     const clone = quill.root.cloneNode(true);
     const live = quill.root.querySelectorAll("img");
     clone.querySelectorAll("img").forEach((img, i) => {
       const source = live[i];
       if (!source || !source.naturalWidth || !source.naturalHeight) return;
-      const width = Math.min(source.naturalWidth, this.maxImageWidth);
-      img.setAttribute("width", Math.round(width));
+      const displayed = Math.round(source.getBoundingClientRect().width) || source.naturalWidth;
+      const width = Math.min(displayed, max);
+      img.setAttribute("width", width);
       img.setAttribute("height", Math.round(source.naturalHeight * (width / source.naturalWidth)));
     });
+
+    // Column ratios are measured off the live table and stamped as percentage width attributes on
+    // the FIRST ROW's cells, because the editor is the only place they are known — the table plugin
+    // renders no <colgroup>, so LibreOffice apportioned columns by content and printed ratios the
+    // screen never showed (measured 28.7/71.3 against the editor's 50/50).
+    //
+    // The form matters, and was measured against real conversions for a 50/50 table:
+    //   <td width="50%">          -> 50.0 / 50.0   exact
+    //   <col width="227">         -> 49.8 / 50.2
+    //   <col width="50%">         -> 46.5 / 53.4   and it OVERRIDES the cells, so no colgroup
+    const liveTables = quill.root.querySelectorAll("table");
+    clone.querySelectorAll("table").forEach((table, i) => {
+      const source = liveTables[i];
+      const liveRow = source && source.querySelector("tr");
+      const cloneRow = table.querySelector("tr");
+      if (!liveRow || !cloneRow) return;
+
+      const widths = [...liveRow.children].map((c) => c.getBoundingClientRect().width);
+      const total = widths.reduce((a, b) => a + b, 0);
+      if (!total) return;
+
+      [...cloneRow.children].forEach((cell, c) => {
+        if (widths[c] === undefined || cell.hasAttribute("width")) return;
+        cell.setAttribute("width", Math.round((widths[c] / total) * 10000) / 100 + "%");
+      });
+    });
+
     return clone.innerHTML;
   },
 
   setHtml: function (el, html) {
     const quill = this.instance(el);
     if (quill) quill.clipboard.dangerouslyPasteHTML(html || "");
+  },
+
+  // The editor's own lossless representation. Used for re-opening a saved document: a table does
+  // not survive an HTML round trip through quill-table-better, but the Delta reproduces exactly
+  // what was authored.
+  getDelta: function (el) {
+    const quill = this.instance(el);
+    return quill ? JSON.stringify(quill.getContents()) : "";
+  },
+
+  // Applied as an UPDATE onto an emptied document, never via setContents. Measured with one and
+  // the same delta: setContents rebuilds the table element but none of its rows (0 rows, 0 cells),
+  // while updateContents restores it in full (3 rows, 9 cells) — the table plugin builds its blots
+  // on the insert path that setContents does not take.
+  setDelta: function (el, json) {
+    const quill = this.instance(el);
+    if (!quill || !json) return false;
+    try {
+      const delta = JSON.parse(json);
+      quill.setText("");
+      quill.updateContents(delta, "api");
+      return true;
+    } catch (e) {
+      return false; // caller falls back to the body HTML
+    }
   },
 
   // Prompt for a file and hand it to .NET as base64. The caret index is captured BEFORE

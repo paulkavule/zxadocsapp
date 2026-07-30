@@ -102,14 +102,14 @@ else
                                 <MudButton OnClick="@(() => editing = false)" Variant="Variant.Text" Size="Size.Small" Disabled="busy">Cancel</MudButton>
                             </div>
                         </div>
-                        <RichTextEditor @ref="editorRef" InitialHtml="@editHtml" Tokens="@Fields.Select(f => f.Key)" />
+                        <RichTextEditor @ref="editorRef" InitialHtml="@editHtml" InitialDelta="@editDelta" Tokens="@Fields.Select(f => f.Key)" />
                     }
                     else
                     {
                         <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Preview</h2>
                         @if (!string.IsNullOrEmpty(previewHtml))
                         {
-                            <iframe srcdoc="@previewHtml" class="w-full h-[560px] rounded-xl border border-slate-200 bg-white" sandbox=""></iframe>
+                            <PagePreview Html="@previewHtml" Class="rounded-xl border border-slate-200" />
                         }
                         else
                         {

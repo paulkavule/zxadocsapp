@@ -1,0 +1,56 @@
+@using zxadocslib.Helpers
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@* Shows a stored contract as the page it will print as, not as a panel-shaped column (ZD-90).
+
+   The iframe is laid out at the real page width so the document inside reflows exactly as it
+   will in the PDF; the whole sheet is then scaled uniformly to fit the pane. Every preview
+   surface — template detail, template approvals, draft detail, draft editor — uses this, so an
+   author and an approver are looking at the same geometry as the renderer. *@
+
+<div @ref="host" class="zx-preview @Class"
+     style="--zx-page-w:@(PageGeometry.WidthPx)px;--zx-page-h:@(PageGeometry.HeightPx)px;--zx-page-ratio:@(PageGeometry.WidthPx)/@(PageGeometry.HeightPx)">
+    <div class="zx-sheet">
+        <iframe srcdoc="@Html" sandbox="" class="zx-frame" title="Document preview"></iframe>
+    </div>
+</div>
+
+@code {
+    /// <summary>The complete stored document to display.</summary>
+    [Parameter] public string? Html { get; set; }
+
+    /// <summary>Layout classes for the host, so a pane can size it (e.g. flex-1, h-[560px]).</summary>
+    [Parameter] public string? Class { get; set; }
+
+    private ElementReference host;
+
+    // Set once the observer is attached. Without it, a component added and removed before its first
+    // render batch (a reload that clears the html mid-batch) would pass a default ElementReference
+    // to detach, which throws ArgumentException while serialising — an exception that escapes
+    // disposal, since only JSDisconnectedException is caught below.
+    private bool attached;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        await JS.InvokeVoidAsync("zxPagePreview.attach", host,
+            PageGeometry.WidthPx, PageGeometry.HeightPx);
+        attached = true;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!attached) return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("zxPagePreview.detach", host);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is already gone; the observer went with it.
+        }
+    }
+}

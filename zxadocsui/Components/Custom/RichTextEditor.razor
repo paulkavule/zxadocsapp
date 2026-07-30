@@ -1,4 +1,5 @@
 @using zxadocsfe.Services
+@using zxadocslib.Helpers
 @inject IJSRuntime JS
 @inject ITemplateClientService TemplatesApi
 @inject ISnackbar Snackbar
@@ -32,13 +33,26 @@
         <MudProgressLinear Color="Color.Primary" Value="@uploadProgress" Class="rounded-0" />
     }
 
-    <div @ref="editor" class="min-h-[360px] max-h-[560px] overflow-y-auto"></div>
+    @* The author writes on a real A4 sheet: the container is the page width and the editor's
+       own padding is replaced by the printed margin, so the text column is exactly the width
+       that will print and an image occupies the same fraction of it here as in the PDF. *@
+    <div class="zx-page-scroll overflow-auto bg-slate-100 py-6">
+        <div class="zx-page mx-auto bg-white shadow-sm" style="@PageStyle">
+            <div @ref="editor"></div>
+        </div>
+    </div>
 </div>
 
 @code {
     private static readonly string[] AllowedTypes = { "image/png", "image/jpeg", "image/gif", "image/webp" };
 
     [Parameter] public string? InitialHtml { get; set; }
+
+    /// <summary>
+    /// The editor Delta saved with the document, when there is one. Preferred over InitialHtml
+    /// because a table does not survive an HTML round trip through the table plugin.
+    /// </summary>
+    [Parameter] public string? InitialDelta { get; set; }
 
     /// <summary>Merge-field keys offered in the "Insert field" menu (inserted as {{key}}).</summary>
     [Parameter] public IEnumerable<string>? Tokens { get; set; }
@@ -51,22 +65,27 @@
     private bool uploading;
     private double uploadProgress;
 
+    // The sheet is the full page; its padding is the printed margin, leaving a text column of
+    // exactly PageGeometry.ContentWidthPx. Min-height is the page height so a short document
+    // still looks like a page rather than a strip.
+    private static string PageStyle =>
+        $"width:{PageGeometry.WidthPx}px;min-height:{PageGeometry.HeightPx}px;" +
+        $"padding:{PageGeometry.MarginCss}";
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
 
         selfRef = DotNetObjectReference.Create(this);
-        await JS.InvokeVoidAsync("zxQuill.init", editor, InitialHtml ?? string.Empty, selfRef);
+        await JS.InvokeVoidAsync("zxQuill.init", editor, InitialHtml ?? string.Empty, selfRef,
+            PageGeometry.ContentWidthPx, InitialDelta);
         await RefreshImageUrlsAsync();
     }
 
     public ValueTask<string> GetHtmlAsync() => JS.InvokeAsync<string>("zxQuill.getHtml", editor);
 
-    public async ValueTask SetHtmlAsync(string html)
-    {
-        await JS.InvokeVoidAsync("zxQuill.setHtml", editor, html);
-        await RefreshImageUrlsAsync();
-    }
+    /// <summary>The editor's lossless content, stored alongside the HTML for re-editing.</summary>
+    public ValueTask<string> GetDeltaAsync() => JS.InvokeAsync<string>("zxQuill.getDelta", editor);
 
     // Called from JS when the author picks an image. Validation mirrors the backend so a
     // rejectable file never leaves the browser.

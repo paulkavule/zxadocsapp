@@ -1,0 +1,52 @@
+/* The authoring surface is an A4 sheet (ZD-90). Quill builds .ql-editor itself, so its
+   rules need ::deep to cross the component boundary. */
+
+/* Height of the scrollable area holding the sheet; the sheet itself is a full page. */
+.zx-page-scroll {
+    max-height: 60vh;
+}
+
+/* The sheet's width is the PAGE width and its padding is the printed margin, so the padding has
+   to sit inside that width. Stated explicitly rather than inherited from a framework reset:
+   measured without it, the sheet came out 983px wide (794 + two 2.5cm margins) and the text
+   column 794px instead of 605px, which silently made every image the wrong fraction of the page. */
+.zx-page {
+    box-sizing: border-box;
+}
+
+/* The printed margin lives on the sheet, so Quill's own 12px padding must go — otherwise
+   the text column is narrower than the width the PDF will use and every proportion drifts. */
+.zx-page ::deep .ql-editor {
+    padding: 0;
+    min-height: 0;
+}
+
+/* Quill's border belongs to the container, not the sheet. */
+.zx-page ::deep .ql-container {
+    border: 0;
+    font-family: inherit;
+}
+
+/* An image can never cross the margin, in the editor or in print. quill-resize-module writes
+   an inline width when the author drags a handle; max-width still caps the display, and
+   height:auto keeps the aspect ratio the export then stamps. */
+.zx-page ::deep .ql-editor img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Match the stored document's table rules so a table looks the same while being authored as
+   it does in the preview and the PDF. */
+.zx-page ::deep .ql-editor table {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+}
+
+.zx-page ::deep .ql-editor td,
+.zx-page ::deep .ql-editor th {
+    border: 1px solid #444;
+    padding: 6pt;
+    vertical-align: top;
+    word-wrap: break-word;
+}

@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using zxadocsfe.Services;
@@ -28,6 +27,7 @@ public partial class TemplateDetail
 
     private RichTextEditor? editorRef;
     private string editHtml = string.Empty;
+    private string? editDelta;
     private string previewHtml = string.Empty;
     private string? previewError;
 
@@ -97,10 +97,17 @@ public partial class TemplateDetail
     {
         var version = ActiveVersion;
         editHtml = string.Empty;
+        editDelta = null;
         if (version is not null)
         {
             var (ok, html, _) = await TemplatesApi.GetVersionContent(version.Id);
-            if (ok) editHtml = ExtractBody(html);
+            if (ok)
+            {
+                // The Delta restores the document exactly, including tables; the body HTML is the
+                // fallback for versions saved before it was stored.
+                editDelta = DocumentHtml.ExtractDelta(html);
+                editHtml = DocumentHtml.ExtractBody(html);
+            }
         }
         editing = true;
     }
@@ -109,12 +116,13 @@ public partial class TemplateDetail
     {
         if (editorRef is null) return;
         var body = await editorRef.GetHtmlAsync();
-        if (string.IsNullOrWhiteSpace(StripTags(body))) { Snackbar.Add("The contract body is empty.", Severity.Warning); return; }
+        var delta = await editorRef.GetDeltaAsync();
+        if (TemplateHtml.IsBodyEmpty(body)) { Snackbar.Add("The contract body is empty.", Severity.Warning); return; }
 
         busy = true;
         try
         {
-            var bytes = System.Text.Encoding.UTF8.GetBytes(WrapHtml(template!.Name, body));
+            var bytes = System.Text.Encoding.UTF8.GetBytes(DocumentHtml.Wrap(template!.Name, body, delta));
             using var ms = new MemoryStream(bytes);
             var (ok, version, error) = await TemplatesApi.UploadVersion(template.Id, ms, "template.html", new Progress<double>());
             if (!ok || version is null) { Snackbar.Add(error ?? "Could not save the version.", Severity.Error); return; }
@@ -165,17 +173,6 @@ public partial class TemplateDetail
         }
         finally { busy = false; }
     }
-
-    private static string ExtractBody(string html)
-    {
-        var m = Regex.Match(html ?? string.Empty, "<body[^>]*>(.*?)</body>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-        return m.Success ? m.Groups[1].Value : (html ?? string.Empty);
-    }
-
-    private static string WrapHtml(string title, string body) => TemplateHtml.Wrap(title, body);
-
-    private static string StripTags(string html) =>
-        Regex.Replace(html ?? string.Empty, "<[^>]+>", string.Empty).Trim();
 
     private static Color StatusColor(TemplateStatus status) => status switch
     {
