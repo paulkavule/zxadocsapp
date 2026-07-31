@@ -145,6 +145,121 @@ public class TemplateRenderTests(AppFixture app)
         Assert.Contains(".ql-resize-style-center", DocumentHtml.Wrap("t", "<p>x</p>"));
     }
 
+    // ---------------------------------------------------------------- import (ZD-85)
+
+    // The whole import runs in the browser — mammoth for the DOCX, the existing upload for its
+    // images, Quill's clipboard as the only sanitiser. Driven through importDocument rather than
+    // the toolbar button because a native file dialog cannot be automated; the picker is a thin
+    // wrapper over this call. This is also the only coverage of the upload path returning a URL
+    // instead of inserting one, since the toolbar route needs that same dialog.
+    [Fact]
+    public async Task Imported_word_document_lands_in_the_editor_with_its_structure_and_image()
+    {
+        SkipIfAppDown();
+        await using var page = await NewTemplatePageAsync();
+
+        var imported = await ImportFixtureAsync(page, "import-sample.docx");
+        Assert.True(imported, "importDocument reported failure");
+
+        var m = await page.EvaluateAsync<JsonElement>("""
+            () => {
+              const q = window.Quill.find(document.querySelector('.zx-page .ql-container'));
+              const root = q.root, img = root.querySelector('img');
+              const table = root.querySelector('table');
+              return { text: root.innerText.replace(/\s+/g, ' ').trim(),
+                       headings: root.querySelectorAll('h1,h2').length,
+                       listItems: root.querySelectorAll('li').length,
+                       bold: root.querySelectorAll('strong,b').length,
+                       rows: table ? table.querySelectorAll('tr').length : 0,
+                       cells: table ? table.querySelectorAll('td,th').length : 0,
+                       imgSrc: img ? img.getAttribute('src') : null,
+                       imgLoaded: !!(img && img.complete && img.naturalWidth > 0),
+                       scripts: root.querySelectorAll('script').length };
+            }
+            """);
+
+        Assert.Contains("Supply Agreement", m.GetProperty("text").GetString()!);
+        Assert.Contains("Zxadocs Ltd", m.GetProperty("text").GetString()!);
+        Assert.True(m.GetProperty("listItems").GetInt32() >= 3,
+            $"expected the 3 bullets, got {m.GetProperty("listItems").GetInt32()}");
+        Assert.True(m.GetProperty("bold").GetInt32() > 0, "bold run was lost in conversion");
+
+        // Images must arrive as backend references: base64 in a stored template is what ZD-82
+        // exists to prevent, and the upload is what turns one into the other.
+        var src = m.GetProperty("imgSrc").GetString();
+        Assert.NotNull(src);
+        Assert.DoesNotContain("data:", src!);
+        Assert.Contains("/api/templates/images?id=", src!);
+        Assert.True(m.GetProperty("imgLoaded").GetBoolean(),
+            "the imported image did not load, so its uploaded URL is not usable");
+
+        // Quill's clipboard is the sanitiser; nothing it lacks a blot for should survive.
+        Assert.Equal(0, m.GetProperty("scripts").GetInt32());
+
+        // The table is the fragile part: quill-table-better identifies a table by an id shared
+        // across its cells, and its HTML-to-Delta path gives each row a different one.
+        Assert.True(m.GetProperty("rows").GetInt32() >= 3,
+            $"expected the 3 table rows, got {m.GetProperty("rows").GetInt32()}");
+        Assert.True(m.GetProperty("cells").GetInt32() >= 6,
+            $"expected 6 cells, got {m.GetProperty("cells").GetInt32()}");
+    }
+
+    // A PDF has no structure, only positioned text runs, so this asserts what is honestly
+    // achievable: the words arrive, as paragraphs, with nothing executable. Tables and columns
+    // are not recoverable and are not claimed.
+    [Fact]
+    public async Task Imported_pdf_lands_in_the_editor_as_text()
+    {
+        SkipIfAppDown();
+        await using var page = await NewTemplatePageAsync();
+
+        Assert.True(await ImportFixtureAsync(page, "import-sample.pdf"), "importDocument reported failure");
+
+        var m = await page.EvaluateAsync<JsonElement>("""
+            () => {
+              const q = window.Quill.find(document.querySelector('.zx-page .ql-container'));
+              return { text: q.root.innerText.replace(/\s+/g, ' ').trim(),
+                       paragraphs: q.root.querySelectorAll('p').length,
+                       scripts: q.root.querySelectorAll('script').length };
+            }
+            """);
+
+        var text = m.GetProperty("text").GetString()!;
+        Assert.Contains("Supply Agreement", text);
+        Assert.Contains("Zxadocs Ltd", text);
+        Assert.Contains("First obligation", text);
+        Assert.True(m.GetProperty("paragraphs").GetInt32() > 1,
+            "the PDF collapsed into a single paragraph, so the line-gap heuristic is not working");
+        Assert.Equal(0, m.GetProperty("scripts").GetInt32());
+    }
+
+    [Fact]
+    public async Task Imported_document_survives_being_saved_and_reopened()
+    {
+        SkipIfAppDown();
+        await using var page = await NewTemplatePageAsync();
+
+        Assert.True(await ImportFixtureAsync(page, "import-sample.docx"));
+        var authored = await TableShapeAsync(page);
+
+        var templateId = await SaveTemplateAsync(page, RunTag + " import round trip");
+        await page.GetByRole(AriaRole.Button, new() { Name = "New version" }).ClickAsync();
+        await AppFixture.EditorAsync(page);
+        await page.WaitForTimeoutAsync(2500);
+
+        var reopened = await TableShapeAsync(page);
+        Assert.Equal(authored.rows, reopened.rows);
+        Assert.Equal(authored.cells, reopened.cells);
+        Assert.Equal(authored.text, reopened.text);
+
+        var stillLoads = await page.EvaluateAsync<bool>(
+            "() => { const i = document.querySelector('.zx-page .ql-editor img');" +
+            " return !!(i && i.complete && i.naturalWidth > 0); }");
+        Assert.True(stillLoads, "the imported image no longer loads after a save and reopen");
+
+        await ArchiveAsync(page, templateId);
+    }
+
     // ---------------------------------------------------------------- tables
 
     [Fact]
@@ -380,6 +495,26 @@ public class TemplateRenderTests(AppFixture app)
             """);
         await page.Locator(".zx-page .ql-editor table td").First.WaitForAsync(new() { Timeout = 10_000 });
         await page.WaitForTimeoutAsync(600);
+    }
+
+    // Feeds a committed fixture straight to zxQuill.importDocument as base64, which is exactly
+    // what the file picker hands it.
+    private static async Task<bool> ImportFixtureAsync(IPage page, string fileName)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "fixtures", fileName);
+        var base64 = Convert.ToBase64String(await File.ReadAllBytesAsync(path));
+
+        var imported = await page.EvaluateAsync<bool>(
+            """
+            async ([name, b64]) => {
+              const el = document.querySelector('.zx-page .ql-container');
+              return await window.zxQuill.importDocument(el, name, b64);
+            }
+            """,
+            new object[] { fileName, base64 });
+
+        await page.WaitForTimeoutAsync(2000);   // uploads and the paste settle
+        return imported;
     }
 
     private static async Task<(int rows, int cells, string text)> TableShapeAsync(IPage page)

@@ -79,6 +79,23 @@ When touching document flows, inspect together:
 
 When touching auth or HTTP, inspect `Login.razor.cs` and `HttpIntercetpor.cs` together.
 
+## Importing Word/PDF into the editor (ZD-85)
+
+Conversion runs **in the browser**, and the API is asked for nothing new:
+
+- **DOCX** → `mammoth`, vendored at `wwwroot/lib/mammoth/mammoth.browser.min.js` and lazy-loaded on
+  first import (620KB — do not add it to `App.razor`).
+- **PDF** → the `pdfjsLib` already loaded globally in `App.razor`. Text only: paragraphs are rebuilt
+  from baseline gaps, and tables and columns cannot be recovered. Do not claim otherwise.
+- **Images** → the same upload the toolbar's image button uses, so a stored template holds `?id=`
+  references and never base64. An image that fails to upload is dropped, not left as a data URI.
+- **Sanitisation** → none is written. Quill's clipboard is the allowlist: it keeps only what it has
+  blots for, and what gets stored is the editor's own export rather than the converter's output.
+
+`zxQuill.pickAndImport` is a thin wrapper over `zxQuill.importDocument(el, fileName, base64)` purely
+so the browser tests can drive an import — a native file dialog cannot be automated. Fixtures for
+both formats live in `zxadocsui.Tests/fixtures/`.
+
 ## Templates and drafting — render checks are part of the task
 
 Rendering in this module breaks **silently**: the editor keeps working while a preview or the
@@ -86,7 +103,7 @@ generated PDF quietly moves an image or reflows a table, with no error and nothi
 successful build proves nothing here. Whenever you edit any of
 
 - `Components/Custom/RichTextEditor.razor(.css)`, `Components/Custom/PagePreview.razor(.css)`
-- `wwwroot/js/quilleditor.js`, `wwwroot/js/pagepreview.js`
+- `wwwroot/js/quilleditor.js`, `wwwroot/js/pagepreview.js`, the import path or its fixtures
 - `Components/Pages/Dashboard/Templates/*`, `Components/Pages/Dashboard/Drafts/*`
 - `PageGeometry` or `DocumentHtml` in `pkavule.zxadocslib`
 
@@ -145,6 +162,8 @@ every scoped CSS rule silently disappears.
 | Save, then "New version" | the table comes back with its rows, cells and text; the image still loads |
 | All four previews | sheet aspect `0.707`, fits its pane, centred, and the document declares `size:210mm 297mm`. One test walks template detail → approvals queue → draft editor → draft detail on a single template, because each state is produced by acting on the previous one (submit, then approve as the second actor) |
 | Template approvals | Approve and Reject are within the viewport — a page-shaped preview with no height bound grew to ~2120px and pushed them off screen |
+| Word import | headings, 3 bullets, a bold run, the 3x2 table with 6 cells, and an image whose `src` is `?id=…` with **no** `data:` — then the same after a save and reopen |
+| PDF import | the words arrive as multiple paragraphs (text only; a PDF has no structure to recover) |
 | Generated PDF | page `595.3 x 841.9 pt`; image inside the margins (right edge `<= 524.4 pt`), ~100% of the 453.5 pt column, native aspect; table column ratios within ~0.1pp of the browser |
 
 A PDF needs no special tooling to check: `/MediaBox` gives the page, and the `cm ... Do` operator
@@ -156,6 +175,13 @@ in an inflated content stream gives each image's drawn width, height and x-posit
   none is configured, so no signed image URL ever validates and every image renders broken.
 - Load saved content with `updateContents` onto an emptied document, never `setContents` — the
   latter does not rebuild the table plugin's blots (same Delta: 0 rows vs a full table).
+- The same applies to HTML: load it via `zxQuill.setHtml`, which converts to a Delta and applies
+  it, and **never** call `clipboard.dangerouslyPasteHTML` — measured on one imported document, it
+  produced a table with **0 rows** where convert + `updateContents` produced all 3 rows and 6
+  cells. `dangerouslyPasteHTML` is `setContents` underneath, so it loses the same blots.
+- An upload's multipart part carries **no content type** (`HttpService` does not set one), so the
+  server resolves the type from the FILE NAME's extension. A synthesised name must carry one —
+  `imported-1` is rejected as unsupported, `imported-1.png` is accepted.
 - Tables round-trip via the stored **Delta**, not HTML; the table plugin's HTML-to-Delta path gives
   each row a different table identity so rows never re-assemble.
 - Column widths go on the **first row's cells** as percentages; a percentage `<colgroup>` is only

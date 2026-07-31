@@ -11,9 +11,20 @@
 window.zxQuill = {
   registered: false,
 
+  // The .NET component behind each editor, so any function here can call back without the
+  // reference being threaded through its arguments. A WeakMap rather than a property on the
+  // element, for the same reason the instance is resolved via Quill.find: Blazor's re-render
+  // cycle can strip custom DOM properties.
+  dotNetRefs: new WeakMap(),
+
   // Resolve the Quill instance for the container element.
   instance: function (el) {
     return el && window.Quill ? window.Quill.find(el) : null;
+  },
+
+  // The .NET component for this editor, or null when it was created without one.
+  dotNet: function (el) {
+    return (el && this.dotNetRefs.get(el)) || null;
   },
 
   // Register quill-table-better once, before any instance is created.
@@ -48,6 +59,7 @@ window.zxQuill = {
     this.ensureRegistered();
 
     if (contentWidth > 0) el.dataset.zxContentWidth = contentWidth;
+    if (dotNet) this.dotNetRefs.set(el, dotNet);
 
     const toolbar = [
       [{ header: [1, 2, 3, false] }],
@@ -71,7 +83,7 @@ window.zxQuill = {
       modules.toolbar = {
         container: toolbar,
         handlers: {
-          image: () => this.pickAndUpload(el, dotNet),
+          image: () => this.pickAndUpload(el),
         },
       };
     }
@@ -97,11 +109,12 @@ window.zxQuill = {
       };
     }
 
-    const quill = new window.Quill(el, { theme: "snow", modules });
-    // Prefer the Delta: it restores tables, which the HTML path cannot. The HTML is the fallback
-    // for documents saved before the Delta was stored, or if the stored payload is unreadable.
+    new window.Quill(el, { theme: "snow", modules });
+    // Prefer the Delta: it is the editor's own representation and needs no conversion. The HTML is
+    // the fallback for documents saved before the Delta was stored, or if the stored payload is
+    // unreadable — and it goes through setHtml, so such a document's tables come back too.
     if (!this.setDelta(el, initialDelta) && initialHtml) {
-      quill.clipboard.dangerouslyPasteHTML(initialHtml);
+      this.setHtml(el, initialHtml);
     }
   },
 
@@ -171,9 +184,17 @@ window.zxQuill = {
     return clone.innerHTML;
   },
 
+  // Load HTML by converting it to a Delta and APPLYING it, never via dangerouslyPasteHTML.
+  // Measured on the same imported document: dangerouslyPasteHTML produced a table element with
+  // 0 rows, while convert + updateContents produced all 3 rows and 6 cells with one shared
+  // table id. It is the same asymmetry setDelta documents — the table plugin builds its blots on
+  // the insert path, and dangerouslyPasteHTML (setContents underneath) does not take it.
   setHtml: function (el, html) {
     const quill = this.instance(el);
-    if (quill) quill.clipboard.dangerouslyPasteHTML(html || "");
+    if (!quill) return;
+    const delta = quill.clipboard.convert({ html: html || "" });
+    quill.setText("");
+    quill.updateContents(delta, "api");
   },
 
   // The editor's own lossless representation. Used for re-opening a saved document: a table does
@@ -204,9 +225,10 @@ window.zxQuill = {
   // Prompt for a file and hand it to .NET as base64. The caret index is captured BEFORE
   // the await: the file dialog drops the editor selection, so reading it afterwards would
   // append the image at the end of the document instead of where the author was typing.
-  pickAndUpload: function (el, dotNet) {
+  pickAndUpload: function (el) {
     const quill = this.instance(el);
-    if (!quill) return;
+    const dotNet = this.dotNet(el);
+    if (!quill || !dotNet) return;
 
     const range = quill.getSelection(true);
     const index = range ? range.index : quill.getLength() - 1;
@@ -217,14 +239,29 @@ window.zxQuill = {
     input.onchange = async () => {
       const file = input.files && input.files[0];
       if (!file) return;
-      const buffer = await file.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-      // .NET validates type/size and uploads; it calls back insertImage on success.
-      await dotNet.invokeMethodAsync("UploadImageAsync", file.name, file.type, btoa(binary), index);
+      // .NET validates type/size, uploads, and returns the URL to display — or null, having
+      // already told the user why. Inserting is this caller's job, because the import path
+      // uses the very same upload to rewrite an <img> src instead.
+      const url = await this.upload(dotNet, file.name, file.type, await this.toBase64(file));
+      if (url) this.insertImage(el, url, index);
     };
     input.click();
+  },
+
+  // Bytes as base64, which is how an image crosses the Blazor interop boundary. SignalR's
+  // MaximumReceiveMessageSize is raised to 8MB in Program.cs for exactly this; the real ceiling
+  // is the server's Templates:MaxImageFileMb check.
+  toBase64: async function (blob) {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let binary = "";
+    // Chunked: one spread of a multi-megabyte array blows the argument limit.
+    for (let i = 0; i < bytes.length; i += 8192)
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+    return btoa(binary);
+  },
+
+  upload: function (dotNet, fileName, contentType, base64) {
+    return dotNet.invokeMethodAsync("UploadImageAsync", fileName, contentType, base64);
   },
 
   // Place an uploaded image at the remembered caret position.
@@ -267,5 +304,169 @@ window.zxQuill = {
     const index = range ? range.index : quill.getLength() - 1;
     quill.insertText(index, text, "user");
     quill.setSelection(index + text.length, 0);
+  },
+
+  // ---------------------------------------------------------------- import (ZD-85)
+  //
+  // Conversion happens HERE, in the browser. The API is asked for nothing new: extracted
+  // images go through the same upload the toolbar image button uses, and the markup enters
+  // through the same paste path that saved content uses — so Quill's clipboard is what
+  // constrains it. Anything it has no blot for, scripts and event handlers included, is
+  // dropped on the way in, and what is later stored is the editor's own export rather than
+  // the converter's output.
+  //
+  // The document itself never crosses the Blazor interop boundary; only the images do, at
+  // the same size limit as a manually inserted one.
+
+  MAMMOTH_SRC: "/lib/mammoth/mammoth.browser.min.js",
+
+  // 620KB, so it is fetched on first import instead of on every page load.
+  loadMammoth: async function () {
+    if (window.mammoth) return window.mammoth;
+
+    await new Promise((resolve, reject) => {
+      const tag = document.createElement("script");
+      tag.src = this.MAMMOTH_SRC;
+      tag.onload = resolve;
+      tag.onerror = () => reject(new Error("Could not load the Word converter."));
+      document.head.appendChild(tag);
+    });
+
+    if (!window.mammoth) throw new Error("The Word converter loaded but did not initialise.");
+    return window.mammoth;
+  },
+
+  // Prompt for a document, then hand it to importDocument. Split so a test can drive the
+  // conversion with a fixture: a native file dialog cannot be automated.
+  pickAndImport: function (el) {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".docx,.pdf";
+    input.onchange = async () => {
+      const file = input.files && input.files[0];
+      if (file) await this.importDocument(el, file.name, await this.toBase64(file));
+    };
+    input.click();
+  },
+
+  // Returns true when content was imported, false when the author declined or it failed.
+  importDocument: async function (el, fileName, base64) {
+    const quill = this.instance(el);
+    const dotNet = this.dotNet(el);
+    if (!quill || !dotNet) return false;
+
+    // Replacing the body is destructive, so ask first — but only when there is something to
+    // lose. The dialog is .NET's, to match every other prompt in the app.
+    if (!this.isEmpty(el) && !(await dotNet.invokeMethodAsync("ConfirmImportAsync"))) return false;
+
+    try {
+      const bytes = this.fromBase64(base64);
+      const isPdf = /\.pdf$/i.test(fileName || "");
+      const html = isPdf ? await this.pdfToHtml(bytes) : await this.docxToHtml(bytes);
+
+      const withImages = await this.uploadEmbeddedImages(dotNet, html);
+      this.setHtml(el, withImages);
+      return true;
+    } catch (e) {
+      await dotNet.invokeMethodAsync("ImportFailedAsync", e && e.message ? e.message : String(e));
+      return false;
+    }
+  },
+
+  // An editor holding only the trailing newline Quill always keeps.
+  isEmpty: function (el) {
+    const quill = this.instance(el);
+    return !quill || quill.getLength() <= 1;
+  },
+
+  fromBase64: function (base64) {
+    const binary = atob(base64 || "");
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  },
+
+  // mammoth maps Word styles to semantic HTML: headings, lists, bold/italic, tables. Images
+  // come back as data URIs, which uploadEmbeddedImages then exchanges for backend URLs — no
+  // base64 may reach storage (ZD-82).
+  docxToHtml: async function (bytes) {
+    const mammoth = await this.loadMammoth();
+    const result = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer });
+    return (result && result.value) || "";
+  },
+
+  // pdf.js is already loaded for the document viewer. A PDF carries no structure, only
+  // positioned text runs, so paragraphs are rebuilt from geometry: a new line when the
+  // baseline moves, a new paragraph when it moves by more than a line and a half. Tables and
+  // columns cannot survive this and are not attempted.
+  pdfToHtml: async function (bytes) {
+    if (!window.pdfjsLib) throw new Error("The PDF reader is not available on this page.");
+
+    const pdf = await window.pdfjsLib.getDocument({ data: bytes }).promise;
+    const paragraphs = [];
+
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const content = await (await pdf.getPage(p)).getTextContent();
+      let line = "";
+      let lastY = null;
+      let gap = 0;
+
+      for (const item of content.items) {
+        const y = item.transform[5];
+        const height = item.height || 12;
+        if (lastY !== null && Math.abs(y - lastY) > 1) {
+          gap = Math.abs(y - lastY);
+          if (gap > height * 1.5) {
+            if (line.trim()) paragraphs.push(line.trim());
+            line = "";
+          } else {
+            line += " ";
+          }
+        }
+        line += item.str;
+        lastY = y;
+      }
+      if (line.trim()) paragraphs.push(line.trim());
+    }
+
+    return paragraphs.map((t) => "<p>" + this.escapeHtml(t) + "</p>").join("");
+  },
+
+  escapeHtml: function (text) {
+    const el = document.createElement("div");
+    el.textContent = text;
+    return el.innerHTML;
+  },
+
+  // The upload's multipart part carries no content type, so the server resolves the type from
+  // the FILE NAME's extension — a synthesised name without one is rejected as unsupported.
+  IMAGE_EXTENSIONS: {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+  },
+
+  // Every data-URI image becomes a backend reference, using the same upload as the toolbar.
+  // An image that fails to upload is dropped rather than left as base64, because base64 in a
+  // stored template is the thing ZD-82 exists to prevent.
+  uploadEmbeddedImages: async function (dotNet, html) {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const images = [...doc.querySelectorAll("img")];
+
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i];
+      const src = img.getAttribute("src") || "";
+      const match = /^data:([^;]+);base64,(.*)$/i.exec(src);
+      if (!match) continue;
+
+      const contentType = match[1].toLowerCase();
+      const name = "imported-" + (i + 1) + (this.IMAGE_EXTENSIONS[contentType] || "");
+      const url = await this.upload(dotNet, name, contentType, match[2]);
+      if (url) img.setAttribute("src", url);
+      else img.remove();
+    }
+
+    return doc.body.innerHTML;
   },
 };

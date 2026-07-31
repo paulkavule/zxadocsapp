@@ -197,12 +197,29 @@ stylesheet, which silently removes every scoped CSS rule.
 | Save then reopen | New version on a saved template | table returns with its rows, cells and text; image still loads |
 | Template detail / approvals / draft editor / draft detail previews | sheet aspect | `0.707`, fits its pane, centred, document declares `size:210mm 297mm`. One test walks all four on a single template: each state is produced by acting on the previous one |
 | Template approvals | action bar | Approve and Reject within the viewport — unbounded, the preview grew to ~2120px and pushed them off screen |
+| Word import | structure | headings, 3 bullets, a bold run, the 3x2 table with 6 cells |
+| Word import | image | `src` is `?id=…` with no `data:`, and it still loads after a save and reopen |
+| PDF import | text | the words arrive as multiple paragraphs (text only by nature) |
 | Generated PDF | page | `595.3 x 841.9 pt` (210 x 297 mm) |
 | Generated PDF | image | within the margins (right edge `<= 524.4 pt`), `~100%` of the 453.5 pt column, native aspect |
 | Generated PDF | table | column ratios within ~0.1 percentage point of the browser's |
 
 A PDF can be measured without any PDF tooling: `/MediaBox` gives the page, and the `cm ... Do`
 operator in an inflated content stream gives each drawn image's width, height and x-position.
+
+### Importing Word/PDF into the editor (ZD-85)
+
+Conversion runs in the **browser**; the API gains nothing:
+
+| Part | How |
+| --- | --- |
+| DOCX | `mammoth`, vendored at `wwwroot/lib/mammoth/mammoth.browser.min.js`, lazy-loaded on first import (620KB — deliberately not in `App.razor`) |
+| PDF | the `pdfjsLib` already loaded globally; text only, paragraphs rebuilt from baseline gaps. Tables and columns are not recoverable |
+| Images | the same upload the toolbar image button uses, so stored HTML holds `?id=` references and never base64; an image that fails to upload is dropped |
+| Sanitisation | none written — Quill's clipboard keeps only what it has blots for, and storage takes the editor's export, not the converter's output |
+
+`zxQuill.pickAndImport` wraps `zxQuill.importDocument(el, fileName, base64)` so the browser tests can
+drive an import without a native file dialog. Fixtures live in `zxadocsui.Tests/fixtures/`.
 
 ### Landmines — verified behaviours that must not be regressed
 
@@ -225,6 +242,13 @@ Each cost real time to find; the wrong form fails silently.
 - Load a saved document into the editor with `updateContents` onto an emptied document, never
   `setContents` — `setContents` does not rebuild the table plugin's blots (same Delta: 0 rows vs a
   full table).
+- HTML is loaded the same way: `zxQuill.setHtml` converts to a Delta and applies it. Never call
+  `clipboard.dangerouslyPasteHTML` — measured on one imported document it gave a table with **0
+  rows**, where convert + `updateContents` gave all 3 rows and 6 cells. It is `setContents`
+  underneath, so it loses the same blots.
+- An upload's multipart part carries **no content type**, so the server resolves the type from the
+  file name's extension. A synthesised name needs one: `imported-1` is rejected as unsupported,
+  `imported-1.png` is accepted.
 - Tables must round-trip through the stored **Delta**, not HTML. The table plugin's HTML-to-Delta
   path assigns each row a different table identity, so rows never re-assemble.
 - Column widths belong on the **first row's cells** as percentages. A percentage `<colgroup>` is

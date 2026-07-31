@@ -3,6 +3,7 @@
 @inject IJSRuntime JS
 @inject ITemplateClientService TemplatesApi
 @inject ISnackbar Snackbar
+@inject IDialogService Dialogs
 @implements IAsyncDisposable
 
 @* Reusable rich-text editor for authoring/editing contract templates, backed by Quill 2
@@ -15,9 +16,10 @@
    for an img src, so a short-lived signed URL is swapped in for display only. *@
 
 <div class="border border-slate-300 rounded-xl overflow-hidden">
-    @if (Tokens is not null && Tokens.Any())
-    {
-        <div class="flex flex-wrap items-center gap-1 border-b border-slate-200 bg-slate-50 px-2 py-1">
+    @* Import is always offered; the field menu only when the template defines merge fields. *@
+    <div class="flex flex-wrap items-center gap-1 border-b border-slate-200 bg-slate-50 px-2 py-1">
+        @if (Tokens is not null && Tokens.Any())
+        {
             <MudMenu Label="Insert field" StartIcon="@Icons.Material.Filled.DataObject" Color="Color.Primary"
                      Variant="Variant.Text" Size="Size.Small" Dense="true">
                 @foreach (var key in Tokens)
@@ -25,8 +27,11 @@
                     <MudMenuItem OnClick="@(() => InsertToken(key))">@($"{{{{{key}}}}}")</MudMenuItem>
                 }
             </MudMenu>
-        </div>
-    }
+        }
+
+        <MudButton OnClick="ImportDocument" StartIcon="@Icons.Material.Filled.UploadFile" Color="Color.Primary"
+                   Variant="Variant.Text" Size="Size.Small" Disabled="importing">Import Word/PDF</MudButton>
+    </div>
 
     @if (uploading)
     {
@@ -63,6 +68,7 @@
     private ElementReference editor;
     private DotNetObjectReference<RichTextEditor>? selfRef;
     private bool uploading;
+    private bool importing;
     private double uploadProgress;
 
     // The sheet is the full page; its padding is the printed margin, leaving a text column of
@@ -87,22 +93,26 @@
     /// <summary>The editor's lossless content, stored alongside the HTML for re-editing.</summary>
     public ValueTask<string> GetDeltaAsync() => JS.InvokeAsync<string>("zxQuill.getDelta", editor);
 
-    // Called from JS when the author picks an image. Validation mirrors the backend so a
-    // rejectable file never leaves the browser.
+    // Called from JS with an image the author picked, or with one extracted from an imported
+    // document. Validation mirrors the backend so a rejectable file never leaves the browser.
+    //
+    // Returns the URL to display, leaving the CALLER to decide what to do with it: the toolbar
+    // inserts it at the caret, while an import rewrites the src of the image it came from. Null
+    // means the upload failed and the user has already been told.
     [JSInvokable]
-    public async Task UploadImageAsync(string fileName, string contentType, string base64, int index)
+    public async Task<string?> UploadImageAsync(string fileName, string contentType, string base64)
     {
         var bytes = Convert.FromBase64String(base64);
 
         if (!AllowedTypes.Contains(contentType, StringComparer.OrdinalIgnoreCase))
         {
             Snackbar.Add("Unsupported image type. Use PNG, JPEG, GIF or WEBP.", Severity.Error);
-            return;
+            return null;
         }
         if (bytes.LongLength > (long)MaxImageMb * 1024 * 1024)
         {
             Snackbar.Add($"Image exceeds the {MaxImageMb} MB limit.", Severity.Error);
-            return;
+            return null;
         }
 
         uploading = true;
@@ -118,13 +128,12 @@
             {
                 // The editor content is untouched on failure — nothing was inserted.
                 Snackbar.Add(error ?? "Image upload failed.", Severity.Error);
-                return;
+                return null;
             }
 
             // The signed URL is what displays; the server normalises it back to the canonical
             // form when the template is saved.
-            await JS.InvokeVoidAsync("zxQuill.insertImage", editor,
-                string.IsNullOrEmpty(image.DisplayUrl) ? image.Url : image.DisplayUrl, index);
+            return string.IsNullOrEmpty(image.DisplayUrl) ? image.Url : image.DisplayUrl;
         }
         finally
         {
@@ -148,6 +157,44 @@
 
     private ValueTask InsertToken(string key) =>
         JS.InvokeVoidAsync("zxQuill.insertText", editor, $"{{{{{key}}}}}");
+
+    // ---- Import from Word/PDF (ZD-85) --------------------------------------------------
+    //
+    // The conversion runs in the browser: mammoth for DOCX, the already-loaded pdf.js for PDF.
+    // The API is asked for nothing new — extracted images use the same upload as the toolbar's
+    // image button, and the markup enters through the same paste path as saved content, so
+    // Quill's own clipboard decides what survives.
+
+    /// <summary>Prompts for a .docx/.pdf and replaces the editor's content with it.</summary>
+    private async Task ImportDocument()
+    {
+        importing = true;
+        try
+        {
+            await JS.InvokeVoidAsync("zxQuill.pickAndImport", editor);
+        }
+        finally
+        {
+            importing = false;
+        }
+    }
+
+    // Called from JS before it replaces existing content: losing an authored body to a
+    // mis-click is not recoverable, and MudBlazor's own message box keeps the prompt
+    // consistent with the rest of the app.
+    [JSInvokable]
+    public async Task<bool> ConfirmImportAsync() =>
+        await Dialogs.ShowMessageBoxAsync(
+            "Replace the contract body?",
+            "Importing replaces everything currently in the editor.",
+            yesText: "Replace", cancelText: "Cancel") == true;
+
+    [JSInvokable]
+    public void ImportFailedAsync(string message)
+    {
+        Snackbar.Add($"Import failed: {message}", Severity.Error);
+        StateHasChanged();
+    }
 
     public ValueTask DisposeAsync()
     {

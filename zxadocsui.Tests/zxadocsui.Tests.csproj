@@ -19,6 +19,11 @@
 
   <ItemGroup>
     <None Update="known-dead-tailwind-classes.txt" CopyToOutputDirectory="PreserveNewest" />
+    <!-- A real Word file (heading, list, bold, 3x2 table, embedded PNG); the import path cannot
+         be exercised with markup, only with an actual .docx. -->
+    <None Update="fixtures\import-sample.docx" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The same document as a PDF. Text only by nature: a PDF carries no structure. -->
+    <None Update="fixtures\import-sample.pdf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
