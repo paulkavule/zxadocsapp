@@ -59,10 +59,31 @@ Do not assume route names from button text. Some links in the codebase still poi
 - `zxadocsfe` targets `net10.0`
 - `zxadocsapp.Client` targets `net8.0`
 - `zxadocsui` references `zxadocsfe`
-- `zxadocsfe` depends on the external package `pkavule.zxadocslib`
+- `zxadocsfe` **and** `zxadocsui.Tests` depend on the external package `pkavule.zxadocslib` (see below)
 - `zxadocsui/package.json` only provides Tailwind CLI dependencies; there are no checked-in npm scripts
 
 Be careful when changing package versions or target frameworks. This repo already spans mixed .NET targets.
+
+### pkavule.zxadocslib comes from GitHub Packages (ZD-30)
+
+The shared contract is a `PackageReference`, **not** a project reference into the sibling `zxadocslib` repo. Two projects reference it — `zxadocsfe` and `zxadocsui.Tests` — so a version bump has to touch both. The feed is declared in `nuget.config` at the repo root.
+
+**Every build needs a token.** GitHub Packages requires authentication to restore a NuGet package *even when the package is public* — there is no anonymous access:
+
+```
+export GH_PACKAGES_TOKEN=<a GitHub PAT with read:packages>
+```
+
+Without it, NuGet passes the literal `%GH_PACKAGES_TOKEN%` as the password and restore fails with `401 Unauthorized` / `NU1301`.
+
+Landmines:
+
+- **A GUI-launched IDE does not inherit `~/.zshrc` exports on macOS.** The build then succeeds in a terminal and fails in Rider/Visual Studio started from the Dock.
+- **A Docker build has no shell environment and no access to `$HOME`** — the restore layer needs the token as a build secret.
+- `nuget.config` deliberately has **no `<clear />`**; clearing inherited sources would break every other `PackageReference`, MudBlazor included.
+- Never commit a literal token into `nuget.config`. The env-var placeholder is the committed form.
+
+Editing the sibling `zxadocslib` checkout no longer affects this build. To change the shared contract: edit that repo, bump `<Version>`, `dotnet pack`, push to the feed, then bump the `PackageReference` in both projects here.
 
 ## State and Lifetime Warnings
 

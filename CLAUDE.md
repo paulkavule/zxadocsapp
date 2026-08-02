@@ -212,13 +212,29 @@ in an inflated content stream gives each image's drawn width, height and x-posit
 
 ## Build
 
+`GH_PACKAGES_TOKEN` must be exported first, or nothing restores — see below.
+
 From repo root:
 
 ```bash
+export GH_PACKAGES_TOKEN=<GitHub PAT with read:packages>
 dotnet build DocsApp.sln
 # only if the task targets the WASM client:
 dotnet build zxadocsapp.Client/zxadocsapp.Client.csproj
 ```
+
+### pkavule.zxadocslib comes from GitHub Packages (ZD-30)
+
+The shared contract is a `PackageReference`, not a project reference into the sibling `zxadocslib` repo — so editing that checkout no longer affects this build. Both `zxadocsfe` and `zxadocsui.Tests` reference it, so a version bump touches both. `nuget.config` at the repo root declares the feed and reads the token from the environment.
+
+GitHub Packages requires authentication to restore *even a public package*; there is no anonymous access. Missing token means NuGet sends the literal `%GH_PACKAGES_TOKEN%` and restore dies with `401` / `NU1301`.
+
+- **A Dock-launched IDE does not inherit `~/.zshrc` exports on macOS** — the same build passes in a terminal and fails in the IDE.
+- **A Docker build sees neither the shell env nor `$HOME`**; its restore layer needs the token as a build secret.
+- `nuget.config` has **no `<clear />`** on purpose — clearing inherited sources breaks MudBlazor and every other package.
+- Never commit a literal token; the env-var placeholder is the committed form.
+
+To change the shared contract: edit `zxadocslib`, bump `<Version>`, `dotnet pack`, push to the feed, bump the `PackageReference` in both projects here.
 
 No test suite in this repo; for the templates/drafting module run `cd ../DocsApi && dotnet test zxadocsapi.Tests/zxadocsapi.Tests.csproj` and complete the browser pass above. Otherwise `dotnet build` is the primary correctness signal. For UI changes, say so explicitly if you cannot verify behavior in a browser rather than claiming success.
 
