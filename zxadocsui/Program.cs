@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using MudBlazor;
 using MudBlazor.Services;
 using zxadocsfe.Services;
@@ -39,9 +40,22 @@ builder.Services.AddScoped<zxadocsui.State.DraftHandoffState>();
 
 builder.Services.AddScoped<HttpCoreIntercetpor>();
 
+// Behind nginx the container speaks plain HTTP; without this UseHttpsRedirection bounces
+// every request to a TLS port that is not open. The proxy's bridge IP is unpredictable and
+// the app port is never published, so nginx is the only possible client.
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor
+                       | ForwardedHeaders.XForwardedProto
+                       | ForwardedHeaders.XForwardedHost;
+    o.KnownNetworks.Clear();
+    o.KnownProxies.Clear();
+});
+
+// Api__BaseUrl comes from compose env_file; the dev default keeps `dotnet run` working.
 builder.Services.AddHttpClient("Api", conf =>
 {
-    conf.BaseAddress = new Uri("https://localhost:7028/");
+    conf.BaseAddress = new Uri(builder.Configuration["Api:BaseUrl"] ?? "https://localhost:7028/");
 }).AddHttpMessageHandler<HttpCoreIntercetpor>();
 
 // Add services to the container.
@@ -54,6 +68,9 @@ builder.Services.AddRazorComponents()
     .AddHubOptions(o => o.MaximumReceiveMessageSize = 8 * 1024 * 1024);
 
 var app = builder.Build();
+
+// Must precede UseHttpsRedirection and UseHsts. No-op without the headers.
+app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

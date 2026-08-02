@@ -1,0 +1,24 @@
+# Docker does not read .gitignore. Without this, .env is copied into the build.
+
+.env
+docker.env
+nginx/certs/
+
+**/bin/
+**/obj/
+**/TestResults/
+zxadocsui.Tests/
+
+# Only used by the Tailwind CLI; the generated CSS is committed.
+**/node_modules/
+
+.git/
+.gitignore
+.vs/
+.vscode/
+**/*.user
+.DS_Store
+
+Dockerfile
+.dockerignore
+docker-compose*.yml
