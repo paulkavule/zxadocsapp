@@ -1,7 +1,6 @@
 # Docker does not read .gitignore. Without this, .env is copied into the build.
 
 .env
-docker.env
 nginx/certs/
 
 **/bin/

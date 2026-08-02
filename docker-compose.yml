@@ -1,9 +1,10 @@
-# UI behind nginx. The API is a separate stack in the DocsApi repo — point
-# Api__BaseUrl at it (see docker.env.example).
+# UI behind nginx. The API is a separate stack in the DocsApi repo.
 #
 #   export GH_PACKAGES_TOKEN=<PAT with read:packages>
-#   cp docker.env.example docker.env
 #   docker compose up --build
+#
+# Set Api__BaseUrl=http://host.docker.internal:8080/ in zxadocsui/.env. That name
+# does not resolve outside Docker, so a standalone run needs the localhost value.
 
 services:
   ui:
@@ -12,10 +13,8 @@ services:
       dockerfile: zxadocsui/Dockerfile
       secrets:
         - ghtoken
-    # docker.env overrides the app's .env; later files win.
     env_file:
       - zxadocsui/.env
-      - docker.env
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped

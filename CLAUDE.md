@@ -2,6 +2,11 @@
 
 Guidance for Claude Code when making edits in this repository. Derived from `AGENTS.md` — read both before non-trivial work.
 
+## Working agreements
+
+- **Do not commit until the user has reviewed the changes.** Edit, verify, report — then wait. Every task, unless told otherwise.
+- **Keep comments short and precise.** Only the non-obvious reason a line exists: a constraint, a failure mode, a value that must not change. Never restate the code. Past two or three lines, it is probably the wrong explanation.
+
 ## What this repo is
 
 ZXADOCS document workflow application. The runtime app is a Blazor Server UI (`zxadocsui`) backed by a shared services/DTO project (`zxadocsfe`). There is also an unused Blazor WebAssembly project (`zxadocsapp.Client`) on disk that is NOT in `DocsApp.sln` — treat it as secondary unless the task explicitly targets it.

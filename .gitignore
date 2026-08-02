@@ -489,6 +489,6 @@ $RECYCLE.BIN/
 # Local test credentials (kept outside the repos; ignored here too)
 local-credentials.md
 
-# TLS material for nginx (ZD-91); docker.env is covered by *.env.
+# TLS material for nginx (ZD-91).
 nginx/certs/*
 !nginx/certs/.gitkeep

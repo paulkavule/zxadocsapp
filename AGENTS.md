@@ -1,5 +1,10 @@
 # AGENTS.md
 
+## Working Agreements
+
+- **Do not commit until the user has reviewed the changes.** Make the edits, run the checks, report what changed — then wait. This applies to every task unless the user says otherwise.
+- **Keep comments short and precise.** Record only the non-obvious reason a line exists — a constraint, a failure mode, a value that must not change. Never restate what the code says. If a comment runs past two or three lines, it is probably explaining the wrong thing.
+
 ## Purpose
 
 This repository contains the current ZXADOCS document workflow UI work. The primary application is a Blazor Server app in `zxadocsui` backed by a shared service/library project in `zxadocsfe`.
