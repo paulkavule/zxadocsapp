@@ -277,6 +277,15 @@
           "lib/netstandard1.0/_._": {}
         }
       },
+      "pkavule.zxadocslib/1.1.21": {
+        "type": "package",
+        "compile": {
+          "lib/net10.0/zxadocslib.dll": {}
+        },
+        "runtime": {
+          "lib/net10.0/zxadocslib.dll": {}
+        }
+      },
       "runtime.native.System/4.3.0": {
         "type": "package",
         "dependencies": {
@@ -328,16 +337,6 @@
             "assetType": "runtime",
             "rid": "win"
           }
-        }
-      },
-      "pkavule.zxadocslib/1.1.20": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v10.0",
-        "compile": {
-          "bin/placeholder/pkavule.zxadocslib.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/pkavule.zxadocslib.dll": {}
         }
       }
     }
@@ -812,6 +811,17 @@
         "runtime.json"
       ]
     },
+    "pkavule.zxadocslib/1.1.21": {
+      "sha512": "Ff0OXiSq/ECooUcf57wZMJOQ+kPtBLy8T4lzA+JlUrrwbtN3gfgEJVZDOWao/pSR3XzPx/+TzbWDI5fyc9LhzQ==",
+      "type": "package",
+      "path": "pkavule.zxadocslib/1.1.21",
+      "files": [
+        ".nupkg.metadata",
+        "lib/net10.0/zxadocslib.dll",
+        "pkavule.zxadocslib.1.1.21.nupkg.sha512",
+        "pkavule.zxadocslib.nuspec"
+      ]
+    },
     "runtime.native.System/4.3.0": {
       "sha512": "c/qWt2LieNZIj1jGnVNsE2Kl23Ya2aSTBuXMD6V7k9KWr6l16Tqdwq+hJScEpWER9753NWC8h96PaVNY5Ld7Jw==",
       "type": "package",
@@ -895,11 +905,6 @@
         "system.net.http.4.3.4.nupkg.sha512",
         "system.net.http.nuspec"
       ]
-    },
-    "pkavule.zxadocslib/1.1.20": {
-      "type": "project",
-      "path": "../../zxadocslib/zxadocslib/zxadocslib.csproj",
-      "msbuildProject": "../../zxadocslib/zxadocslib/zxadocslib.csproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -907,7 +912,7 @@
       "Microsoft.Extensions.Http >= 9.0.10",
       "Microsoft.Extensions.Logging.Abstractions >= 9.0.10",
       "System.Net.Http >= 4.3.4",
-      "pkavule.zxadocslib >= 1.1.20"
+      "pkavule.zxadocslib >= 1.1.21"
     ]
   },
   "packageFolders": {
@@ -923,6 +928,7 @@
       "outputPath": "/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/zxadocsfe/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
+        "/Users/pkavule/Projects/Zxabu/Zxadocs/DocuApp/NuGet.Config",
         "/Users/pkavule/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
@@ -931,16 +937,13 @@
       "sources": {
         "/Users/pkavule/nugpackages": {},
         "https://api.nuget.org/v3/index.json": {},
-        "https://nuget.pkg.github.com/NSSFUG/index.json": {}
+        "https://nuget.pkg.github.com/NSSFUG/index.json": {},
+        "https://nuget.pkg.github.com/paulkavule/index.json": {}
       },
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
-          "projectReferences": {
-            "/Users/pkavule/Projects/Zxabu/Zxadocs/zxadocslib/zxadocslib/zxadocslib.csproj": {
-              "projectPath": "/Users/pkavule/Projects/Zxabu/Zxadocs/zxadocslib/zxadocslib/zxadocslib.csproj"
-            }
-          }
+          "projectReferences": {}
         }
       },
       "warningProperties": {
@@ -970,6 +973,10 @@
           "System.Net.Http": {
             "target": "Package",
             "version": "[4.3.4, )"
+          },
+          "pkavule.zxadocslib": {
+            "target": "Package",
+            "version": "[1.1.21, )"
           }
         },
         "imports": [
