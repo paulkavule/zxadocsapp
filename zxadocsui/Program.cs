@@ -85,6 +85,22 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
+// Stored HTML references images by a relative URL, so the browser asks this origin for them.
+// Forward to the API: the signed query string authorises the read, so no bearer is needed.
+app.MapGet("/api/templates/images", async (HttpContext ctx, IHttpClientFactory factory) =>
+{
+    var upstream = await factory.CreateClient("Api").GetAsync(
+        $"api/templates/images{ctx.Request.QueryString}",
+        HttpCompletionOption.ResponseHeadersRead, ctx.RequestAborted);
+
+    ctx.Response.StatusCode = (int)upstream.StatusCode;
+    if (!upstream.IsSuccessStatusCode) return;
+
+    ctx.Response.ContentType = upstream.Content.Headers.ContentType?.ToString() ?? "image/png";
+    await upstream.Content.CopyToAsync(ctx.Response.Body, ctx.RequestAborted);
+});
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
