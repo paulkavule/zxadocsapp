@@ -20,14 +20,24 @@ public interface IPermissionClientService
     Task<IReadOnlySet<Permission>> GetPermissions(bool forceRefresh = false);
     Task<bool> Has(Permission permission);
     Task<bool> HasAny(params Permission[] permissions);
+
+    // Role administration (ZD-93). The catalogue is every Permission the server knows, so a
+    // new enum member appears in the UI without a client change.
+    Task<(bool ok, PermissionItem[] data, string? error)> GetCatalogue();
+    Task<(bool ok, int[] values, string? error)> GetRolePermissions(int roleId);
+    Task<(bool ok, string? error)> SetRolePermissions(int roleId, IEnumerable<int> values);
 }
 
-public class PermissionClientService : IPermissionClientService
+public class PermissionClientService : IPermissionClientService, IScopedUserState
 {
     private readonly IHttpService http;
     private HashSet<Permission>? cache;
 
     public PermissionClientService(IHttpService http) => this.http = http;
+
+    // Without this the next user on the same circuit inherits the previous user's menu and page
+    // gates until the browser is refreshed.
+    public void ClearUserState() => cache = null;
 
     public async Task<IReadOnlySet<Permission>> GetPermissions(bool forceRefresh = false)
     {
@@ -55,5 +65,31 @@ public class PermissionClientService : IPermissionClientService
     {
         var set = await GetPermissions();
         return permissions.Any(set.Contains);
+    }
+
+    public async Task<(bool ok, PermissionItem[] data, string? error)> GetCatalogue()
+    {
+        http.Initialize("Api");
+        var (ok, resp, error) = await http.GetAsync<ApiResponse<PermissionItem[]>>("api/permissions");
+        return ok
+            ? (true, resp?.Data ?? Array.Empty<PermissionItem>(), null)
+            : (false, Array.Empty<PermissionItem>(), ErrorMessage.Extract(error));
+    }
+
+    public async Task<(bool ok, int[] values, string? error)> GetRolePermissions(int roleId)
+    {
+        http.Initialize("Api");
+        var (ok, resp, error) = await http.GetAsync<ApiResponse<PermissionItem[]>>($"api/roles/{roleId}/permissions");
+        return ok
+            ? (true, (resp?.Data ?? Array.Empty<PermissionItem>()).Select(p => p.Value).ToArray(), null)
+            : (false, Array.Empty<int>(), ErrorMessage.Extract(error));
+    }
+
+    public async Task<(bool ok, string? error)> SetRolePermissions(int roleId, IEnumerable<int> values)
+    {
+        http.Initialize("Api");
+        var (ok, _, error) = await http.ExecuteRequestAsync<ApiResponse<int>>(
+            HttpVerb.Put, $"api/roles/{roleId}/permissions", new { Permissions = values.ToArray() });
+        return (ok, ErrorMessage.Extract(error));
     }
 }

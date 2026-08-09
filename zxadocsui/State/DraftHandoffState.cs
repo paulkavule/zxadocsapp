@@ -1,3 +1,4 @@
+using zxadocsfe.Services;
 using zxadocslib.Dtos;
 
 namespace zxadocsui.State;
@@ -5,7 +6,7 @@ namespace zxadocsui.State;
 // Carries the generate-for-signing payload from Draft Detail to the /createdocument wizard
 // across navigation (FR-F8). Scoped per user/circuit; consumed once by CreateWorkflow so the
 // handed-off PDF is picked up without a re-upload.
-public class DraftHandoffState
+public class DraftHandoffState : IScopedUserState
 {
     public GenerateForSigningResponse? Payload { get; private set; }
 
@@ -17,6 +18,14 @@ public class DraftHandoffState
     {
         Payload = payload;
         DraftId = draftId;
+    }
+
+    // An un-consumed handoff is one user's generated document; it must never be picked up by
+    // the next person to sign in on this circuit.
+    public void ClearUserState()
+    {
+        Payload = null;
+        DraftId = 0;
     }
 
     public (GenerateForSigningResponse? Payload, int DraftId) Consume()

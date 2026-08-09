@@ -7,6 +7,7 @@ using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
+using zxadocslib.Helpers;
 using zxadocsui.Components.DocWorkflow;
 using zxadocsui.State;
 
@@ -21,9 +22,15 @@ public partial class Dashboard
     [Inject] IHttpService httpSvc { get; set; } = default!;
     [Inject] IUserSession session { get; set; } = default!;
     [Inject] IJSRuntime JSRuntime { set; get; } = default!;
+    [Inject] NavigationManager navigator { set; get; } = default!;
     StatisticsDto statistics = new();
     UserData userData = new();
     List<ListValue> listValues = new(), weeklyStats = new();
+
+    // Documents waiting on THIS user, i.e. the Documents page's Inbox. The card shows the first
+    // few; the button carries the full count.
+    List<QueryDto.DocumentQuery> pendingApprovals = new();
+    const int PendingApprovalsShown = 3;
     protected override void OnInitialized()
     {
         httpSvc.Initialize(AppConstants.HttpSchemes.Core);
@@ -38,6 +45,7 @@ public partial class Dashboard
             await GetDashboardStats();
             await GetRecentActivity();
             await GetWeeklyStatistic();
+            await GetPendingApprovals();
 
             StateHasChanged();
         }
@@ -92,6 +100,47 @@ public partial class Dashboard
 
         listValues = result!.Data;
     }
+    // Same source and filter as the Documents page's Inbox tab, so the count on this card and the
+    // list the "View all" button lands on can never disagree.
+    async Task GetPendingApprovals()
+    {
+        if (!int.TryParse(userData.UserId, out var userId)) return;
+
+        var (success, result, message) = await httpSvc!.GetAsync<ApiResponse<List<QueryDto.DocumentQuery>>>(
+            $"/api/documents/dashboard?id={(int)DocStatus.Published}&userName={userId}&pageNumber=1&pageSize=100");
+
+        if (!success || result?.Data is null)
+        {
+            Snackbar!.Clear();
+            Snackbar!.Add(message ?? "Error loading your pending approvals", Severity.Warning);
+            return;
+        }
+
+        pendingApprovals = result.Data
+            .Where(doc => doc.NextActorId == userId && doc.Status != DocStatus.Archived)
+            .OrderBy(doc => doc.DueDate ?? DateTime.MaxValue)   // soonest due first; undated last
+            .ToList();
+    }
+
+    void ViewAllPendingApprovals() => navigator.NavigateTo("/documents?tab=inbox");
+
+    void OpenDocument(int documentId) => navigator.NavigateTo($"/viewdocument/{documentId}");
+
+    // Amber once it is due today or overdue; plain grey while there is still time.
+    static (string Text, bool Urgent) DueLabel(DateTime? dueDate)
+    {
+        if (dueDate is null) return ("no due date", false);
+
+        var days = (dueDate.Value.Date - DateTime.Today).Days;
+        return days switch
+        {
+            < 0 => ($"{Math.Abs(days)}d overdue", true),
+            0 => ("due today", true),
+            1 => ("due tomorrow", false),
+            _ => ($"in {days}d", false),
+        };
+    }
+
     void Clicked()
     {
         Console.WriteLine("This is okay");

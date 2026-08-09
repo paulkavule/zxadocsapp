@@ -19,8 +19,10 @@
         @* <MudButton OnClick="@(()=>CreateDocument())" StartIcon="@Icons.Material.Filled.Edit" Color="Color.Primary">Compose
         </MudButton> *@
     </div>
+    @* ActivePanelIndex is controlled so ?tab=inbox can select a panel on arrival; IndexChanged
+       writes it back, otherwise clicking a tab would snap straight back to the bound value. *@
     <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pa-6"
-             ActivePanelIndexChanged="IndexChanged">
+             ActivePanelIndex="activeTab" ActivePanelIndexChanged="IndexChanged">
         <MudTabPanel Text="Inbox" Icon="@Icons.Material.Filled.Inbox">
             <FolderMessages DocList="inboxList" FolderType="FolderType.Inbox" />
         </MudTabPanel>

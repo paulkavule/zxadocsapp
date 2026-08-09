@@ -34,11 +34,25 @@ builder.Services.AddScoped<RequestsContext>();
 // Legal Templates client services (ZD-16 / FE-01) — scoped per user/circuit.
 builder.Services.AddScoped<ITemplateClientService, TemplateClientService>();
 builder.Services.AddScoped<IDraftClientService, DraftClientService>();
-builder.Services.AddScoped<IPermissionClientService, PermissionClientService>();
+// Concrete-then-forward, like UserSession above: the same instance must be reachable as both
+// IPermissionClientService and IScopedUserState, or the reset would clear a different object.
+builder.Services.AddScoped<PermissionClientService>();
+builder.Services.AddScoped<IPermissionClientService>(sp => sp.GetRequiredService<PermissionClientService>());
 builder.Services.AddScoped<IListOptionClientService, ListOptionClientService>();
 builder.Services.AddScoped<IActivityClientService, ActivityClientService>();
 builder.Services.AddScoped<IAuditClientService, AuditClientService>();
-builder.Services.AddScoped<zxadocsui.State.DraftHandoffState>();
+builder.Services.AddScoped<IUserRoleClientService, UserRoleClientService>();
+builder.Services.AddScoped<DraftHandoffState>();
+
+// Per-circuit caches that belong to ONE signed-in user. Each forwards to the SAME scoped
+// instance registered above, so UserSession.ResetUserState() clears the live objects rather
+// than fresh copies. Register any new user-specific cache here or it will leak across a
+// logout/login on the same circuit (see IScopedUserState); ScopedUserStateRegistrationTests
+// fails the build if one is missed.
+builder.Services.AddScoped<IScopedUserState>(sp => sp.GetRequiredService<AppState>());
+builder.Services.AddScoped<IScopedUserState>(sp => sp.GetRequiredService<RequestsContext>());
+builder.Services.AddScoped<IScopedUserState>(sp => sp.GetRequiredService<DraftHandoffState>());
+builder.Services.AddScoped<IScopedUserState>(sp => sp.GetRequiredService<PermissionClientService>());
 
 builder.Services.AddScoped<HttpCoreIntercetpor>();
 

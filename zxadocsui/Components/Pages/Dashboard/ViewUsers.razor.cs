@@ -3,12 +3,17 @@ using MudBlazor;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
+using zxadocslib.Helpers;
+using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard;
 
 public partial class ViewUsers
 {
     [Inject] private IHttpService HttpSvc { get; set; } = default!;
+    [Inject] private IPermissionClientService Permissions { get; set; } = default!;
+    [Inject] private IUserSession Session { get; set; } = default!;
+    [Inject] private NavigationManager Nav { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private ILogger<ViewUsers> Logger { get; set; } = default!;
 
@@ -19,6 +24,16 @@ public partial class ViewUsers
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+
+        // Any user-administration permission opens the list; the server enforces the same set.
+        await Session.GetCurrentUser();
+        if (!await Permissions.HasAny(Permission.ViewUsers, Permission.CreateUser, Permission.ManageUsers))
+        {
+            Snackbar.Add("You do not have permission to view users.", Severity.Warning);
+            Nav.NavigateTo("/dashboard");
+            return;
+        }
+
         HttpSvc.Initialize(AppConstants.HttpSchemes.Core);
         await LoadUsers();
         StateHasChanged();

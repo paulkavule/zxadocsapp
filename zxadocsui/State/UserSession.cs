@@ -20,20 +20,48 @@ public interface IUserSession
     Task<bool> SaveSessionData(SessionVariable variable, object value);
     Task UpdateTokens(string accessToken, string refreshToken);
     Task SignOut();
+
+    // Drops every per-circuit cache belonging to the outgoing user. Call before storing a new
+    // sign-in as well as on sign-out — an expired session lands on the login page without
+    // SignOut ever running.
+    void ResetUserState();
 }
 public class UserSession : IUserSession, ITokenProvider
 {
     private readonly ProtectedLocalStorage storage;
     private readonly NavigationManager nav;
     private readonly ILogger<UserSession> logger;
+    private readonly IServiceProvider services;
 
     private Dictionary<string, object> Items { get; set; } = new Dictionary<string, object>();
 
-    public UserSession(ProtectedLocalStorage storage, NavigationManager nav, ILogger<UserSession> logger)
+    // IScopedUserState implementations are resolved lazily rather than injected: several of them
+    // reach IHttpService, whose handler depends on this class as ITokenProvider, so constructor
+    // injection would be a circular dependency.
+    public UserSession(ProtectedLocalStorage storage, NavigationManager nav, ILogger<UserSession> logger,
+        IServiceProvider services)
     {
         this.storage = storage;
         this.nav = nav;
         this.logger = logger;
+        this.services = services;
+    }
+
+    public void ResetUserState()
+    {
+        Items.Clear();
+        foreach (var state in services.GetServices<IScopedUserState>())
+        {
+            try
+            {
+                state.ClearUserState();
+            }
+            catch (Exception ex)
+            {
+                // One uncooperative cache must not abort the rest of the sign-out.
+                logger.LogDebug(ex, "Failed to clear {State}", state.GetType().Name);
+            }
+        }
     }
 
     public string? AccessToken => GetItem<string>(AppConstants.SessionVariables.TOKEN);
@@ -182,8 +210,9 @@ public class UserSession : IUserSession, ITokenProvider
         {
             await storage.DeleteAsync(variable.ToString());
         }
-        Console.WriteLine(" -- -- -- -- -- -- > sigining out");
-        Items.Clear();
+        // Clears Items AND every other per-circuit cache. Signing out navigates within the same
+        // circuit, so anything left here is served to whoever signs in next.
+        ResetUserState();
         nav.NavigateTo("/");
     }
 

@@ -7,6 +7,7 @@ using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
+using zxadocslib.Helpers;
 using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard;
@@ -15,6 +16,7 @@ public partial class AddUser
 {
     [Inject] private IHttpService HttpSvc { get; set; } = default!;
     [Inject] private IUserSession Session { get; set; } = default!;
+    [Inject] private IPermissionClientService Permissions { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Navigator { get; set; } = default!;
     [Inject] private ILogger<AddUser> Logger { get; set; } = default!;
@@ -39,6 +41,14 @@ public partial class AddUser
     {
         if (!firstRender) return;
         _currentUser = await Session.GetCurrentUser();
+
+        if (!await Permissions.Has(Permission.CreateUser))
+        {
+            Snackbar.Add("You do not have permission to create users.", Severity.Warning);
+            Navigator.NavigateTo("/users");
+            return;
+        }
+
         await LoadRoles();
         StateHasChanged();
     }

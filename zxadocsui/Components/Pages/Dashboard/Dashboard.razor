@@ -191,33 +191,40 @@
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
                     <h3 class="font-semibold text-slate-800 flex items-center gap-2 mb-4"><i
                         class="fa-regular fa-bell text-amber-500"></i> Your pending approvals</h3>
-                        <ul class="space-y-3">
-                            <li class="flex items-center justify-between text-sm">
-                                <div class="flex items-center gap-2">
-                                    <i class="fa-regular fa-file-pdf text-red-400"></i>
-                                    <span class="text-slate-700">Expense_report_Q2.pdf</span>
-                                </div>
-                                <span
-                                class="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full">Urgent</span>
-                            </li>
-                            <li class="flex items-center justify-between text-sm">
-                                <div class="flex items-center gap-2">
-                                    <i class="fa-regular fa-file-word text-blue-400"></i>
-                                    <span class="text-slate-700">NDA_acme_corp.docx</span>
-                                </div>
-                                <span class="text-xs text-slate-400">due today</span>
-                            </li>
-                            <li class="flex items-center justify-between text-sm">
-                                <div class="flex items-center gap-2">
-                                    <i class="fa-regular fa-file-image text-emerald-400"></i>
-                                    <span class="text-slate-700">brand_assets_request</span>
-                                </div>
-                                <span class="text-xs text-slate-400">in 2d</span>
-                            </li>
-                        </ul>
-                        <button
-                            class="w-full mt-4 text-green-600 text-sm font-medium border border-green-200 rounded-xl py-2.5 hover:bg-green-50 transition">View
-                            all 8</button>
+                        @if (pendingApprovals.Count == 0)
+                        {
+                            <p class="text-sm text-slate-500">Nothing is waiting on you.</p>
+                        }
+                        else
+                        {
+                            <ul class="space-y-3">
+                                @foreach (var doc in pendingApprovals.Take(PendingApprovalsShown))
+                                {
+                                    var due = DueLabel(doc.DueDate);
+                                    <li class="flex items-center justify-between text-sm gap-2">
+                                        <button type="button" @onclick="@(() => OpenDocument(doc.RecordId))"
+                                                class="flex items-center gap-2 text-left hover:underline"
+                                                title="@doc.Title">
+                                            <i class="fa-regular fa-file-lines text-slate-400"></i>
+                                            <span class="text-slate-700">@doc.Title</span>
+                                        </button>
+                                        @if (due.Urgent)
+                                        {
+                                            <span class="bg-amber-100 text-amber-700 font-bold px-2 rounded-full"
+                                                  style="font-size:10px;padding-top:2px;padding-bottom:2px">@due.Text</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-xs text-slate-400">@due.Text</span>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        <button type="button" @onclick="ViewAllPendingApprovals"
+                            class="w-full mt-4 text-green-600 text-sm font-medium border border-green-200 rounded-xl py-2.5 hover:bg-green-50 transition">
+                            View all @pendingApprovals.Count
+                        </button>
                         </div>
                         <!-- workflow stats / mini chart (placeholder) -->
                         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">

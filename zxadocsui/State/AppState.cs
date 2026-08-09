@@ -1,18 +1,29 @@
 using System;
+using zxadocsfe.Services;
 using static zxadocsfe.Helpers.AppConstants;
 
 namespace zxadocsui.State;
 
-public class RequestsContext
+public class RequestsContext : IScopedUserState
 {
     public string? Token { get; set; }
     public string? RefreshToken { get; set; }
     public string? TenantId { get; set; }
     public bool SkipAuthForNextCall { get; set; }
     public bool IsBusy { get; set; }
+
+    // Holds the previous user's bearer/refresh token and tenant otherwise.
+    public void ClearUserState()
+    {
+        Token = null;
+        RefreshToken = null;
+        TenantId = null;
+        SkipAuthForNextCall = false;
+        IsBusy = false;
+    }
 }
 
-public class AppState
+public class AppState : IScopedUserState
 {
 
     public int NavCount { set; get; } = 0;
@@ -43,6 +54,14 @@ public class AppState
         }
 
         _values.Add(key, value);
+        NotifyStateChanged();
+    }
+
+    public void ClearUserState()
+    {
+        if (_values.Count == 0 && NavCount == 0) return;
+        _values.Clear();
+        NavCount = 0;
         NotifyStateChanged();
     }
 }

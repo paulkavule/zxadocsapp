@@ -1,0 +1,60 @@
+@page "/roles"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white/90 backdrop-blur-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+                <i class="fas fa-user-shield text-sm"></i>
+            </div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Roles</h1>
+        </div>
+        @if (canCreate)
+        {
+            <MudButton Href="/roles/new" Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add">
+                New role
+            </MudButton>
+        }
+    </div>
+
+    <div class="p-6">
+        <MudTable Items="@roles" Hover="true" Dense="true" Striped="true" Elevation="0"
+                  Loading="@loading" LoadingProgressColor="Color.Primary">
+            <HeaderContent>
+                <MudTh>Role</MudTh>
+                <MudTh>Permissions</MudTh>
+                <MudTh Style="width:120px"></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Role">@context.RoleName</MudTd>
+                <MudTd DataLabel="Permissions">
+                    @if (permissionCounts.TryGetValue(context.RoleId, out var count))
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                 Color="@(count == 0 ? Color.Warning : Color.Default)">
+                            @count granted
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <span class="text-slate-400">&mdash;</span>
+                    }
+                </MudTd>
+                <MudTd>
+                    @if (canManage)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       Href="@($"/roles/{context.RoleId}")" aria-label="Edit role" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => ConfirmDelete(context))" aria-label="Delete role" />
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="py-10 text-center text-slate-500">No roles defined yet.</div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</div>

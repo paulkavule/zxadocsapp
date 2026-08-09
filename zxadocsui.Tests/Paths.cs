@@ -12,6 +12,10 @@ internal static class Paths
     internal static string Wwwroot(params string[] parts) =>
         Ui(new[] { "wwwroot" }.Concat(parts).ToArray());
 
+    // The shared services/DTO project alongside zxadocsui.
+    internal static string Fe(params string[] parts) =>
+        Path.Combine(new[] { Root, "zxadocsfe" }.Concat(parts).ToArray());
+
     private static string FindRepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

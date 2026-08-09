@@ -163,12 +163,24 @@
 
                         <div class="text-xs font-semibold text-[#5b8c70] uppercase tracking-wider px-4 mb-2 sidebar-menu-label">
                             Administration</div>
-                            <NavLink href="/users"
-                                    class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
-                                    ActiveClass="bg-[#e0f2df]">
-                                <i class="fa fa-user w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
-                                <span class="font-medium whitespace-nowrap sidebar-menu-text">Users</span>
-                            </NavLink>
+                            @if (canUsers)
+                            {
+                                <NavLink href="/users"
+                                        class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                        ActiveClass="bg-[#e0f2df]">
+                                    <i class="fa fa-user w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                    <span class="font-medium whitespace-nowrap sidebar-menu-text">Users</span>
+                                </NavLink>
+                            }
+                            @if (canRoles)
+                            {
+                                <NavLink href="/roles"
+                                        class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                        ActiveClass="bg-[#e0f2df]">
+                                    <i class="fa-solid fa-user-shield w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                    <span class="font-medium whitespace-nowrap sidebar-menu-text">Roles</span>
+                                </NavLink>
+                            }
                             @* <NavLink href="/settings"
                                      class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition menu-item"
                                      ActiveClass="bg-[#e0f2df]">
@@ -269,6 +281,8 @@
     bool canTemplates;
     bool canDrafts;
     bool canAudit;
+    bool canRoles;
+    bool canUsers;
     bool showContracts => canTemplates || canDrafts;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -286,6 +300,10 @@
                      || perms.Contains(Permission.ApproveDraft);
             // No implying it from the approval permissions — ViewAudit is granted on its own.
             canAudit = perms.Contains(Permission.ViewAudit);
+            canRoles = perms.Contains(Permission.CreateRole) || perms.Contains(Permission.ManageRole);
+            canUsers = perms.Contains(Permission.ViewUsers)
+                    || perms.Contains(Permission.CreateUser)
+                    || perms.Contains(Permission.ManageUsers);
 
             StateHasChanged();
             return;

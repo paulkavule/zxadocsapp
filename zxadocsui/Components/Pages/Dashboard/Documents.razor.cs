@@ -22,10 +22,45 @@ public partial class Documents
     List<QueryDto.DocumentQuery> inboxList = new(), outboxList = new(), archievedList = new(), deletedList = new(), draftList = new();
 
     UserData userData = new();
-    protected override Task OnInitializedAsync()
+
+    // ?tab=inbox|outbox|archived|deleted — lets other pages deep-link to a folder, e.g. the
+    // dashboard's "View all" pending-approvals button. Unknown or absent means Inbox.
+    [SupplyParameterFromQuery(Name = "tab")] public string? Tab { get; set; }
+
+    int activeTab;
+    bool tabApplied;
+    string? appliedTab;
+    bool loaded;
+
+    // Apply the query string only when it actually changes. Re-applying on every parameter set
+    // would snap the user back to the URL's tab after they had clicked a different one.
+    protected override async Task OnParametersSetAsync()
     {
-        return base.OnInitializedAsync();
+        if (tabApplied && appliedTab == Tab) return;
+
+        tabApplied = true;
+        appliedTab = Tab;
+        activeTab = TabIndex(Tab);
+
+        // Before the first render there is no session/token yet; OnAfterRenderAsync does that load.
+        if (loaded) await LoadDocuments(FolderFor(activeTab));
     }
+
+    private static int TabIndex(string? tab) => (tab ?? string.Empty).ToLowerInvariant() switch
+    {
+        "outbox" => 1,
+        "archived" or "archieved" => 2,
+        "deleted" => 3,
+        _ => 0,      // inbox
+    };
+
+    private static DocStatus FolderFor(int tabIndex) => tabIndex switch
+    {
+        1 => DocStatus.Outbox,
+        2 => DocStatus.Archived,
+        3 => DocStatus.Deleted,
+        _ => DocStatus.Published,
+    };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -33,7 +68,9 @@ public partial class Documents
         {
             userData = await Session!.GetCurrentUser();
             HttpSvc?.Initialize(AppConstants.HttpSchemes.Core);
-            await LoadDocuments(DocStatus.Published);
+            // Load whichever folder the query string selected, not always the Inbox.
+            await LoadDocuments(FolderFor(activeTab));
+            loaded = true;
             StateHasChanged();
         }
     }
@@ -85,16 +122,8 @@ public partial class Documents
 
     async Task IndexChanged(int page)
     {
-
-        DocStatus folder = DocStatus.Published;
-        if (page == 1)
-            folder = DocStatus.Outbox;
-        else if (page == 2)
-            folder = DocStatus.Archived;
-        else if (page == 3)
-            folder = DocStatus.Deleted;
-
-        await LoadDocuments(folder);
-
+        // ActivePanelIndex is bound, so the click has to be recorded here or the tab reverts.
+        activeTab = page;
+        await LoadDocuments(FolderFor(page));
     }
 }

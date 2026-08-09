@@ -50,8 +50,9 @@
         try
         {
 
+            // The org now comes from the token, not the URL (ZD-94).
             var (status, result, message) = await
-httpSvc!.GetAsync<ApiResponse<List<UserRole>>>($"api/userroles/{userData?.OrgId}");
+httpSvc!.GetAsync<ApiResponse<List<UserRole>>>("api/userroles");
             if (status == false || result?.Data == null) return;
 
             userRoles = result.Data;

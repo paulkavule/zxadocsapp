@@ -99,6 +99,7 @@ public class TailwindDeadClassTests
                  {
                      Paths.Ui("Components", "Pages", "Dashboard", "Templates"),
                      Paths.Ui("Components", "Pages", "Dashboard", "Drafts"),
+                     Paths.Ui("Components", "Pages", "Dashboard", "Roles"),
                      Paths.Ui("Components", "Custom"),
                  })
         {

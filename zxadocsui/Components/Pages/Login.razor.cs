@@ -80,6 +80,11 @@ public partial class Login
             snackBar!.Add("You need to select a role", Severity.Info);
             return;
         }
+        // Drop the previous user's cached permissions/state BEFORE storing this token. A session
+        // that expired straight to this page never ran SignOut, and the circuit — with all its
+        // scoped services — is still the one the previous user was using.
+        session!.ResetUserState();
+
         session!.AddItem(AppConstants.SessionVariables.TOKEN, token.Token);
         session!.AddItem(AppConstants.SessionVariables.REFRESH_TOKEN, token.RefereshToken);
 
