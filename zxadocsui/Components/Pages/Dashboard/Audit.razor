@@ -1,1 +1,141 @@
 @page "/audit"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white/90 backdrop-blur-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+                <i class="fa-regular fa-clock text-sm"></i>
+            </div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Audit Trail</h1>
+        </div>
+    </div>
+
+    <div class="p-6">
+        @if (checkedPermission && !canView)
+        {
+            <div class="py-10 text-center text-slate-500">
+                You do not have permission to view the audit trail.
+            </div>
+        }
+        else
+        {
+            <!-- filters -->
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+                <MudSelect T="string" Value="entityTypeFilter" ValueChanged="OnEntityTypeChanged" Label="Entity type"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:180px">
+                    <MudSelectItem Value="@("")">All types</MudSelectItem>
+                    <MudSelectItem Value="@("Template")">Template</MudSelectItem>
+                    <MudSelectItem Value="@("TemplateVersion")">Template version</MudSelectItem>
+                    <MudSelectItem Value="@("Draft")">Draft</MudSelectItem>
+                </MudSelect>
+
+                <MudSelect T="string" Value="actionFilter" ValueChanged="OnActionChanged" Label="Action"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:200px">
+                    <MudSelectItem Value="@("")">All actions</MudSelectItem>
+                    @foreach (var a in KnownActions)
+                    {
+                        <MudSelectItem Value="@a">@a</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudTextField T="string" Value="entityIdFilter" ValueChanged="OnEntityIdChanged" Label="Entity ID"
+                              Placeholder="e.g. 42" InputType="InputType.Number"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Tag"
+                              Immediate="true" DebounceInterval="400" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Class="mt-0" Style="max-width:170px" />
+
+                <MudTextField T="string" Value="actorFilter" ValueChanged="OnActorChanged" Label="Actor"
+                              Placeholder="Search by user name"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person"
+                              Immediate="true" DebounceInterval="400" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Class="mt-0 flex-grow" Style="max-width:280px" />
+
+                <MudButton OnClick="ClearFilters" Variant="Variant.Text" Color="Color.Default"
+                           StartIcon="@Icons.Material.Filled.FilterAltOff" Disabled="@(!HasFilters)">
+                    Clear
+                </MudButton>
+            </div>
+
+            <MudTable @ref="table" T="AuditEntryDto" ServerData="LoadData" Hover="true" Dense="true"
+                      Striped="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh Style="width:44px"></MudTh>
+                    <MudTh>When</MudTh>
+                    <MudTh>Actor</MudTh>
+                    <MudTh>Entity</MudTh>
+                    <MudTh>Action</MudTh>
+                    <MudTh>Status change</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        @if (HasMetadata(context))
+                        {
+                            <MudIconButton Size="Size.Small" Icon="@ToggleIcon(context.Id)"
+                                           OnClick="@(() => ToggleRow(context.Id))" aria-label="Show details" />
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="When">@context.At.ToLocalTime().ToString("dd MMM yyyy HH:mm")</MudTd>
+                    <MudTd DataLabel="Actor">@context.Actor</MudTd>
+                    <MudTd DataLabel="Entity">
+                        <div class="font-medium text-slate-800">@context.EntityName</div>
+                        <div class="text-xs text-slate-500">
+                            @context.EntityType #@context.EntityId
+                            @if (!string.IsNullOrWhiteSpace(context.EntityDescription))
+                            {
+                                <span> &middot; @context.EntityDescription</span>
+                            }
+                        </div>
+                    </MudTd>
+                    <MudTd DataLabel="Action">
+                        <MudChip T="string" Size="Size.Small" Color="@ActionColor(context.Action)" Variant="Variant.Filled">
+                            @context.Action
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Status change">
+                        @if (context.BeforeStatus is null && context.AfterStatus is null)
+                        {
+                            <span class="text-slate-400">&mdash;</span>
+                        }
+                        else
+                        {
+                            <span class="text-slate-600">@(context.BeforeStatus ?? "—")</span>
+                            <span class="text-slate-400 px-1">&rarr;</span>
+                            <span class="font-medium text-slate-800">@(context.AfterStatus ?? "—")</span>
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <ChildRowContent>
+                    @if (expanded.Contains(context.Id))
+                    {
+                        <MudTr>
+                            <td colspan="6" class="bg-slate-50">
+                                <div class="px-6 py-3">
+                                    @foreach (var (key, value) in MetadataPairs(context.Metadata))
+                                    {
+                                        @* Inline widths/wrapping: arbitrary Tailwind values are absent
+                                           from the committed ctailwindcss.css and silently do nothing. *@
+                                        <div class="flex gap-3 py-1 text-sm">
+                                            <span class="text-slate-500" style="min-width:140px">@key</span>
+                                            <span class="text-slate-800" style="word-break:break-all">@value</span>
+                                        </div>
+                                    }
+                                </div>
+                            </td>
+                        </MudTr>
+                    }
+                </ChildRowContent>
+                <NoRecordsContent>
+                    <div class="py-10 text-center text-slate-500">No audit entries found.</div>
+                </NoRecordsContent>
+                <LoadingContent>
+                    <div class="py-10 text-center text-slate-500">Loading audit trail…</div>
+                </LoadingContent>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new[] { 10, 20, 50 }" />
+                </PagerContent>
+            </MudTable>
+        }
+    </div>
+</div>

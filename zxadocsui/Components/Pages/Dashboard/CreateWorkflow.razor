@@ -11,7 +11,7 @@
             <DocumentsWorkflow Document="document" @ref="wkflowRef" />
         </MudStep>
         <MudStep Title="Step 3" SecondaryText="Upload and Sign">
-            <DocumentEditor Document="document" @ref="childRef" DisableEdits="false" DocId="DocId" SeedPdf="handoffPdf" />
+            <DocumentEditor Document="document" @ref="childRef" DisableEdits="false" DocId="@(draftId.ToString())" IsDraft="(draftId != 0)" />
         </MudStep>
     </MudStepper>
 </MudPaper>

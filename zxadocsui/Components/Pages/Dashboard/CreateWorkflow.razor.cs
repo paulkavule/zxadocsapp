@@ -20,7 +20,7 @@ public partial class CreateWorkflow
     [Inject] ISnackbar? Snackbar { get; set; }
     [Inject] NavigationManager? Navigator { get; set; }
     [Inject] DraftHandoffState? Handoff { get; set; }
-    [Inject] IDraftClientService? DraftsApi { get; set; }
+    // [Inject] IDraftClientService? DraftsApi { get; set; }
     private DocumentsWorkflow? wkflowRef;
     private DocumentEditor? childRef;
     private DocumentDetails? docRef;
@@ -36,6 +36,7 @@ public partial class CreateWorkflow
     private string handoffReference = string.Empty;
     private string handoffPath = string.Empty;
     private byte[]? handoffPdf;
+    int draftId = 0;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -43,15 +44,17 @@ public partial class CreateWorkflow
         {
             userData = await Session!.GetCurrentUser();
             await ApplyDraftHandoff();
+
+            StateHasChanged();
         }
     }
 
     // Consumes the draft hand-off (once) and pre-fills step 1 plus the step 3 viewer.
     private async Task ApplyDraftHandoff()
     {
-        var (payload, draftId) = Handoff!.Consume();
+        var (payload, _draftId) = Handoff!.Consume();
         if (payload is null) return;
-
+    
         document.Title = payload.Title;
         document.TypeId = payload.TypeId ?? 0;
         document.CategoryId = payload.CategoryId ?? 0;
@@ -59,14 +62,14 @@ public partial class CreateWorkflow
         document.Path = payload.FilePath;
         handoffReference = payload.DocumentReference;
         handoffPath = payload.FilePath;
-
-        var (ok, pdf, error) = await DraftsApi!.Download(draftId);
-        if (!ok || pdf is null)
-        {
-            Snackbar!.Add(error ?? "Could not load the generated document.", Severity.Error);
-            return;
-        }
-        handoffPdf = pdf;
+        draftId = _draftId;
+        // var (ok, pdf, error) = await DraftsApi!.Download(draftId);
+        // if (!ok || pdf is null)
+        // {
+        //     Snackbar!.Add(error ?? "Could not load the generated document.", Severity.Error);
+        //     return;
+        // }
+        // handoffPdf = pdf;
         StateHasChanged();
     }
     private async Task OnPreviewInteraction(StepperInteractionEventArgs arg)

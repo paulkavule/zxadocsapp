@@ -195,7 +195,9 @@ public partial class DraftDetail
             var (ok, payload, error) = await DraftsApi.GenerateForSigning(Id);
             if (!ok || payload is null) { Snackbar.Add(error ?? "Could not start the signing workflow.", Severity.Error); return; }
             Handoff.Set(payload, Id);
-            Nav.NavigateTo("/createdocument");
+            // Handoff.Set(new GenerateForSigningResponse{ Title = draft?.Title ?? "Untitled", CategoryId = draft?. ?? 0 }, Id);
+            // Session.AddItem("draftDetails", draft);
+            Nav.NavigateTo($"/createdocument");
         }
         finally { busy = false; }
     }

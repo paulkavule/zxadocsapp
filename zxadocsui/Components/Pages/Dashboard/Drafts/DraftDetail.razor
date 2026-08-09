@@ -37,7 +37,7 @@ else
                     {
                         <MudButton OnClick="Download" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Download" Disabled="busy">Download</MudButton>
                     }
-                    @if (canManage && draft.Status == DraftStatus.Approved)
+                    @if (canManage && (draft.Status == DraftStatus.Approved || draft.Status == DraftStatus.SentToWorkflow))
                     {
                         <MudButton OnClick="StartSigning" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Gavel" Disabled="busy">Start signing workflow</MudButton>
                     }

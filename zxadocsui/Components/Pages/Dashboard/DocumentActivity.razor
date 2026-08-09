@@ -1,2 +1,67 @@
 @page "/reports/activity"
+@layout DashboardLayout
+@using zxadocslib.Dtos
 
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white/90 backdrop-blur-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+                <i class="fas fa-clock-rotate-left text-sm"></i>
+            </div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Document Activity</h1>
+        </div>
+    </div>
+
+    <div class="p-6">
+        <!-- filters -->
+        <div class="flex flex-wrap items-center gap-3 mb-4">
+            <MudTextField T="string" Value="documentIdFilter" ValueChanged="OnDocumentIdChanged" Label="Document ID"
+                          Placeholder="e.g. 1042" InputType="InputType.Number"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Tag"
+                          Immediate="true" DebounceInterval="400" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Class="mt-0" Style="max-width:200px" />
+
+            <MudTextField T="string" Value="actorFilter" ValueChanged="OnActorChanged" Label="Actor"
+                          Placeholder="Search by user name"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person"
+                          Immediate="true" DebounceInterval="400" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Class="mt-0 flex-grow" Style="max-width:320px" />
+
+            <MudButton OnClick="ClearFilters" Variant="Variant.Text" Color="Color.Default"
+                       StartIcon="@Icons.Material.Filled.FilterAltOff" Disabled="@(!HasFilters)">
+                Clear
+            </MudButton>
+        </div>
+
+        <MudTable @ref="table" T="DocumentActivityDto" ServerData="LoadData" Hover="true" Dense="true"
+                  Striped="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>Doc ID</MudTh>
+                <MudTh>Actor</MudTh>
+                <MudTh>Action</MudTh>
+                <MudTh>Document name</MudTh>
+                <MudTh>Action date</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Doc ID">@context.DocumentId</MudTd>
+                <MudTd DataLabel="Actor">@context.Actor</MudTd>
+                <MudTd DataLabel="Action">
+                    <MudChip T="string" Size="Size.Small" Color="@ActionColor(context.Action)" Variant="Variant.Filled">
+                        @context.Action
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Document name">@context.DocumentName</MudTd>
+                <MudTd DataLabel="Action date">@context.ActionDate.ToLocalTime().ToString("dd MMM yyyy HH:mm")</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="py-10 text-center text-slate-500">No activity found.</div>
+            </NoRecordsContent>
+            <LoadingContent>
+                <div class="py-10 text-center text-slate-500">Loading activity…</div>
+            </LoadingContent>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 10, 20, 50 }" />
+            </PagerContent>
+        </MudTable>
+    </div>
+</div>

@@ -83,7 +83,9 @@ public partial class DocumentDetails
         {
             if (value == "0")
                 return;
-            Document.TypeId = int.Parse(value);
+            docCatList.Clear();
+            Document?.CategoryId = 0;
+            Document?.TypeId = int.Parse(value);
             var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=documentcategory&category={value}");
             if (status == false || result?.Data == null)
             {
@@ -91,7 +93,7 @@ public partial class DocumentDetails
                 Snackbar!.Add(message!, Severity.Error);
                 return;
             }
-
+            extraFields.Clear();
             docCatList = result.Data;
         }
         catch (Exception ex)
@@ -103,6 +105,7 @@ public partial class DocumentDetails
     {
         try
         {
+            extraFields.Clear();
             Document.CategoryId = int.Parse(value);
             var (exists, data, message) = await httpSvc!.GetAsync<ApiResponse<List<DocumentCategory>>>($"api/doccategory/{value}");
             if (!exists)

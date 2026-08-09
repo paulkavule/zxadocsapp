@@ -18,6 +18,7 @@ public partial class DocumentEditor
 {
     [Inject] ISnackbar Snackbar { set; get; } = default!;
     [Inject] ILogger<DocumentEditor> logger { set; get; } = default!;
+    [Inject] IDraftClientService? DraftsApi { get; set; }
     [Inject] IDialogService dialog { set; get; } = default!;
     [Inject] IHttpService httpSvc { get; set; } = default!;
     [Inject] IUserSession session { get; set; } = default!;
@@ -27,6 +28,7 @@ public partial class DocumentEditor
     [Parameter] public Document Document { get; set; } = new();
     [Parameter] public string UserId { get; set; } = string.Empty;
     [Parameter] public string DocId { get; set; } = string.Empty;
+    [Parameter] public bool IsDraft { get; set; } = false;
     [Parameter] public EventCallback<int> OnPageChanged { get; set; }
 
     // Already-rendered PDF handed off from an approved draft (FR-F8). When set, the viewer
@@ -51,18 +53,6 @@ public partial class DocumentEditor
     private List<string> commentList = new List<string>();
 
     UserData userData = new();
-    // [Parameter] public EventCallback<List<DocAttachment>> InitializeAttachments { set; get; }
-    // Applied here rather than in OnInitialized because the parent downloads the handed-off
-    // PDF asynchronously, so SeedPdf can arrive after this component has already rendered.
-    protected override void OnParametersSet()
-    {
-        if (SeedPdf is null || seedApplied) return;
-        seedApplied = true;
-        base64File = Convert.ToBase64String(SeedPdf);
-        attachments.RemoveAll(a => a.Type == AppConstants.AttachmentType.Document);
-        attachments.Add(new DocAttachment { Content = base64File, Type = AppConstants.AttachmentType.Document });
-        hasInitialized = false;
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -71,9 +61,12 @@ public partial class DocumentEditor
         {
             await LoadUserInformation();
 
-            if (!string.IsNullOrEmpty(DocId))
-                await LoadDocumentInformation();
-
+        
+            if (!string.IsNullOrEmpty(DocId) && DocId != "0")
+                if(IsDraft)
+                    await LoadDocumentFromDrafts();
+                else
+                    await LoadDocumentInformation();
 
 
             Console.WriteLine($"OnAfterRenderAsync =================> 1 ");
@@ -131,6 +124,35 @@ public partial class DocumentEditor
 
         signatureUrl = user.Data.Signature ?? string.Empty;
     }
+    private async Task LoadDocumentFromDrafts()
+    {
+        try
+        {
+            Snackbar?.Clear();
+            Snackbar?.Add("Downloading file. Please wait....", Severity.Info);
+         
+            var (ok, fileBytes, error) = await DraftsApi!.Download(int.Parse(DocId));
+
+            if(!ok || fileBytes is null) { Snackbar?.Add(error ?? "Download failed. "+error, Severity.Error); return; }
+
+
+            Snackbar?.Clear();
+            Snackbar?.Add("Downloading complete. Please proceed....", Severity.Info);
+
+            base64File = Convert.ToBase64String(fileBytes);
+            attachments.RemoveAll(a => a.Type == AppConstants.AttachmentType.Document);
+            attachments.Add(new DocAttachment { Content = base64File, Type = AppConstants.AttachmentType.Document });
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar?.Clear();
+            Snackbar?.Add("Document download failed.", Severity.Error);
+            logger.LogError(ex.Message);
+        }
+    }
+    
+
     private async Task LoadDocumentInformation()
     {
         try
@@ -165,6 +187,7 @@ public partial class DocumentEditor
             logger.LogError(ex.Message);
         }
     }
+    
     // protected override bool ShouldRender()
     // {
     //     try

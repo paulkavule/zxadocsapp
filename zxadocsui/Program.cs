@@ -36,6 +36,8 @@ builder.Services.AddScoped<ITemplateClientService, TemplateClientService>();
 builder.Services.AddScoped<IDraftClientService, DraftClientService>();
 builder.Services.AddScoped<IPermissionClientService, PermissionClientService>();
 builder.Services.AddScoped<IListOptionClientService, ListOptionClientService>();
+builder.Services.AddScoped<IActivityClientService, ActivityClientService>();
+builder.Services.AddScoped<IAuditClientService, AuditClientService>();
 builder.Services.AddScoped<zxadocsui.State.DraftHandoffState>();
 
 builder.Services.AddScoped<HttpCoreIntercetpor>();
