@@ -70,121 +70,83 @@
 </div>
 <!-- two column layout: active workflows table + right side info -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- LEFT: main workflows table (span 2) -->
+    <!-- LEFT: approval aging (span 2). Diverging around "due today": overdue left, upcoming
+         right. Replaces the placeholder active-workflows table. -->
     <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
             <h2 class="font-semibold text-slate-800 text-lg flex items-center gap-2"><i
-                class="fa-solid fa-arrows-spin text-green-500"></i> Active workflows</h2>
-                <a href="#" class="text-sm text-green-600 hover:underline flex items-center gap-1">View all <i
-                    class="fa-solid fa-arrow-right"></i></a>
+                class="fa-regular fa-hourglass-half text-green-500"></i> Approval aging</h2>
+            <button type="button" @onclick="ViewAllPendingApprovals"
+                    class="text-sm text-green-600 hover:underline flex items-center gap-1">
+                View all <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+
+        <div class="p-6">
+            @if (pendingApprovals.Count == 0)
+            {
+                <p class="text-sm text-slate-500">Nothing is waiting on you.</p>
+            }
+            else
+            {
+                var buckets = AgingBuckets();
+                var scale = AgingScale(buckets);
+
+                <div class="flex items-center gap-4 mb-4 text-xs text-slate-500">
+                    <span class="flex items-center gap-1">
+                        <span style="width:10px;height:10px;border-radius:2px;background:@OverdueColor"></span> Overdue
+                    </span>
+                    <span class="flex items-center gap-1">
+                        <span style="width:10px;height:10px;border-radius:2px;background:@DueTodayColor"></span> Due today
+                    </span>
+                    <span class="flex items-center gap-1">
+                        <span style="width:10px;height:10px;border-radius:2px;background:@UpcomingColor"></span> Upcoming
+                    </span>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="bg-slate-50 text-slate-500 text-xs font-semibold uppercase tracking-wider">
-                            <tr>
-                                <th class="text-left px-6 py-4">Document</th>
-                                <th class="text-left px-6 py-4">Initiator</th>
-                                <th class="text-left px-6 py-4">Step</th>
-                                <th class="text-left px-6 py-4">Due</th>
-                                <th class="text-left px-6 py-4">Status</th>
-                                <th class="text-right px-6 py-4">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            <tr class="table-row-hover">
-                                <td class="px-6 py-4 font-medium text-slate-800">Q3_Financials_Draft.pdf</td>
-                                <td class="px-6 py-4 text-slate-600">m.chen@finance</td>
-                                <td class="px-6 py-4"><span
-                                    class="bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium">CFO
-                                    review</span>
-                                </td>
-                                <td class="px-6 py-4 text-slate-600">2025-04-12</td>
-                                <td class="px-6 py-4"><span
-                                    class="badge-pending text-amber-700 px-3 py-1 rounded-full text-xs font-medium border border-amber-200">Pending</span>
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <button
-                                    class="text-green-600 hover:text-green-800 font-medium text-xs px-3 py-1.5 border border-green-200 rounded-lg hover:bg-green-50 transition">Review</button>
-                                </td>
-                            </tr>
-                            <tr class="table-row-hover">
-                                <td class="px-6 py-4 font-medium text-slate-800">vendor_contract_renewal.docx</td>
-                                <td class="px-6 py-4 text-slate-600">r.singh@legal</td>
-                                <td class="px-6 py-4"><span
-                                    class="bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium">Legal
-                                    check</span>
-                                </td>
-                                <td class="px-6 py-4 text-slate-600">2025-04-10</td>
-                                <td class="px-6 py-4"><span
-                                    class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium border border-green-200">Approved</span>
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <button
-                                    class="text-green-600 hover:text-green-800 text-xs px-3 py-1.5 border border-green-200 rounded-lg hover:bg-green-50 transition">View</button>
-                                </td>
-                            </tr>
-                            <tr class="table-row-hover">
-                                <td class="px-6 py-4 font-medium text-slate-800">onboarding_kit_v2.pdf</td>
-                                <td class="px-6 py-4 text-slate-600">l.zhao@hr</td>
-                                <td class="px-6 py-4"><span
-                                    class="bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium">HR
-                                    approval</span>
-                                </td>
-                                <td class="px-6 py-4 text-slate-600">2025-04-15</td>
-                                <td class="px-6 py-4"><span
-                                    class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-200">In
-                                    progress</span>
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <button
-                                    class="text-green-600 hover:text-green-800 text-xs px-3 py-1.5 border border-green-200 rounded-lg hover:bg-green-50 transition">Review</button>
-                                </td>
-                            </tr>
-                            <tr class="table-row-hover">
-                                <td class="px-6 py-4 font-medium text-slate-800">security_audit_report.pdf</td>
-                                <td class="px-6 py-4 text-slate-600">a.wong@itsec</td>
-                                <td class="px-6 py-4"><span
-                                    class="bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium">Compliance</span>
-                                </td>
-                                <td class="px-6 py-4 text-slate-600">2025-04-18</td>
-                                <td class="px-6 py-4"><span
-                                    class="badge-pending text-amber-700 px-3 py-1 rounded-full text-xs font-medium border border-amber-200">Pending</span>
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <button
-                                    class="text-green-600 hover:text-green-800 text-xs px-3 py-1.5 border border-green-200 rounded-lg hover:bg-green-50 transition">Review</button>
-                                </td>
-                            </tr>
-                            <tr class="table-row-hover">
-                                <td class="px-6 py-4 font-medium text-slate-800">product_specs_final.pdf</td>
-                                <td class="px-6 py-4 text-slate-600">k.patel@product</td>
-                                <td class="px-6 py-4"><span
-                                    class="bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-medium">PM
-                                    sign-off</span>
-                                </td>
-                                <td class="px-6 py-4 text-slate-600">2025-04-09</td>
-                                <td class="px-6 py-4"><span
-                                    class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium border border-green-200">Approved</span>
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <button
-                                    class="text-green-600 hover:text-green-800 text-xs px-3 py-1.5 border border-green-200 rounded-lg hover:bg-green-50 transition">View</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <div class="flex flex-col gap-2">
+                    @foreach (var bucket in buckets)
+                    {
+                        <div class="flex items-center text-sm">
+                            <span class="text-slate-600 text-right" style="width:150px;flex:none">@bucket.Label</span>
+
+                            @* Two half-tracks meeting at a centre rule: the left half fills
+                               right-to-left for overdue, the right half fills left-to-right. *@
+                            @* justify-content inline: justify-end is absent from the committed
+                               ctailwindcss.css, and without it the overdue bars would drift off
+                               the centre rule. *@
+                            <span style="display:flex;justify-content:flex-end;flex:1 1 0;min-width:0">
+                                @if (bucket.Side < 0 && bucket.Count > 0)
+                                {
+                                    <span title="@bucket.Label: @bucket.Count"
+                                          style="height:18px;border-radius:4px 0 0 4px;background:@bucket.Color;width:@(Pct(bucket.Count, scale))%"></span>
+                                }
+                            </span>
+                            <span style="width:1px;height:24px;background:#c3c2b7;flex:none"></span>
+                            <span class="flex" style="flex:1 1 0;min-width:0">
+                                @if (bucket.Side >= 0 && bucket.Count > 0)
+                                {
+                                    <span title="@bucket.Label: @bucket.Count"
+                                          style="height:18px;border-radius:0 4px 4px 0;background:@bucket.Color;width:@(Pct(bucket.Count, scale))%"></span>
+                                }
+                            </span>
+
+                            <span class="text-slate-800 font-medium" style="width:32px;flex:none;text-align:right">
+                                @(bucket.Count == 0 ? "" : bucket.Count.ToString())
+                            </span>
+                        </div>
+                    }
                 </div>
-                <div
-                    class="px-6 py-4 bg-slate-50 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
-                    <span>Showing 5 of 24 active workflows</span>
-                    <div class="flex gap-2">
-                        <button
-                        class="px-3 py-1 border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-100">Previous</button>
-                        <button
-                        class="px-3 py-1 border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-slate-100">Next</button>
-                    </div>
-                </div>
-            </div>
+
+                @if (UndatedApprovals > 0)
+                {
+                    <p class="text-xs text-slate-500 mt-3">
+                        @UndatedApprovals not shown - no due date set.
+                    </p>
+                }
+            }
+        </div>
+    </div>
             <!-- RIGHT: activity feed and pending tasks -->
             <div class="space-y-6">
                 <!-- pending approvals card (compact) -->
@@ -226,33 +188,59 @@
                             View all @pendingApprovals.Count
                         </button>
                         </div>
-                        <!-- workflow stats / mini chart (placeholder) -->
+                        <!-- action mix: what happened each day for the last week, broken down by
+                             action. Replaces the volume-only "workflow velocity" bars. -->
                         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
                             <div class="flex items-center justify-between mb-3">
-                                <h3 class="font-semibold text-slate-800">Workflow velocity</h3>
-                                <i class="fa-solid fa-ellipsis text-slate-400"></i>
+                                <h3 class="font-semibold text-slate-800">Action mix</h3>
+                                <span class="text-xs text-slate-500">last 7 days</span>
                             </div>
-                            <div class="flex items-end h-24 gap-1.5">
-                                @foreach (var stats in weeklyStats)
-                                {
-                                    <div class="@GetBarClasses(stats.Value)"></div>
-                                }
-                                @* <div class="w-1/5 bg-green-200 h-16 rounded-t-lg"></div>
-                                <div class="w-1/5 bg-green-100 h-10 rounded-t-lg"></div>
-                                <div class="w-1/5 bg-green-400 h-12 rounded-t-lg"></div>
-                                <div class="w-1/5 bg-green-400 h-12 rounded-t-lg"></div>
-                                <div class="w-1/5 bg-green-400 h-12 rounded-t-lg"></div>
-                                <div class="w-1/5 bg-green-300 h-24 rounded-t-lg"></div>
-                                <div class="w-1/5 bg-green-200 h-10 rounded-t-lg"></div> *@
-                            </div>
-                            <div class="flex justify-between text-xs text-slate-500 mt-2">
-                                <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
-                            </div>
-                            <hr class="my-4 border-slate-100">
-                            <div class="flex items-center justify-between text-sm">
-                                <span class="text-slate-600">Avg. completion</span>
-                                <span class="font-bold text-slate-800">4.2h</span>
-                            </div>
+
+                            @if (actionMix.Count == 0)
+                            {
+                                <p class="text-sm text-slate-500">No activity in the last 7 days.</p>
+                            }
+                            else
+                            {
+                                var max = ActionMixMax;
+                                <div class="flex items-end gap-2" style="height:96px">
+                                    @foreach (var day in actionMix)
+                                    {
+                                        var total = day.Counts.Values.Sum();
+                                        <div class="flex flex-col justify-end" style="flex:1 1 0"
+                                             title="@day.Day.ToString("ddd d MMM"): @total action(s)">
+                                            @* Stacked top-down so the tallest segment sits at the
+                                               base; 2px surface gaps keep segments separable. *@
+                                            @foreach (var series in ActionSeries.Reverse())
+                                            {
+                                                var count = day.Counts[series.Label];
+                                                @if (count > 0)
+                                                {
+                                                    <span title="@series.Label on @day.Day.ToString("ddd d MMM"): @count"
+                                                          style="display:block;background:@series.Color;height:@(Pct(count, max))%;min-height:3px;margin-bottom:2px;border-radius:2px"></span>
+                                                }
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                                <div class="flex gap-2 text-xs text-slate-500 mt-2">
+                                    @foreach (var day in actionMix)
+                                    {
+                                        <span class="text-center" style="flex:1 1 0">@day.Day.ToString("ddd")[..1]</span>
+                                    }
+                                </div>
+
+                                <hr class="my-4 border-slate-100">
+                                <div class="flex flex-wrap gap-3 text-xs text-slate-500">
+                                    @foreach (var series in ActionSeries)
+                                    {
+                                        <span class="flex items-center gap-1">
+                                            <span style="width:10px;height:10px;border-radius:2px;background:@series.Color"></span>
+                                            @series.Label
+                                        </span>
+                                    }
+                                </div>
+                            }
                         </div>
                         <!-- recent audit log snippet -->
                         <div class="bg-white/70 rounded-2xl border border-slate-200 p-5">

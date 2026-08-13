@@ -23,9 +23,10 @@ public partial class Dashboard
     [Inject] IUserSession session { get; set; } = default!;
     [Inject] IJSRuntime JSRuntime { set; get; } = default!;
     [Inject] NavigationManager navigator { set; get; } = default!;
+    [Inject] IActivityClientService ActivityApi { set; get; } = default!;
     StatisticsDto statistics = new();
     UserData userData = new();
-    List<ListValue> listValues = new(), weeklyStats = new();
+    List<ListValue> listValues = new();
 
     // Documents waiting on THIS user, i.e. the Documents page's Inbox. The card shows the first
     // few; the button carries the full count.
@@ -44,8 +45,8 @@ public partial class Dashboard
             await LoadUserInformation();
             await GetDashboardStats();
             await GetRecentActivity();
-            await GetWeeklyStatistic();
             await GetPendingApprovals();
+            await GetActionMix();
 
             StateHasChanged();
         }
@@ -75,19 +76,6 @@ public partial class Dashboard
         statistics = result!.Data;
     }
 
-    async Task GetWeeklyStatistic()
-    {
-        int weekNumber = ISOWeek.GetWeekOfYear(DateTime.Today);
-        var (sucess, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListValue>>>($"/statistics/weekly/summary?organisationId={userData.EntityId}&week={weekNumber}");
-        if (sucess == false || result == null || result?.Data == null)
-        {
-            Snackbar!.Clear();
-            Snackbar!.Add("Error on loading weekly statistical data", Severity.Warning);
-            return;
-        }
-
-        weeklyStats = result?.Data!;
-    }
     async Task GetRecentActivity()
     {
         var (sucess, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListValue>>>($"/statistics/recent-activity?organisationId={userData.EntityId}");
@@ -122,6 +110,108 @@ public partial class Dashboard
             .ToList();
     }
 
+    // ---- Approval aging (diverging) -----------------------------------------------------
+    //
+    // Diverging because "overdue vs still-to-come" is polarity around a baseline, not eight
+    // unrelated categories. Poles are the palette's diverging pair (red ↔ blue) with a gray
+    // neutral at "due today"; validated on the white card surface — worst pair CVD ΔE 21.6,
+    // normal-vision 32.3, both poles clear 3:1.
+    internal const string OverdueColor = "#e34948";
+    internal const string DueTodayColor = "#898781";
+    internal const string UpcomingColor = "#2a78d6";
+
+    internal sealed record AgingBucket(string Label, int Count, int Side, string Color);
+
+    // Side: -1 overdue (left of centre), 0 due today, +1 upcoming (right).
+    private List<AgingBucket> AgingBuckets()
+    {
+        var today = DateTime.Today;
+        int Count(Func<int, bool> match) => pendingApprovals
+            .Count(d => d.DueDate is not null && match((d.DueDate.Value.Date - today).Days));
+
+        return new List<AgingBucket>
+        {
+            new("7+ days overdue",  Count(d => d <= -8),           -1, OverdueColor),
+            new("4-7 days overdue", Count(d => d is >= -7 and <= -4), -1, OverdueColor),
+            new("1-3 days overdue", Count(d => d is >= -3 and <= -1), -1, OverdueColor),
+            new("Due today",        Count(d => d == 0),             0, DueTodayColor),
+            new("Due in 1-3 days",  Count(d => d is >= 1 and <= 3),  1, UpcomingColor),
+            new("Due in 4-7 days",  Count(d => d is >= 4 and <= 7),  1, UpcomingColor),
+            new("Due in 7+ days",   Count(d => d >= 8),              1, UpcomingColor),
+        };
+    }
+
+    // Bars are scaled against the busiest bucket, so the widest is always readable.
+    private static int AgingScale(IEnumerable<AgingBucket> buckets)
+    {
+        var max = buckets.Max(b => b.Count);
+        return max <= 0 ? 1 : max;
+    }
+
+    private int UndatedApprovals => pendingApprovals.Count(d => d.DueDate is null);
+
+    // Returns a STRING, invariant: a double interpolated into a style attribute formats with
+    // CurrentCulture, so a comma-decimal host emits "width:57,14%" and the browser drops the
+    // declaration — the bar silently disappears.
+    internal static string Pct(int count, int scale) =>
+        (count * 100.0 / (scale <= 0 ? 1 : scale)).ToString("0.##", CultureInfo.InvariantCulture);
+
+    // ---- Action mix (stacked, last 7 days) ----------------------------------------------
+    //
+    // Categorical slots 1-3 in fixed order; "Other" takes the de-emphasis gray rather than a
+    // fourth hue. Validated on white: worst pair CVD ΔE 8.4, normal-vision 21.6, all >= 3:1.
+    internal static readonly (string Label, string Color)[] ActionSeries =
+    {
+        ("Created",  "#2a78d6"),
+        ("Rejected", "#eb6834"),
+        ("Approved", "#199e70"),
+        ("Other",    "#898781"),
+    };
+
+    // day -> series label -> count
+    private readonly List<(DateTime Day, Dictionary<string, int> Counts)> actionMix = new();
+
+    async Task GetActionMix()
+    {
+        var (ok, rows, error) = await ActivityApi.GetDailyActionMix(7);
+        if (!ok)
+        {
+            Snackbar!.Clear();
+            Snackbar!.Add(error ?? "Error loading the action mix", Severity.Warning);
+            return;
+        }
+
+        actionMix.Clear();
+        foreach (var group in rows.GroupBy(r => r.Key).OrderBy(g => g.Key))
+        {
+            if (!DateTime.TryParse(group.Key, CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var day))
+                continue;
+
+            var counts = ActionSeries.ToDictionary(s => s.Label, _ => 0);
+            foreach (var row in group)
+            {
+                if (string.IsNullOrWhiteSpace(row.Name)) continue;   // empty-day marker
+                counts[SeriesFor(row.Name)] += int.TryParse(row.Value, out var n) ? n : 0;
+            }
+            actionMix.Add((day, counts));
+        }
+    }
+
+    // ActionHistory stores "Created" plus the ApprovalStatus names. Anything outside the three
+    // headline actions folds into Other rather than growing the palette.
+    private static string SeriesFor(string action) => action.Trim().ToLowerInvariant() switch
+    {
+        "created" => "Created",
+        "reject" or "rejected" => "Rejected",
+        "approve" or "approved" => "Approved",
+        _ => "Other",
+    };
+
+    private int ActionMixMax => actionMix.Count == 0
+        ? 1
+        : Math.Max(1, actionMix.Max(d => d.Counts.Values.Sum()));
+
     void ViewAllPendingApprovals() => navigator.NavigateTo("/documents?tab=inbox");
 
     void OpenDocument(int documentId) => navigator.NavigateTo($"/viewdocument/{documentId}");
@@ -144,30 +234,6 @@ public partial class Dashboard
     void Clicked()
     {
         Console.WriteLine("This is okay");
-    }
-    public static string GetBarClasses(string? value)
-    {
-        var score = int.TryParse(value, out var v) ? v : 1;
-
-        var colorClass = score switch
-        {
-            >= 50 => "bg-green-500",
-            < 50 and > 40 => "bg-green-400",
-            < 40 and > 30 => "bg-green-300",
-            < 30 and > 10 => "bg-green-200",
-            _ => "bg-green-100"
-        };
-
-        var heightClass = score switch
-        {
-            >= 50 => "h-32",
-            < 50 and > 40 => "h-24",
-            < 40 and > 30 => "h-20",
-            < 30 and >= 1 => "h-10",
-            _ => "h-0"
-        };
-
-        return $"w-1/5 rounded-t-lg {colorClass} {heightClass}";
     }
 
 }

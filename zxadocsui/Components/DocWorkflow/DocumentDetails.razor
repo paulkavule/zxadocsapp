@@ -12,6 +12,11 @@
             <MudSelectItem Value="item.Id.ToString()">@item.Name</MudSelectItem>
         }
     </MudSelect>
+    @* Date/DateChanged rather than @bind-Date: the DTO's DueDate is non-nullable DateTime and
+       the picker works in DateTime?, so the two are adapted in the code-behind. *@
+    <MudDatePicker Label="Due date" Date="@DueDate" DateChanged="DueDateChanged"
+                   MinDate="DateTime.Today" Variant="Variant.Outlined"
+                   Required="true" RequiredError="Provide the due date" />
     <MudSelect T="string" SelectedValues="@(new string[] { Document.TypeId == 0 ? "" : Document.TypeId + "" })"
                ValueChanged="DocTypeChanged" Label="Document Type" Placeholder="Document Type" Variant="Variant.Outlined"
                Required="true" RequiredError="Select the document type">

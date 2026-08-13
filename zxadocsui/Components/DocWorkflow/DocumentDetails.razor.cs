@@ -20,6 +20,27 @@ public partial class DocumentDetails
     private List<DocCategoryField> extraFields = new();
     string[] errors = { };
     public bool success;
+
+    // Document.DueDate is a non-nullable DateTime, so "never set" is MinValue, not null, and
+    // MudDatePicker works in DateTime? — hence the adapter.
+    private DateTime? DueDate => Document is null || Document.DueDate == default
+        ? null
+        : Document.DueDate;
+
+    private void DueDateChanged(DateTime? value)
+    {
+        if (Document is null || value is null) return;
+        Document.DueDate = value.Value.Date;
+    }
+
+    // Not OnInitialized: the host swaps fields onto Document (the approved-draft handoff), and
+    // the == default guard keeps this idempotent so a re-render never overwrites the author's pick.
+    protected override void OnParametersSet()
+    {
+        if (Document is not null && Document.DueDate == default)
+            Document.DueDate = DateTime.Today.AddDays(3);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         httpSvc.Initialize(AppConstants.HttpSchemes.Core);
