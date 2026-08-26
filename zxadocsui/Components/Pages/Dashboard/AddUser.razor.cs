@@ -115,7 +115,7 @@ public partial class AddUser
         _saving = true;
         try
         {
-            var (status, response, message) = await HttpSvc.ExecuteRequestAsync<ApiResponse<string>>(HttpVerb.Post, "api/user", _user);
+            var (status, response, message) = await HttpSvc.ExecuteRequestAsync<ApiResponse<string>>(HttpVerb.Post, "api/users", _user);
             if (!status)
             {
                 Snackbar.Clear();

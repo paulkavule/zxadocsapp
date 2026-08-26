@@ -12,6 +12,7 @@ public record DocAttachment : DocumentAmendment
 public record DocsWorkflow : DocumentWorkflow
 {
     public string Name { get; set; } = "";
+    public List<int> RoleIds = [];
 }
 
 public record DocUploadResult

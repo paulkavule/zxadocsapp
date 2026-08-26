@@ -323,6 +323,50 @@ public class TemplateRenderTests(AppFixture app)
             "a percentage colgroup overrides the cell widths in LibreOffice; do not emit one");
     }
 
+    // ---------------------------------------------------------------- text alignment (ZD-95)
+
+    [Fact]
+    public async Task Centring_a_paragraph_exports_an_inline_style_and_survives_a_reopen()
+    {
+        SkipIfAppDown();
+        await using var page = await NewTemplatePageAsync();
+
+        await page.EvaluateAsync(
+            "() => window.zxQuill.setHtml(document.querySelector('.zx-page .ql-container')," +
+            " '<p>Heading line</p><p>Body.</p>')");
+        await page.Locator(".zx-page .ql-editor p").First.ClickAsync();
+        await page.Locator(".ql-toolbar button.ql-align[value='center']").ClickAsync();
+
+        var m = await page.EvaluateAsync<JsonElement>("""
+            () => {
+              const ed = document.querySelector('.zx-page .ql-container');
+              const exported = window.zxQuill.getHtml(ed);
+              return { computed: getComputedStyle(document.querySelector('.zx-page .ql-editor p')).textAlign,
+                       tag: (exported.match(/<p[^>]*>/) || [''])[0] };
+            }
+            """);
+
+        Assert.Equal("center", m.GetProperty("computed").GetString());
+
+        // The alignment must travel IN the markup. Quill's default ql-align-center class is
+        // declared only in quill.snow.css, which no preview and no PDF render ever loads, so a
+        // class here would centre in the editor and silently flatten to left everywhere else.
+        var tag = m.GetProperty("tag").GetString()!;
+        Assert.Matches(@"text-align:\s*center", tag);
+        Assert.DoesNotContain("ql-align", tag);
+
+        var templateId = await SaveTemplateAsync(page, RunTag + " alignment round trip");
+        await page.GetByRole(AriaRole.Button, new() { Name = "New version" }).ClickAsync();
+        await AppFixture.EditorAsync(page);
+        await page.WaitForTimeoutAsync(2500);          // the Delta is applied after the editor mounts
+
+        var reopened = await page.EvaluateAsync<string>(
+            "() => getComputedStyle(document.querySelector('.zx-page .ql-editor p')).textAlign");
+        Assert.Equal("center", reopened);
+
+        await ArchiveAsync(page, templateId);
+    }
+
     // ---------------------------------------------------------------- previews
 
     // One template walked through every surface that previews it, in the order the workflow visits

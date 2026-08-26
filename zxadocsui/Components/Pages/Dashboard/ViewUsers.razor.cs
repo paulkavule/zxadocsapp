@@ -17,7 +17,7 @@ public partial class ViewUsers
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private ILogger<ViewUsers> Logger { get; set; } = default!;
 
-    private List<QueryDto.UserQuery> _users = new();
+    private List<User> _users = new();
     private bool _loading = true;
     private string _searchTerm = string.Empty;
 
@@ -44,7 +44,7 @@ public partial class ViewUsers
         _loading = true;
         try
         {
-            var (status, result, message) = await HttpSvc.GetAsync<ApiResponse<List<QueryDto.UserQuery>>>("api/users");
+            var (status, result, message) = await HttpSvc.GetAsync<ApiPaginatedResponse<List<User>>>("api/users");
             if (!status || result?.Data == null)
             {
                 Snackbar.Clear();
@@ -66,14 +66,14 @@ public partial class ViewUsers
     }
 
     // Quick-filter across the visible columns for the toolbar search box.
-    private Func<QueryDto.UserQuery, bool> _quickFilter => user =>
+    private Func<User, bool> _quickFilter => user =>
     {
         if (string.IsNullOrWhiteSpace(_searchTerm)) return true;
         var term = _searchTerm.Trim();
         return Contains(user.Name, term)
-            || Contains(user.UserName, term)
+            || Contains(user.Username, term)
             || Contains(user.Email, term)
-            || Contains(user.PhoneNumber, term);
+            || Contains(user.PhoneNumber.ToString(), term);
     };
 
     private static bool Contains(string? value, string term) =>

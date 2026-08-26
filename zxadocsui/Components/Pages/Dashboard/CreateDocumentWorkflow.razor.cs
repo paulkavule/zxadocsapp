@@ -34,7 +34,7 @@ public partial class CreateDocumentWorkflow
                 httpSvc.Initialize(AppConstants.HttpSchemes.Core);
                 int.TryParse(userData.OrgId, out orgId);
                 string _userId = userData.UserId ?? "";
-                userid = DataEncryptor.Decrypt(_userId);
+                //userid = DataEncryptor.Decrypt(_userId);
                 await loadDocumentTypes();
             }
 

@@ -31,6 +31,11 @@ window.zxQuill = {
   ensureRegistered: function () {
     if (this.registered) return;
     if (window.Quill && window.QuillTableBetter) {
+      // Text alignment as an inline style, not Quill's default ql-align-* class (ZD-95).
+      // Those classes are defined only in quill.snow.css, which loads on the authoring page
+      // alone — a class-aligned paragraph would render centred in the editor and silently
+      // flatten to left in every preview and in the PDF. The style travels with the markup.
+      window.Quill.register(window.Quill.import("attributors/style/align"), true);
       // register() wires up the table formats/blots and a modules/table entry,
       // but NOT modules/table-better — so also register the module under the
       // name our config references.
@@ -65,6 +70,9 @@ window.zxQuill = {
       [{ header: [1, 2, 3, false] }],
       ["bold", "italic", "underline"],
       [{ list: "ordered" }, { list: "bullet" }],
+      // Separate buttons rather than the {align: []} dropdown: three one-click controls the
+      // author can see the state of. The empty value is left, and clears the style.
+      [{ align: "" }, { align: "center" }, { align: "right" }],
       ["link", "image"],
     ];
     // The table button must be added to the toolbar explicitly; toolbarTable
