@@ -206,8 +206,10 @@
                                 <label class="block text-sm font-medium text-[#1e4a33]">
                                     <i class="fa-solid fa-lock mr-1 text-[#5f8b74]"></i> Password
                                 </label>
-                                <a href="#"
-                                   class="text-xs text-[#1f7b4d] hover:text-[#0f5a30] font-medium hover:underline transition">Forgot?</a>
+                                <button type="button" @onclick="@(() => _forgotOpen = !_forgotOpen)"
+                                        class="text-xs text-[#1f7b4d] hover:text-[#0f5a30] font-medium hover:underline transition">
+                                    Forgot password?
+                                </button>
                             </div>
                             <div class="relative mt-1">
                                 <MudTextField T="string" Variant="Variant.Outlined" val Placeholder="••••••••"
@@ -258,6 +260,24 @@
                                     </button>
                                 </div>
                             </MudForm>
+
+                            @if (_forgotOpen)
+                            {
+                                <div class="mt-5 pt-5 border-t border-[#d0e8d4]">
+                                    <label class="block text-sm font-medium text-[#1e4a33] mb-1.5">
+                                        <i class="fa-solid fa-key mr-1 text-[#5f8b74]"></i> Reset your password
+                                    </label>
+                                    <MudTextField T="string" Variant="Variant.Outlined"
+                                                  Placeholder="Username or email"
+                                                  @bind-Value="_forgotIdentifier" Immediate="true" />
+                                    <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                               Class="w-full mt-3" Disabled="@_forgotSending"
+                                               StartIcon="@Icons.Material.Filled.Email"
+                                               OnClick="RequestPasswordReset">
+                                        @(_forgotSending ? "Sending..." : "Send reset link")
+                                    </MudButton>
+                                </div>
+                            }
 
                             <!-- signup link with company name -->
                             <p class="text-center text-sm text-[#5f8b74] mt-6">

@@ -83,42 +83,36 @@ public sealed class AppFixture : IAsyncLifetime
         var page = await context.NewPageAsync();
         await page.GotoAsync(UiBase, new() { WaitUntil = WaitUntilState.NetworkIdle });
 
-        // The fields carry no label or aria-label, so they are reached by input type. Filling
-        // replaces the development defaults the form arrives with.
+        // The fields carry no label or aria-label, so they are reached by input type.
         await page.Locator("input[type='text']").First.FillAsync(username);
-        await page.Locator("input[type='password']").First.FillAsync(password);
+        var passwordField = page.Locator("input[type='password']").First;
+        await passwordField.FillAsync(password);
 
-        await page.GetByRole(AriaRole.Button, new() { Name = "Login" }).ClickAsync(new() { Timeout = 15_000 });
-        await page.WaitForURLAsync("**/dashboard", new() { Timeout = 30_000 });
-
-        return page;
-    }
-
-    /// <summary>A page already signed in and sitting on the dashboard.</summary>
-    public async Task<IPage> SignedInPageAsync()
-    {
-        var context = await Browser.NewContextAsync(new()
-        {
-            IgnoreHTTPSErrors = true,           // dev certificate
-            ViewportSize = new() { Width = 1600, Height = 1200 },
-        });
-        var page = await context.NewPageAsync();
-
-        await page.GotoAsync(UiBase, new() { WaitUntil = WaitUntilState.NetworkIdle });
-
-        // The login form arrives pre-filled from the app's own development defaults; no credential
-        // is typed here. The submit button is gated on MudForm validity, which only becomes true
-        // once validation has run — pressing Enter in a field is what triggers it.
-        var username = page.Locator("input[type='text']").First;
-        await username.ClickAsync();
-        await username.PressAsync("Enter");
+        // The submit button is gated on MudForm validity, and filling a field does not by itself
+        // run validation — pressing Enter is what triggers it. This used to be unnecessary because
+        // the form arrived pre-filled and therefore already valid; ZD-107 removed those defaults.
+        await passwordField.PressAsync("Enter");
 
         var login = page.GetByRole(AriaRole.Button, new() { Name = "Login" });
+        await Assertions.Expect(login).ToBeEnabledAsync(new() { Timeout = 15_000 });
         await login.ClickAsync(new() { Timeout = 15_000 });
         await page.WaitForURLAsync("**/dashboard", new() { Timeout = 30_000 });
 
         return page;
     }
+
+    /// <summary>
+    /// A page already signed in and sitting on the dashboard, as the default authoring account.
+    ///
+    /// The credentials are typed rather than inherited: ZD-107 cleared the hardcoded defaults the
+    /// login form used to arrive with, because they prefilled a real password box in every
+    /// environment the app was deployed to. These are the documented test credentials.
+    /// </summary>
+    public Task<IPage> SignedInPageAsync() => SignedInPageAsync(DefaultUser, DefaultPassword);
+
+    /// <summary>The default authoring account: holds neither approve permission. See Approver.</summary>
+    public const string DefaultUser = "pkavule";
+    public const string DefaultPassword = "1234..34";
 
     /// <summary>Waits for the Quill editor on the current page to be live.</summary>
     public static async Task<ILocator> EditorAsync(IPage page)

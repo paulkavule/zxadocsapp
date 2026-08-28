@@ -17,6 +17,7 @@ public partial class AddUser
     [Inject] private IHttpService HttpSvc { get; set; } = default!;
     [Inject] private IUserSession Session { get; set; } = default!;
     [Inject] private IPermissionClientService Permissions { get; set; } = default!;
+    [Inject] private IUserRoleClientService RolesApi { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Navigator { get; set; } = default!;
     [Inject] private ILogger<AddUser> Logger { get; set; } = default!;
@@ -27,7 +28,7 @@ public partial class AddUser
     private bool _isValid;
     private bool _saving;
 
-    private List<ListOption> _roles = new();
+    private List<UserRole> _roles = new();
     private IReadOnlyCollection<int> _selectedRoleIds = new HashSet<int>();
     private string? _signatureFileName;
     private UserData _currentUser = new();
@@ -55,20 +56,17 @@ public partial class AddUser
 
     private async Task LoadRoles()
     {
-        try
+        // The org's real roles, not list options: no ListOption of type "role" has ever existed, so
+        // the old lookup always came back empty and the form could never satisfy its own
+        // "select at least one role" rule. This client takes the organisation from the token.
+        var (ok, roles, error) = await RolesApi.List();
+        if (!ok)
         {
-            var (status, result, message) = await HttpSvc.GetAsync<ApiResponse<List<ListOption>>>("api/listoptions/1?type=role");
-            if (!status || result?.Data == null)
-            {
-                Snackbar.Add(message ?? "Could not load roles", Severity.Info);
-                return;
-            }
-            _roles = result.Data;
+            Snackbar.Add(error ?? "Could not load roles", Severity.Info);
+            return;
         }
-        catch (Exception ex)
-        {
-            Logger.LogDebug(ex.Message);
-        }
+
+        _roles = roles.ToList();
     }
 
     private async Task OnSignatureSelected(IBrowserFile? file)
@@ -98,8 +96,8 @@ public partial class AddUser
         // so the whole DTO can be validated and posted in one shot.
         _user.Roles = _selectedRoleIds.Select(id =>
         {
-            var option = _roles.FirstOrDefault(r => r.Id == id);
-            return new UserRole { RoleId = id, RoleName = option?.Name ?? string.Empty, OrganisationId = OrgId };
+            var role = _roles.FirstOrDefault(r => r.RoleId == id);
+            return new UserRole { RoleId = id, RoleName = role?.RoleName ?? string.Empty, OrganisationId = OrgId };
         }).ToArray();
         _user.OrganisationId = OrgId;
         _user.CreatedBy = CreatedBy;
@@ -115,7 +113,9 @@ public partial class AddUser
         _saving = true;
         try
         {
-            var (status, response, message) = await HttpSvc.ExecuteRequestAsync<ApiResponse<string>>(HttpVerb.Post, "api/users", _user);
+            // ApiResponse<int>, not <string>: the endpoint returns the new user's id, and
+            // deserialising it as a string throws — reporting a failure for a user that exists.
+            var (status, response, message) = await HttpSvc.ExecuteRequestAsync<ApiResponse<int>>(HttpVerb.Post, "api/users", _user);
             if (!status)
             {
                 Snackbar.Clear();
@@ -124,7 +124,9 @@ public partial class AddUser
             }
 
             Snackbar.Clear();
-            Snackbar.Add(response?.Message ?? "User created successfully", Severity.Success);
+            // The admin never sees the password, so say where the credentials went instead.
+            Snackbar.Add($"{_user.Name} was created. Sign-in instructions have been emailed to {_user.Email}.",
+                Severity.Success);
             Navigator.NavigateTo("/users");
         }
         finally
@@ -132,6 +134,10 @@ public partial class AddUser
             _saving = false;
         }
     }
+
+    // MultiSelection shows the chosen values in the closed field; without this they render as ids.
+    private string RoleName(int roleId) =>
+        _roles.FirstOrDefault(role => role.RoleId == roleId)?.RoleName ?? roleId.ToString();
 
     private int OrgId => int.TryParse(_currentUser.OrgId, out var v) ? v : 0;
     private int CreatedBy => int.TryParse(_currentUser.UserId, out var v) ? v : 0;
@@ -148,7 +154,6 @@ public class UserFluentValidator : AbstractValidator<User>
         RuleFor(x => x.Name).NotEmpty().WithMessage("Full name is required");
         RuleFor(x => x.Username).NotEmpty().WithMessage("Username is required").MinimumLength(3);
         RuleFor(x => x.Email).NotEmpty().WithMessage("Email is required").EmailAddress();
-        RuleFor(x => x.Password).NotEmpty().WithMessage("Password is required").MinimumLength(6);
         RuleFor(x => x.Department).NotEmpty().WithMessage("Department is required");
         RuleFor(x => x.Grade).NotEmpty().WithMessage("Grade is required");
         RuleFor(x => x.CountryCode).GreaterThan(0).WithMessage("Country code is required");

@@ -253,3 +253,7 @@ Verify, in order:
 4. Is the backend contract defined locally, or in `pkavule.zxadocslib`?
 
 If any answer is unclear, read the code first, then edit.
+
+# Test Credentials
+ - Usernames: pkavule, dkavule, hbakileke ,rnanzili , vagaba, jzake, pboaz, stamale, lkatongole, sgeorge
+ - Default Password: 1234..34

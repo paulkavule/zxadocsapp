@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
@@ -21,6 +22,12 @@ public partial class ViewUsers
     private bool _loading = true;
     private string _searchTerm = string.Empty;
 
+    // Resend is gated on the same permission the create action uses.
+    private bool _canResendInvite;
+
+    // Id of the user currently being re-invited, so only that row's button shows a busy state.
+    private int _resending;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
@@ -33,6 +40,8 @@ public partial class ViewUsers
             Nav.NavigateTo("/dashboard");
             return;
         }
+
+        _canResendInvite = await Permissions.Has(Permission.CreateUser);
 
         HttpSvc.Initialize(AppConstants.HttpSchemes.Core);
         await LoadUsers();
@@ -62,6 +71,45 @@ public partial class ViewUsers
         finally
         {
             _loading = false;
+        }
+    }
+
+    /// <summary>
+    /// A user who still holds the password they were provisioned with. The API reports this as
+    /// Status PENDING; resend-invite is refused with a 409 for anyone else.
+    /// </summary>
+    private static bool IsPending(User user) =>
+        string.Equals(user.Status, "PENDING", StringComparison.OrdinalIgnoreCase);
+
+    private async Task ResendInvite(User user)
+    {
+        _resending = user.Id;
+        try
+        {
+            var (status, response, message) = await HttpSvc.ExecuteRequestAsync<ApiResponse<string>>(
+                HttpVerb.Post, $"api/users/{user.Id}/resend-invite");
+
+            Snackbar.Clear();
+            if (!status)
+            {
+                Snackbar.Add($"Could not resend the invitation. {message}", Severity.Error);
+                return;
+            }
+
+            Snackbar.Add($"A new invitation has been emailed to {user.Email}.", Severity.Success);
+
+            // The temporary password changed, so reload rather than trusting the cached row.
+            await LoadUsers();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex.Message);
+            Snackbar.Clear();
+            Snackbar.Add($"Could not resend the invitation. {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _resending = 0;
         }
     }
 

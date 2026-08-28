@@ -22,12 +22,15 @@ public partial class DocumentsWorkflow
     DocsWorkflow nextActor = new();
     int docCategory = 0, docType = 0;
     string roleId = "";
+    int orgId = 0;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             var userData = await session!.GetCurrentUser();
             roleId = userData.RoleId;
+            // List options are org-scoped by route, so the search below needs the caller's org.
+            int.TryParse(userData.OrgId, out orgId);
         }
         if (docCategory != Document?.CategoryId && Document?.CategoryId > 0)
         {
@@ -81,7 +84,7 @@ public partial class DocumentsWorkflow
             if (string.IsNullOrEmpty(value) || value.Length < 3)
                 return usersList.AsEnumerable();
 
-            var (_, result, _) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=usersearch&category={value}");
+            var (_, result, _) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{orgId}?type=usersearch&category={value}");
 
             var userList = result?.Data ?? new List<ListOption>();
 

@@ -39,6 +39,10 @@ public partial class ViewWorkflow
     bool editMode, success, disableEdits;
     string[] errors = { };
     // string[] errors = { };
+
+    // The list-options endpoint reads the organisation from the route and never falls back to the
+    // token, so a hardcoded id here serves org 1's values to every tenant.
+    private int OrgId => int.TryParse(userData.OrgId, out var value) ? value : 0;
     protected override async Task OnInitializedAsync()
     {
 
@@ -145,7 +149,7 @@ public partial class ViewWorkflow
     {
         try
         {
-            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>("api/listoptions/1?type=Priority");
+            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{OrgId}?type=Priority");
             if (status == false || result?.Data == null)
             {
                 //show dialog at this point
@@ -166,7 +170,7 @@ public partial class ViewWorkflow
     {
         try
         {
-            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>("api/listoptions/1?type=documenttype");
+            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{OrgId}?type=documenttype");
             if (status == false || result?.Data == null)
             {
                 //show dialog at this point
@@ -188,7 +192,7 @@ public partial class ViewWorkflow
             if (value == "0")
                 return;
             document.TypeId = int.Parse(value);
-            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=documentcategory&category={value}");
+            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{OrgId}?type=documentcategory&category={value}");
             if (status == false || result?.Data == null)
             {
                 //show dialog at this point
@@ -241,7 +245,7 @@ public partial class ViewWorkflow
                 };
             }).ToList() ?? new List<DocCategoryField>();
 
-            (exists, var result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=documentworkflow&category={value}");
+            (exists, var result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{OrgId}?type=documentworkflow&category={value}");
             if (!exists)
                 usersList = result?.Data ?? new List<ListOption>();
             //show dialog at this point
@@ -503,7 +507,7 @@ public partial class ViewWorkflow
         if (string.IsNullOrWhiteSpace(value) || value.Length < 3)
             return usersList.AsEnumerable();
 
-        var (_, result, _) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=usersearch&category={value}");
+        var (_, result, _) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{OrgId}?type=usersearch&category={value}");
 
         var userList = result?.Data ?? new List<ListOption>();
 

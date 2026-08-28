@@ -28,7 +28,11 @@ public partial class Login
     [Inject] SideDialogService? sideDialog { set; get; } = default!;
 
     MudForm _form;
-    string _username = "pkavule", _password = "1234..34";
+    string _username = string.Empty, _password = string.Empty;
+
+    // Forgot-password panel state. Kept out of the MudForm so it cannot affect login validity.
+    bool _forgotOpen, _forgotSending;
+    string _forgotIdentifier = string.Empty;
     bool _rememberPassword = true, _formValid;
     private string[] _errors = [];
 
@@ -74,6 +78,16 @@ public partial class Login
             return;
         }
 
+        if (token.MustChangePassword)
+        {
+            // The backend issues no token pair for a pending account (ZD-104), so nothing is
+            // stored here: writing the empty values would leave the app half-authenticated, with a
+            // session that looks signed in and cannot call anything. The role dialog is skipped
+            // too — choosing a role is meaningless until the account is usable.
+            navigator?.NavigateTo($"/reset-password?token={Uri.EscapeDataString(token.ResetToken)}");
+            return;
+        }
+
         var role = token.Roles.Count == 1 ? token.Roles[0] : await sideDialog!.Show<RolesMenu, UserRole>(title: "Select Role", parameters: new Dictionary<string, object> { { "UserRoles", token.Roles } });
         if (role == null)
         {
@@ -115,5 +129,36 @@ public partial class Login
         navigator?.NavigateTo("/dashboard");
 
         Console.WriteLine("Login successful. Token expires at: " + token.ExpireDate);
+    }
+
+    /// <summary>
+    /// Asks for a reset link. The confirmation is the same whatever happens — the endpoint is
+    /// deliberately non-enumerating, and saying anything account-specific here would undo that.
+    /// A transport failure shows it too: the alternative leaks that the request got through.
+    /// </summary>
+    async Task RequestPasswordReset()
+    {
+        if (_forgotSending || string.IsNullOrWhiteSpace(_forgotIdentifier)) return;
+
+        _forgotSending = true;
+        try
+        {
+            await httpSvc!.ExecuteRequestAsync<ApiResponse<string>>(
+                HttpVerb.Post, "api/users/password/reset-request",
+                new { identifier = _forgotIdentifier.Trim() });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Password reset request failed: " + ex.Message);
+        }
+        finally
+        {
+            _forgotSending = false;
+            _forgotOpen = false;
+            _forgotIdentifier = string.Empty;
+
+            snackBar?.Clear();
+            snackBar?.Add("If that account exists, a reset link is on its way.", Severity.Info);
+        }
     }
 }

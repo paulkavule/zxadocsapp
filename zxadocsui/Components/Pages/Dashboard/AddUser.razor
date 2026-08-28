@@ -42,6 +42,17 @@
         <MudNumericField Label="Phone Number" Placeholder="700000000" Variant="Variant.Outlined"
                          @bind-Value="_user.PhoneNumber" For="@(() => _user.PhoneNumber)" HideSpinButtons="true" />
 
+        @* The validator requires at least one role and login rejects a user with none, so the form
+           could never be submitted without this field. @bind-SelectedValues, not @bind-Value. *@
+        <MudSelect T="int" Label="Roles" Placeholder="Select one or more roles" Variant="Variant.Outlined"
+                   MultiSelection="true" @bind-SelectedValues="_selectedRoleIds"
+                   ToStringFunc="@(id => RoleName(id))" AnchorOrigin="Origin.BottomCenter">
+            @foreach (var role in _roles)
+            {
+                <MudSelectItem T="int" Value="@role.RoleId">@role.RoleName</MudSelectItem>
+            }
+        </MudSelect>
+
 
         <div class="flex items-center gap-3">
             <MudFileUpload T="IBrowserFile" FilesChanged="OnSignatureSelected" Accept="image/*" Class="shadow-none">

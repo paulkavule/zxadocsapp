@@ -6,6 +6,7 @@ using zxadocsfe.Dtos;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
+using zxadocsui.State;
 
 namespace zxadocsui.Components.DocWorkflow;
 
@@ -14,7 +15,12 @@ public partial class DocumentDetails
     [Inject] ISnackbar? Snackbar { get; set; } = default;
     [Inject] ILogger<DocumentDetails>? logger { set; get; }
     [Inject] private IHttpService httpSvc { get; set; } = default!;
+    [Inject] private IUserSession session { get; set; } = default!;
     [Parameter] public Document? Document { set; get; }
+
+    // The list-options endpoint reads the organisation from the route and never falls back to the
+    // token, so a hardcoded id here serves org 1's values to every tenant.
+    private int orgId;
     // [Parameter] public bool? IsValid { set; get; }
     private List<ListOption> priorityList = new(), doctypeList = new(), docCatList = new(), usersList = new(), workflowList = new();
     private List<DocCategoryField> extraFields = new();
@@ -51,6 +57,9 @@ public partial class DocumentDetails
     {
         if (firstRender)
         {
+            var userData = await session.GetCurrentUser();
+            int.TryParse(userData.OrgId, out orgId);
+
             await loadPriorities();
             await loadDocumentTypes();
             StateHasChanged();
@@ -61,7 +70,7 @@ public partial class DocumentDetails
     {
         try
         {
-            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>("api/listoptions/1?type=Priority");
+            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{orgId}?type=Priority");
             if (status == false || result?.Data == null)
             {
                 //show dialog at this point
@@ -82,7 +91,7 @@ public partial class DocumentDetails
     {
         try
         {
-            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>("api/listoptions/1?type=documenttype");
+            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{orgId}?type=documenttype");
             if (status == false || result?.Data == null)
             {
                 //show dialog at this point
@@ -107,7 +116,7 @@ public partial class DocumentDetails
             docCatList.Clear();
             Document?.CategoryId = 0;
             Document?.TypeId = int.Parse(value);
-            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=documentcategory&category={value}");
+            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{orgId}?type=documentcategory&category={value}");
             if (status == false || result?.Data == null)
             {
                 //show dialog at this point
@@ -146,7 +155,7 @@ public partial class DocumentDetails
                 };
             }).ToList() ?? new List<DocCategoryField>();
 
-            (exists, var result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=documentworkflow&category={value}");
+            (exists, var result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{orgId}?type=documentworkflow&category={value}");
             if (!exists)
                 usersList = result?.Data ?? new List<ListOption>();
             //show dialog at this point

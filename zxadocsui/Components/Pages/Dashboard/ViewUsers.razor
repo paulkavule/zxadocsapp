@@ -30,6 +30,39 @@
                 <PropertyColumn Property="x => x.Username" Title="Username" />
                 <PropertyColumn Property="x => x.Email" Title="Email" />
                 <PropertyColumn Property="x => x.PhoneNumber" Title="Phone" />
+                <TemplateColumn Title="Status" Sortable="false" Filterable="false">
+                    <CellTemplate>
+                        @if (IsPending(context.Item))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">
+                                Never signed in
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">
+                                Active
+                            </MudChip>
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                @if (_canResendInvite)
+                {
+                    @* Only for users who have never reset — the endpoint returns 409 for the rest. *@
+                    <TemplateColumn Title="" Sortable="false" Filterable="false">
+                        <CellTemplate>
+                            @if (IsPending(context.Item))
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.Send"
+                                           Disabled="@(_resending == context.Item.Id)"
+                                           OnClick="@(() => ResendInvite(context.Item))">
+                                    @(_resending == context.Item.Id ? "Sending..." : "Resend invite")
+                                </MudButton>
+                            }
+                        </CellTemplate>
+                    </TemplateColumn>
+                }
             </Columns>
             <NoRecordsContent>
                 <div class="py-8 text-center text-slate-500">No users found.</div>

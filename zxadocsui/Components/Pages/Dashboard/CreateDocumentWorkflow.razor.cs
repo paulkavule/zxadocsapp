@@ -48,7 +48,7 @@ public partial class CreateDocumentWorkflow
     {
         try
         {
-            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>("api/listoptions/1?type=documenttype");
+            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{orgId}?type=documenttype");
             if (status == false || result?.Data == null) return;
 
             doctypeList = result.Data;
@@ -68,7 +68,7 @@ public partial class CreateDocumentWorkflow
                 return;
             docCatList.Clear();
 
-            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/1?type=documentcategory&category={value}");
+            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{orgId}?type=documentcategory&category={value}");
             if (status == false || result?.Data == null)
             {
                 //show dialog at this point
