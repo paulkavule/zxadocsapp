@@ -74,6 +74,10 @@ public interface IHttpService
     void Initialize(string scheme);
     Task<(bool success, T? data, string? error)> GetAsync<T>(string endpoint, List<fedtos.KeyValue>? headers = null);
     Task<(bool success, T? data, string? error)> ExecuteRequestAsync<T>(HttpVerb method, string endpoint, object? data = null, List<fedtos.KeyValue>? headers = null);
+    /// <summary>Posts a signature image to /api/users/signature, keyed on the user's reference.</summary>
+    Task<(bool success, T? data, string? error)> UploadUserSignatureAsync<T>(
+        Guid userReference, byte[] content, string fileName);
+
     Task<(bool success, T? data, string? error)> UploadDocumentAsync<T>(string endpoint, byte[] docContent, string userId,
     string documentRef, string fileName, string folder = "General", List<fedtos.KeyValue>? headers = null);
     Task<(bool success, byte[]? data, string? error)> AppendDocumentAsync(string endpoint, byte[] docContent, string fileName, List<fedtos.KeyValue>? headers = null);
@@ -181,6 +185,35 @@ public class HttpService : IHttpService
                     _client!.DefaultRequestHeaders.Remove(header.Name);
                 }
             }
+        }
+    }
+
+    public async Task<(bool success, T? data, string? error)> UploadUserSignatureAsync<T>(
+        Guid userReference, byte[] content, string fileName)
+    {
+        ApplyAuthorization();
+        try
+        {
+            // The endpoint binds UserReference and File; it is not the /api/upload shape.
+            using var form = new MultipartFormDataContent();
+            form.Add(new ByteArrayContent(content), "file", fileName);
+            form.Add(new StringContent(userReference.ToString()), "userReference");
+
+            var response = await _client!.PostAsync("api/users/signature", form);
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+                return (false, default, body);
+
+            var result = string.IsNullOrWhiteSpace(body)
+                ? default
+                : System.Text.Json.JsonSerializer.Deserialize<T>(body, _jsonOptions);
+            return (true, result, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Signature upload failed");
+            return (false, default, ex.Message);
         }
     }
 

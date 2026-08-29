@@ -31,6 +31,11 @@ public partial class AddUser
     private List<UserRole> _roles = new();
     private IReadOnlyCollection<int> _selectedRoleIds = new HashSet<int>();
     private string? _signatureFileName;
+
+    // The signature is uploaded as a file and only its reference travels on the user payload
+    // (ZD-111). Signature is varchar(250) server-side, so base64 never fitted; every reader —
+    // GetSignatureByReference, CreateDocument — already treats the column as a path.
+    private byte[]? _signatureBytes;
     private UserData _currentUser = new();
 
     // Signatures are small images; cap the upload so a huge file can't be streamed in.
@@ -77,7 +82,7 @@ public partial class AddUser
             using var stream = file.OpenReadStream(MaxSignatureSize);
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms);
-            _user.Signature = Convert.ToBase64String(ms.ToArray());
+            _signatureBytes = ms.ToArray();
             _signatureFileName = file.Name;
         }
         catch (Exception ex)
@@ -102,6 +107,14 @@ public partial class AddUser
         _user.OrganisationId = OrgId;
         _user.CreatedBy = CreatedBy;
 
+        // Signature left the DTO, so the validator cannot check it; the file is checked here.
+        if (_signatureBytes is null || _signatureBytes.Length == 0)
+        {
+            Snackbar.Clear();
+            Snackbar.Add("Upload a signature file before creating the user.", Severity.Warning);
+            return;
+        }
+
         var result = _validator.Validate(_user);
         if (!result.IsValid)
         {
@@ -113,10 +126,13 @@ public partial class AddUser
         _saving = true;
         try
         {
-            // ApiResponse<int>, not <string>: the endpoint returns the new user's id, and
-            // deserialising it as a string throws — reporting a failure for a user that exists.
-            var (status, response, message) = await HttpSvc.ExecuteRequestAsync<ApiResponse<int>>(HttpVerb.Post, "api/users", _user);
-            if (!status)
+            // ApiResponse<CreatedUser>: the endpoint returns the id and the reference the
+            // signature upload is keyed on. Deserialising it as a string throws, and would report
+            // a failure for a user that exists.
+            var (status, response, message) = await HttpSvc.ExecuteRequestAsync<ApiResponse<CreatedUser>>(
+                HttpVerb.Post, "api/users", _user);
+
+            if (!status || response?.Data is null)
             {
                 Snackbar.Clear();
                 Snackbar.Add("Failed to create user. " + message, Severity.Error);
@@ -124,15 +140,43 @@ public partial class AddUser
             }
 
             Snackbar.Clear();
+
+            // The signature is a separate call now: it is a file, and POST /api/users/signature is
+            // keyed on the reference that has only just come back. The user already exists at this
+            // point, so a failure here is reported without pretending the create failed.
+            var signatureUploaded = await UploadSignatureAsync(response.Data.UserReference);
+
             // The admin never sees the password, so say where the credentials went instead.
-            Snackbar.Add($"{_user.Name} was created. Sign-in instructions have been emailed to {_user.Email}.",
-                Severity.Success);
+            Snackbar.Add(signatureUploaded
+                    ? $"{_user.Name} was created. Sign-in instructions have been emailed to {_user.Email}."
+                    : $"{_user.Name} was created and emailed sign-in instructions, but the signature "
+                      + "could not be uploaded. Add it again from the user's profile.",
+                signatureUploaded ? Severity.Success : Severity.Warning);
+
             Navigator.NavigateTo("/users");
         }
         finally
         {
             _saving = false;
         }
+    }
+
+    /// <summary>
+    /// Attaches the signature to a user that now exists. Returns false rather than throwing: the
+    /// user has already been created, so the caller reports a partial success instead of a failure.
+    /// </summary>
+    private async Task<bool> UploadSignatureAsync(Guid userReference)
+    {
+        if (_signatureBytes is null || _signatureBytes.Length == 0)
+            return false;
+
+        var (status, _, message) = await HttpSvc.UploadUserSignatureAsync<ApiResponse<string>>(
+            userReference, _signatureBytes, _signatureFileName ?? "signature.png");
+
+        if (!status)
+            Logger.LogDebug("Signature upload failed: {Message}", message);
+
+        return status;
     }
 
     // MultiSelection shows the chosen values in the closed field; without this they render as ids.
@@ -158,7 +202,6 @@ public class UserFluentValidator : AbstractValidator<User>
         RuleFor(x => x.Grade).NotEmpty().WithMessage("Grade is required");
         RuleFor(x => x.CountryCode).GreaterThan(0).WithMessage("Country code is required");
         RuleFor(x => x.PhoneNumber).GreaterThan(0).WithMessage("Phone number is required");
-        RuleFor(x => x.Signature).NotEmpty().WithMessage("Upload a signature file");
         RuleFor(x => x.Roles).NotEmpty().WithMessage("Select at least one role");
     }
 
