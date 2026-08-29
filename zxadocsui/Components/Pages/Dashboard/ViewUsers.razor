@@ -1,5 +1,6 @@
 @page "/users"
 @using zxadocslib.Dtos
+@using zxadocsfe.Dtos
 
 <div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
     <!-- header: title + add-user action -->
@@ -17,7 +18,7 @@
     </div>
 
     <div class="p-6">
-        <MudDataGrid T="User" Items="@_users" Loading="@_loading" Filterable="true" Hideable="true"
+        <MudDataGrid T="UserSummary" Items="@_users" Loading="@_loading" Filterable="true" Hideable="true"
                     QuickFilter="@_quickFilter" Dense="true" Hover="true" Striped="true" Elevation="0">
             <ToolBarContent>
                 <MudText Typo="Typo.subtitle1" Class="mr-auto">@_users.Count user(s)</MudText>
@@ -46,6 +47,18 @@
                         }
                     </CellTemplate>
                 </TemplateColumn>
+                @if (_canEdit)
+                {
+                    <TemplateColumn Title="" Sortable="false" Filterable="false">
+                        <CellTemplate>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Edit"
+                                       Href="@($"/users/edit/{context.Item.UserReference}")">
+                                Edit
+                            </MudButton>
+                        </CellTemplate>
+                    </TemplateColumn>
+                }
                 @if (_canResendInvite)
                 {
                     @* Only for users who have never reset — the endpoint returns 409 for the rest. *@

@@ -18,12 +18,15 @@ public partial class ViewUsers
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private ILogger<ViewUsers> Logger { get; set; } = default!;
 
-    private List<User> _users = new();
+    private List<UserSummary> _users = new();
     private bool _loading = true;
     private string _searchTerm = string.Empty;
 
     // Resend is gated on the same permission the create action uses.
     private bool _canResendInvite;
+
+    // Editing sets roles, so it needs the permission the update endpoint enforces (ZD-114).
+    private bool _canEdit;
 
     // Id of the user currently being re-invited, so only that row's button shows a busy state.
     private int _resending;
@@ -42,6 +45,7 @@ public partial class ViewUsers
         }
 
         _canResendInvite = await Permissions.Has(Permission.CreateUser);
+        _canEdit = await Permissions.Has(Permission.ManageUsers);
 
         HttpSvc.Initialize(AppConstants.HttpSchemes.Core);
         await LoadUsers();
@@ -53,7 +57,7 @@ public partial class ViewUsers
         _loading = true;
         try
         {
-            var (status, result, message) = await HttpSvc.GetAsync<ApiPaginatedResponse<List<User>>>("api/users");
+            var (status, result, message) = await HttpSvc.GetAsync<ApiPaginatedResponse<List<UserSummary>>>("api/users");
             if (!status || result?.Data == null)
             {
                 Snackbar.Clear();
@@ -78,10 +82,10 @@ public partial class ViewUsers
     /// A user who still holds the password they were provisioned with. The API reports this as
     /// Status PENDING; resend-invite is refused with a 409 for anyone else.
     /// </summary>
-    private static bool IsPending(User user) =>
+    private static bool IsPending(UserSummary user) =>
         string.Equals(user.Status, "PENDING", StringComparison.OrdinalIgnoreCase);
 
-    private async Task ResendInvite(User user)
+    private async Task ResendInvite(UserSummary user)
     {
         _resending = user.Id;
         try
@@ -114,7 +118,7 @@ public partial class ViewUsers
     }
 
     // Quick-filter across the visible columns for the toolbar search box.
-    private Func<User, bool> _quickFilter => user =>
+    private Func<UserSummary, bool> _quickFilter => user =>
     {
         if (string.IsNullOrWhiteSpace(_searchTerm)) return true;
         var term = _searchTerm.Trim();

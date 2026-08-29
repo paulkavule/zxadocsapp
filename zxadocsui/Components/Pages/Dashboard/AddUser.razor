@@ -1,4 +1,5 @@
 @page "/users/add"
+@page "/users/edit/{UserReference:guid}"
 @using zxadocslib.Dtos
 @rendermode InteractiveServer
 <div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden p-3">
@@ -9,8 +10,10 @@
                 <i class="fa fa-user-plus" aria-hidden="true"></i>
             </div>
             <div>
-                <h2 class="text-2xl font-bold text-[#195d3a]">Add User</h2>
-                <p class="text-xs text-[#5f8b74]">create a new workspace user</p>
+                <h2 class="text-2xl font-bold text-[#195d3a]">@(IsEditMode ? "Edit User" : "Add User")</h2>
+                <p class="text-xs text-[#5f8b74]">
+                    @(IsEditMode ? "update this user's details" : "create a new workspace user")
+                </p>
             </div>
         </div>
 
@@ -24,8 +27,9 @@
         <MudTextField Label="Full Name" Placeholder="Full name" Variant="Variant.Outlined" @bind-Value="_user.Name"
                       For="@(() => _user.Name)" Immediate="true" />
 
+        @* Read-only on an edit: the username identifies the account at sign-in and in the audit trail. *@
         <MudTextField Label="Username" Placeholder="Username" Variant="Variant.Outlined" @bind-Value="_user.Username"
-                      For="@(() => _user.Username)" Immediate="true" />
+                      For="@(() => _user.Username)" Immediate="true" Disabled="@IsEditMode" />
 
         <MudTextField Label="Email" Placeholder="name@email.com" Variant="Variant.Outlined" @bind-Value="_user.Email"
                       For="@(() => _user.Email)" Immediate="true" />
@@ -54,24 +58,47 @@
         </MudSelect>
 
 
-        <div class="flex items-center gap-3">
-            <MudFileUpload T="IBrowserFile" FilesChanged="OnSignatureSelected" Accept="image/*" Class="shadow-none">
+        @* One drop zone for both routes: it doubles as the preview, showing whatever signature is
+           already on file and swapping to a newly chosen image before anything is saved. *@
+        <div class="signature-field flex flex-col gap-1">
+            <span class="text-xs text-slate-500">Signature</span>
+
+            @* Hidden="false" with the input styled as a transparent overlay, rather than
+               DragAndDrop, which keeps the input hidden until it has handled a dragenter. Over a
+               Blazor Server circuit that uncovering is a network round trip, and a drop landing
+               before it completes hits the page instead — the browser then navigates to the file. *@
+            <MudFileUpload T="IBrowserFile" FilesChanged="OnSignatureSelected" Accept="image/*"
+                           Hidden="false" InputClass="signature-drop-input"
+                           @ondragenter="@(() => _dragging = true)"
+                           @ondragleave="@(() => _dragging = false)"
+                           @ondragend="@(() => _dragging = false)"
+                           @ondrop="@(() => _dragging = false)">
                 <CustomContent>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Upload" OnClick="@context.OpenFilePickerAsync">
-                        @(string.IsNullOrWhiteSpace(_signatureFileName) ? "Upload signature" : _signatureFileName)
-                    </MudButton>
+                    <div class="signature-drop @(_dragging ? "is-dragging" : null)">
+                        @if (!string.IsNullOrWhiteSpace(_signaturePreview))
+                        {
+                            @* Data URI, not the API URL: /api/users/signature needs a bearer token,
+                               which an <img> request would not carry, so a direct src would render
+                               broken. *@
+                            <img src="@_signaturePreview" alt="Signature" />
+                            <span class="text-xs text-slate-500">@SignatureHint</span>
+                        }
+                        else
+                        {
+                            <i class="fa fa-upload text-2xl text-[#1f7b4d]" aria-hidden="true"></i>
+                            <span class="text-sm text-slate-600">Drop a signature image here, or click to browse</span>
+                            <span class="text-xs text-slate-400">PNG, JPG or WEBP, up to 5 MB</span>
+                        }
+                    </div>
                 </CustomContent>
+                @* Suppresses MudBlazor's own filename chip; the zone already shows the file. *@
+                <SelectedTemplate />
             </MudFileUpload>
-            @if (!string.IsNullOrWhiteSpace(_signatureFileName))
-            {
-                <i class="fa fa-check-circle text-[#1f7b4d]" aria-hidden="true"></i>
-            }
         </div>
 
         <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" EndIcon="@Icons.Material.Filled.Send"
-                   Disabled="@_saving" OnClick="Submit">
-            @(_saving ? "Saving..." : "Create User")
+                   Disabled="@(_saving || _loadingUser)" OnClick="Submit">
+            @SubmitButtonLabel
         </MudButton>
     </MudForm>
 </div>

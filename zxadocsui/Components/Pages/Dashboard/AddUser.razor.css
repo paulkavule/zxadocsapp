@@ -1,0 +1,51 @@
+/* Scoped, not Tailwind utilities: wwwroot/ctailwindcss.css is committed and no build step
+   regenerates it, so an arbitrary value such as min-h-[150px] would silently do nothing. */
+
+/* ::deep because both selectors below match elements MudBlazor renders, which carry no scope id. */
+.signature-field ::deep .mud-file-upload {
+    position: relative;
+    width: 100%;
+}
+
+/* The file input itself, covering the zone and invisible: it is what takes the click and the drop,
+   so the browser handles both natively with no round trip in between. */
+.signature-field ::deep .signature-drop-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.signature-drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 150px;
+    padding: 1rem;
+    text-align: center;
+    background-color: #fff;
+    border: 2px dashed #cbd5e1;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+/* The input covers the zone, so the pointer is never over .signature-drop itself. */
+.signature-field ::deep .mud-file-upload:hover .signature-drop,
+.signature-drop.is-dragging {
+    border-color: #1f7b4d;
+    background-color: #f4faf6;
+}
+
+.signature-drop img {
+    max-height: 96px;
+    max-width: 100%;
+    object-fit: contain;
+}

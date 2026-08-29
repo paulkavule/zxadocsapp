@@ -22,8 +22,11 @@ public partial class AddUser
     [Inject] private NavigationManager Navigator { get; set; } = default!;
     [Inject] private ILogger<AddUser> Logger { get; set; } = default!;
 
+    /// <summary>Set by the /users/edit/{UserReference} route. Absent means create.</summary>
+    [Parameter] public Guid? UserReference { get; set; }
+
     private MudForm _form = default!;
-    private readonly User _user = new();
+    private User _user = new();
     private readonly UserFluentValidator _validator = new();
     private bool _isValid;
     private bool _saving;
@@ -31,6 +34,25 @@ public partial class AddUser
     private List<UserRole> _roles = new();
     private IReadOnlyCollection<int> _selectedRoleIds = new HashSet<int>();
     private string? _signatureFileName;
+
+    // Edit mode (ZD-114): the user being changed, and the signature already on file.
+    private bool _loadingUser;
+    private int _userId;
+    private string? _signaturePreview;
+
+    // Set on dragenter so MudBlazor uncovers its file input to catch the drop, and reset by the
+    // component's own drop and dragleave handlers.
+    private bool _dragging;
+
+    private bool IsEditMode => UserReference is not null && UserReference != Guid.Empty;
+
+    private string SubmitButtonLabel => _saving
+        ? "Saving..."
+        : IsEditMode ? "Save Changes" : "Create User";
+
+    private string SignatureHint => string.IsNullOrWhiteSpace(_signatureFileName)
+        ? "Drop a new image here, or click to replace"
+        : $"{_signatureFileName} - drop or click to replace";
 
     // The signature is uploaded as a file and only its reference travels on the user payload
     // (ZD-111). Signature is varchar(250) server-side, so base64 never fitted; every reader —
@@ -48,14 +70,20 @@ public partial class AddUser
         if (!firstRender) return;
         _currentUser = await Session.GetCurrentUser();
 
-        if (!await Permissions.Has(Permission.CreateUser))
+        // Editing sets roles, so it needs ManageUsers, which is what PATCH /api/users/{id} enforces.
+        var required = IsEditMode ? Permission.ManageUsers : Permission.CreateUser;
+        if (!await Permissions.Has(required))
         {
-            Snackbar.Add("You do not have permission to create users.", Severity.Warning);
+            Snackbar.Add($"You do not have permission to {(IsEditMode ? "edit" : "create")} users.", Severity.Warning);
             Navigator.NavigateTo("/users");
             return;
         }
 
         await LoadRoles();
+
+        if (IsEditMode)
+            await LoadUserAsync(UserReference!.Value);
+
         StateHasChanged();
     }
 
@@ -74,9 +102,105 @@ public partial class AddUser
         _roles = roles.ToList();
     }
 
+    /// <summary>
+    /// Fills the form from the user behind the route reference. A 404 means the reference is
+    /// unknown or belongs to another organisation; either way the operator is sent back.
+    /// </summary>
+    private async Task LoadUserAsync(Guid reference)
+    {
+        _loadingUser = true;
+        try
+        {
+            var (ok, response, message) = await HttpSvc.GetAsync<ApiResponse<UserSummary>>(
+                $"api/users/reference/{reference}");
+
+            if (!ok || response?.Data is null)
+            {
+                Snackbar.Clear();
+                Snackbar.Add(message ?? "That user could not be found.", Severity.Warning);
+                Navigator.NavigateTo("/users");
+                return;
+            }
+
+            var user = response.Data;
+            _userId = user.Id;
+            _user = user with { };
+
+            // Pre-select what the user already holds. Without this a save would post an empty
+            // Roles array and strip every role the user has.
+            _selectedRoleIds = new HashSet<int>(user.Roles.Select(role => role.RoleId));
+
+            await LoadSignaturePreviewAsync(reference, user.Signature);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex.Message);
+            Snackbar.Clear();
+            Snackbar.Add($"Could not load the user. {ex.Message}", Severity.Error);
+            Navigator.NavigateTo("/users");
+        }
+        finally
+        {
+            _loadingUser = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads the stored signature as a data URI. The bytes are fetched through HttpService so the
+    /// bearer token travels with them; the API URL cannot be used as an img src directly because
+    /// GET /api/users/signature stopped being anonymous in ZD-111.
+    /// </summary>
+    private async Task LoadSignaturePreviewAsync(Guid reference, string signatureUrl)
+    {
+        // Empty means no signature file on disk, so there is nothing to preview.
+        if (string.IsNullOrWhiteSpace(signatureUrl))
+            return;
+
+        try
+        {
+            var (ok, bytes, _) = await HttpSvc.GetBytesAsync($"api/users/signature?ref={reference}");
+            if (ok && bytes is { Length: > 0 })
+                _signaturePreview = ToDataUri(bytes, signatureUrl);
+        }
+        catch (Exception ex)
+        {
+            // A missing preview must not stop the operator editing the rest of the form.
+            Logger.LogDebug("Signature preview failed: {Message}", ex.Message);
+        }
+    }
+
+    private static string ToDataUri(byte[] bytes, string fileName)
+    {
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        var mime = extension switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            _ => "image/png"
+        };
+        return $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+    }
+
     private async Task OnSignatureSelected(IBrowserFile? file)
     {
         if (file is null) return;
+
+        // A drop does not go through the picker, so the accept filter is not enough on its own.
+        if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        {
+            Snackbar.Clear();
+            Snackbar.Add($"{file.Name} is not an image. Choose a PNG, JPG or WEBP file.", Severity.Warning);
+            return;
+        }
+
+        if (file.Size > MaxSignatureSize)
+        {
+            Snackbar.Clear();
+            Snackbar.Add($"{file.Name} is larger than 5 MB. Choose a smaller image.", Severity.Warning);
+            return;
+        }
+
         try
         {
             using var stream = file.OpenReadStream(MaxSignatureSize);
@@ -84,6 +208,7 @@ public partial class AddUser
             await stream.CopyToAsync(ms);
             _signatureBytes = ms.ToArray();
             _signatureFileName = file.Name;
+            _signaturePreview = ToDataUri(_signatureBytes, file.Name);
         }
         catch (Exception ex)
         {
@@ -108,7 +233,8 @@ public partial class AddUser
         _user.CreatedBy = CreatedBy;
 
         // Signature left the DTO, so the validator cannot check it; the file is checked here.
-        if (_signatureBytes is null || _signatureBytes.Length == 0)
+        // Only on create: an edit that does not touch the field keeps the signature already stored.
+        if (!IsEditMode && (_signatureBytes is null || _signatureBytes.Length == 0))
         {
             Snackbar.Clear();
             Snackbar.Add("Upload a signature file before creating the user.", Severity.Warning);
@@ -126,6 +252,12 @@ public partial class AddUser
         _saving = true;
         try
         {
+            if (IsEditMode)
+            {
+                await SaveChangesAsync();
+                return;
+            }
+
             // ApiResponse<CreatedUser>: the endpoint returns the id and the reference the
             // signature upload is keyed on. Deserialising it as a string throws, and would report
             // a failure for a user that exists.
@@ -159,6 +291,40 @@ public partial class AddUser
         {
             _saving = false;
         }
+    }
+
+    /// <summary>
+    /// Saves an edit. PATCH, not POST: no invitation is sent and no password changes. The signature
+    /// is only touched when the operator chose a new file.
+    /// </summary>
+    private async Task SaveChangesAsync()
+    {
+        var (status, _, message) = await HttpSvc.ExecuteRequestAsync<ApiResponse<int>>(
+            HttpVerb.Patch, $"api/users/{_userId}", _user);
+
+        Snackbar.Clear();
+        if (!status)
+        {
+            Snackbar.Add("Failed to update user. " + message, Severity.Error);
+            return;
+        }
+
+        // Nothing chosen means keep what is stored, so there is no upload to make.
+        if (_signatureBytes is null || _signatureBytes.Length == 0)
+        {
+            Snackbar.Add($"{_user.Name} was updated.", Severity.Success);
+            Navigator.NavigateTo("/users");
+            return;
+        }
+
+        var uploaded = await UploadSignatureAsync(UserReference!.Value);
+        Snackbar.Add(uploaded
+                ? $"{_user.Name} was updated."
+                : $"{_user.Name} was updated, but the new signature could not be uploaded. "
+                  + "The previous one is still in place.",
+            uploaded ? Severity.Success : Severity.Warning);
+
+        Navigator.NavigateTo("/users");
     }
 
     /// <summary>
