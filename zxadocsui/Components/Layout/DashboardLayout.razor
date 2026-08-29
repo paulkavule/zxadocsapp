@@ -181,6 +181,15 @@
                                     <span class="font-medium whitespace-nowrap sidebar-menu-text">Roles</span>
                                 </NavLink>
                             }
+                            @if (canContractTypes)
+                            {
+                                <NavLink href="/contract-types"
+                                        class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                        ActiveClass="bg-[#e0f2df]">
+                                    <i class="fa-solid fa-file-signature w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                    <span class="font-medium whitespace-nowrap sidebar-menu-text">Contract types</span>
+                                </NavLink>
+                            }
                             @* <NavLink href="/settings"
                                      class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition menu-item"
                                      ActiveClass="bg-[#e0f2df]">
@@ -283,6 +292,7 @@
     bool canAudit;
     bool canRoles;
     bool canUsers;
+    bool canContractTypes;
     bool showContracts => canTemplates || canDrafts;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -304,6 +314,12 @@
             canUsers = perms.Contains(Permission.ViewUsers)
                     || perms.Contains(Permission.CreateUser)
                     || perms.Contains(Permission.ManageUsers);
+            // Any contract permission reaches the catalogue; only CreateContractTypes writes.
+            canContractTypes = perms.Contains(Permission.ViewContracts)
+                            || perms.Contains(Permission.InitiateContract)
+                            || perms.Contains(Permission.ReviewContract)
+                            || perms.Contains(Permission.ApproveContract)
+                            || perms.Contains(Permission.CreateContractTypes);
 
             StateHasChanged();
             return;

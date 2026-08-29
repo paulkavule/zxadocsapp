@@ -1,0 +1,122 @@
+@page "/contract-types/new"
+@page "/contract-types/{Id:int}"
+@layout DashboardLayout
+@using zxadocslib.Helpers
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90 backdrop-blur-sm">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-file-signature text-sm"></i>
+        </div>
+        <h1 class="text-xl font-semibold text-slate-800 tracking-tight">
+            @(IsNew ? "New contract type" : "Edit contract type")
+        </h1>
+    </div>
+
+    <div class="p-6">
+        @if (loading)
+        {
+            <div class="py-10 text-center text-slate-500">Loading…</div>
+        }
+        else
+        {
+            <section class="mb-6 flex flex-col gap-3" style="max-width:520px">
+                <MudTextField T="string" @bind-Value="name" Label="Name" Immediate="true"
+                              Placeholder="Service Agreement" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Disabled="@(!canManage)" />
+                <MudTextField T="string" @bind-Value="description" Label="Description" Immediate="true"
+                              Placeholder="What this kind of contract covers" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Disabled="@(!canManage)" />
+            </section>
+
+            <section>
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Fields</h2>
+                        <p class="text-xs text-slate-500">collected when a contract of this type is drafted</p>
+                    </div>
+                    @if (canManage)
+                    {
+                        <MudButton OnClick="AddField" Variant="Variant.Outlined" Color="Color.Primary"
+                                   Size="Size.Small" StartIcon="@Icons.Material.Filled.Add">
+                            Add field
+                        </MudButton>
+                    }
+                </div>
+
+                <table class="w-full text-sm border border-slate-200 rounded-xl overflow-hidden">
+                    <thead class="bg-slate-50 text-slate-500">
+                        <tr class="text-left">
+                            <th class="px-3 py-2 font-medium w-[18%]">Key</th>
+                            <th class="px-3 py-2 font-medium w-[20%]">Label</th>
+                            <th class="px-3 py-2 font-medium w-[16%]">Type</th>
+                            <th class="px-3 py-2 font-medium w-[28%]">Options (Dropdown)</th>
+                            <th class="px-3 py-2 font-medium w-[8%] text-center">Required</th>
+                            <th class="px-3 py-2 font-medium w-[8%]"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (fields.Count == 0)
+                        {
+                            <tr><td colspan="6" class="px-3 py-6 text-center text-slate-400">
+                                No fields yet. A contract of this type would be drafted with nothing to fill in.
+                            </td></tr>
+                        }
+                        @foreach (var f in fields)
+                        {
+                            <tr class="border-t border-slate-100 align-top">
+                                <td class="px-2 py-1">
+                                    <MudTextField @bind-Value="f.Key" Placeholder="contract_value" Variant="Variant.Text"
+                                                  Margin="Margin.Dense" Disabled="@(!canManage)" />
+                                </td>
+                                <td class="px-2 py-1">
+                                    <MudTextField @bind-Value="f.Label" Placeholder="Contract value" Variant="Variant.Text"
+                                                  Margin="Margin.Dense" Disabled="@(!canManage)" />
+                                </td>
+                                <td class="px-2 py-1">
+                                    <MudSelect T="TemplateFieldType" @bind-Value="f.Type" Variant="Variant.Text"
+                                               Margin="Margin.Dense" Disabled="@(!canManage)">
+                                        @foreach (var t in Enum.GetValues<TemplateFieldType>())
+                                        {
+                                            <MudSelectItem Value="t">@t</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </td>
+                                <td class="px-2 py-1">
+                                    <MudTextField @bind-Value="f.OptionsCsv" Placeholder="Option A, Option B"
+                                                  Disabled="@(!canManage || f.Type != TemplateFieldType.Dropdown)"
+                                                  Variant="Variant.Text" Margin="Margin.Dense" />
+                                </td>
+                                <td class="px-2 py-1 text-center">
+                                    <MudCheckBox @bind-Value="f.Required" Disabled="@(!canManage)" />
+                                </td>
+                                <td class="px-2 py-1 text-right">
+                                    @if (canManage)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
+                                                       Disabled="@(fields.IndexOf(f) == 0)"
+                                                       OnClick="@(() => Move(f, -1))" aria-label="Move field up" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                       Color="Color.Error" OnClick="@(() => RemoveField(f))"
+                                                       aria-label="Remove field" />
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+
+            <div class="flex items-center gap-3 pt-4 border-t border-slate-200 mt-4">
+                @if (canManage)
+                {
+                    <MudButton OnClick="Save" Disabled="@saving" Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Save">
+                        @(saving ? "Saving…" : "Save")
+                    </MudButton>
+                }
+                <MudButton Href="/contract-types" Variant="Variant.Text" Color="Color.Default">Cancel</MudButton>
+            </div>
+        }
+    </div>
+</div>

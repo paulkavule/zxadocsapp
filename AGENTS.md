@@ -300,3 +300,7 @@ Before changing architecture-level behavior, verify all of the following:
 - Is the backend contract defined in local code, or only in `pkavule.zxadocslib`?
 
 If any of those are unclear, inspect first and then change code.
+
+# Comments Rules
+- Comments should only be added where necessary
+- Comments should not exceed 2 lines

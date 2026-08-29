@@ -1,0 +1,67 @@
+@page "/contract-types"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white/90 backdrop-blur-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+                <i class="fas fa-file-signature text-sm"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Contract types</h1>
+                <p class="text-xs text-slate-500">the fields collected when a contract of each kind is drafted</p>
+            </div>
+        </div>
+        @if (canManage)
+        {
+            <MudButton Href="/contract-types/new" Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add">
+                New contract type
+            </MudButton>
+        }
+    </div>
+
+    <div class="p-6">
+        <MudTable Items="@types" Hover="true" Dense="true" Striped="true" Elevation="0"
+                  Loading="@loading" LoadingProgressColor="Color.Primary">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Description</MudTh>
+                <MudTh>Fields</MudTh>
+                <MudTh Style="width:120px"></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">@context.Name</MudTd>
+                <MudTd DataLabel="Description">
+                    @if (string.IsNullOrWhiteSpace(context.Description))
+                    {
+                        <span class="text-slate-400">&mdash;</span>
+                    }
+                    else
+                    {
+                        @context.Description
+                    }
+                </MudTd>
+                <MudTd DataLabel="Fields">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@(context.Fields.Length == 0 ? Color.Warning : Color.Default)">
+                        @context.Fields.Length @(context.Fields.Length == 1 ? "field" : "fields")
+                    </MudChip>
+                </MudTd>
+                <MudTd>
+                    @if (canManage)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       Href="@($"/contract-types/{context.Id}")" aria-label="Edit contract type" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => ConfirmDelete(context))" aria-label="Delete contract type" />
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="py-10 text-center text-slate-500">No contract types defined yet.</div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</div>

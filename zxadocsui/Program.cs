@@ -42,6 +42,7 @@ builder.Services.AddScoped<IListOptionClientService, ListOptionClientService>();
 builder.Services.AddScoped<IActivityClientService, ActivityClientService>();
 builder.Services.AddScoped<IAuditClientService, AuditClientService>();
 builder.Services.AddScoped<IUserRoleClientService, UserRoleClientService>();
+builder.Services.AddScoped<IContractTypeClientService, ContractTypeClientService>();
 builder.Services.AddScoped<DraftHandoffState>();
 
 // Per-circuit caches that belong to ONE signed-in user. Each forwards to the SAME scoped
