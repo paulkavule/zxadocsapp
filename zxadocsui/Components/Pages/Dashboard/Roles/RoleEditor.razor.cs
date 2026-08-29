@@ -183,6 +183,7 @@ public partial class RoleEditor
         3 => "Audit",
         4 => "User Management",
         5 => "Role Management",
+        6 => "Contract Management",
         _ => "Other",
     };
 

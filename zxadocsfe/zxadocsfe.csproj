@@ -11,7 +11,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <!-- Hosted on GitHub Packages; restoring it needs GH_PACKAGES_TOKEN (see nuget.config). -->
-    <PackageReference Include="pkavule.zxadocslib" Version="1.1.28" />
+    <PackageReference Include="pkavule.zxadocslib" Version="1.1.29" />
   </ItemGroup>
 
 </Project>
