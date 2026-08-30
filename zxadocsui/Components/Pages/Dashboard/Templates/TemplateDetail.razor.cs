@@ -127,8 +127,9 @@ public partial class TemplateDetail
             var (ok, version, error) = await TemplatesApi.UploadVersion(template.Id, ms, "template.html", new Progress<double>());
             if (!ok || version is null) { Snackbar.Add(error ?? "Could not save the version.", Severity.Error); return; }
 
-            // Carry the existing merge fields onto the new version.
-            if (Fields.Count > 0)
+            // Carry the authored merge fields onto the new version. A contract template has none
+            // of its own — the server serves them from its contract type and rejects a write here.
+            if (template.ContractTypeId is null && Fields.Count > 0)
                 await TemplatesApi.SetFields(version.Id, new SetFieldsRequest { Fields = Fields.ToList() });
 
             Snackbar.Add("New version saved.", Severity.Success);

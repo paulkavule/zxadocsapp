@@ -15,6 +15,7 @@ namespace zxadocsui.Components.Pages.Dashboard.Templates;
 public partial class TemplateCreate
 {
     [Inject] private ITemplateClientService TemplatesApi { get; set; } = default!;
+    [Inject] private IContractTypeClientService ContractTypesApi { get; set; } = default!;
     [Inject] private IPermissionClientService Permissions { get; set; } = default!;
     [Inject] private IUserSession Session { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
@@ -29,6 +30,28 @@ public partial class TemplateCreate
     private readonly List<FieldRow> fields = new();
     private bool busy;
     private double uploadProgress;
+
+    // A contract template (ZD-116): 0 means none, so the author builds the fields instead.
+    private List<ContractTypeDto> contractTypes = new();
+    private int contractTypeId;
+    private List<ContractTypeFieldDto> typeFields = new();
+
+    private bool UsesContractType => IsContractCategory && contractTypeId > 0;
+
+    // Contains, not equals: this org's category is "Contract", the test fixtures use "Contracts",
+    // and an org may well name it "Service Contracts".
+    private bool IsContractCategory =>
+        (categories.FirstOrDefault(c => c.Id == categoryId)?.Name ?? string.Empty)
+            .Contains("contract", StringComparison.OrdinalIgnoreCase);
+
+    private string SelectedTypeName =>
+        contractTypes.FirstOrDefault(t => t.Id == contractTypeId)?.Name ?? string.Empty;
+
+    // "Insert field" offers whichever set is live, so a contract body can only reference keys
+    // the type actually defines.
+    private IEnumerable<string> TokenKeys => UsesContractType
+        ? typeFields.Select(f => f.Key)
+        : fields.Select(f => f.Key).Where(k => !string.IsNullOrWhiteSpace(k));
 
     // Guard + authed loads run in OnAfterRenderAsync so the token is hydrated first; in
     // OnInitializedAsync the tokenless permission call would 401 and wrongly bounce an authorized
@@ -45,10 +68,34 @@ public partial class TemplateCreate
         }
         var (ok, cats, _) = await TemplatesApi.GetCategories();
         if (ok) categories = cats.ToList();
+
+        var (typesOk, types, _) = await ContractTypesApi.List();
+        if (typesOk) contractTypes = types.ToList();
         // Categories are configured per organisation (maintained under Organisation settings).
         if (categoryId == 0 && categories.Count > 0) categoryId = categories[0].Id;
         StateHasChanged();
     }
+
+    // Moving off a contract category drops the selection with the dropdown, so a type can never
+    // be submitted from a field the author can no longer see.
+    private void OnCategoryChanged()
+    {
+        if (IsContractCategory) return;
+        contractTypeId = 0;
+        typeFields.Clear();
+    }
+
+    // Both selects bind an int id, so without these they render the raw number.
+    private string CategoryName(int id) =>
+        categories.FirstOrDefault(c => c.Id == id)?.Name ?? string.Empty;
+
+    private string ContractTypeLabel(int id) => id == 0
+        ? "None — define fields below"
+        : contractTypes.FirstOrDefault(t => t.Id == id)?.Name ?? string.Empty;
+
+    private void OnContractTypeChanged() =>
+        typeFields = contractTypes.FirstOrDefault(t => t.Id == contractTypeId)?.Fields
+            .OrderBy(f => f.Order).ToList() ?? new List<ContractTypeFieldDto>();
 
     private void AddField() => fields.Add(new FieldRow { Order = fields.Count });
     private void RemoveField(FieldRow row) => fields.Remove(row);
@@ -58,10 +105,13 @@ public partial class TemplateCreate
         if (string.IsNullOrWhiteSpace(name)) { Snackbar.Add("Template name is required.", Severity.Warning); return; }
         if (categoryId <= 0) { Snackbar.Add("Please choose a category.", Severity.Warning); return; }
 
-        var keys = fields.Select(f => (f.Key ?? "").Trim()).ToList();
-        if (keys.Any(string.IsNullOrEmpty)) { Snackbar.Add("Every merge field needs a key.", Severity.Warning); return; }
-        if (keys.Count != keys.Distinct(StringComparer.OrdinalIgnoreCase).Count())
-        { Snackbar.Add("Merge-field keys must be unique.", Severity.Warning); return; }
+        if (!UsesContractType)
+        {
+            var keys = fields.Select(f => (f.Key ?? "").Trim()).ToList();
+            if (keys.Any(string.IsNullOrEmpty)) { Snackbar.Add("Every merge field needs a key.", Severity.Warning); return; }
+            if (keys.Count != keys.Distinct(StringComparer.OrdinalIgnoreCase).Count())
+            { Snackbar.Add("Merge-field keys must be unique.", Severity.Warning); return; }
+        }
 
         var bodyHtml = editorRef is null ? string.Empty : await editorRef.GetHtmlAsync();
         var bodyDelta = editorRef is null ? string.Empty : await editorRef.GetDeltaAsync();
@@ -74,7 +124,13 @@ public partial class TemplateCreate
         {
             // 1. Create the template metadata.
             var (okCreate, template, createErr) = await TemplatesApi.Create(
-                new CreateTemplateRequest { Name = name.Trim(), Description = description ?? "", CategoryId = categoryId });
+                new CreateTemplateRequest
+                {
+                    Name = name.Trim(),
+                    Description = description ?? "",
+                    CategoryId = categoryId,
+                    ContractTypeId = UsesContractType ? contractTypeId : null,
+                });
             if (!okCreate || template is null) { Snackbar.Add(createErr ?? "Could not create the template.", Severity.Error); return; }
 
             // 2. Upload the authored HTML as version 1.
@@ -89,8 +145,9 @@ public partial class TemplateCreate
                 return;
             }
 
-            // 3. Persist the merge fields against the new version.
-            if (fields.Count > 0)
+            // 3. Persist the merge fields against the new version. A contract template has none of
+            // its own — its fields live on the contract type, and the server rejects them here.
+            if (!UsesContractType && fields.Count > 0)
             {
                 var req = new SetFieldsRequest { Fields = fields.Select(ToDto).ToList() };
                 var (okFields, _, fieldsErr) = await TemplatesApi.SetFields(version.Id, req);

@@ -20,7 +20,14 @@ else
                     </div>
                     <div>
                         <h1 class="text-xl font-semibold text-slate-800 tracking-tight">@template.Name</h1>
-                        <p class="text-xs text-slate-500">@template.CategoryName · created @template.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</p>
+                        <p class="text-xs text-slate-500">
+                            @template.CategoryName
+                            @if (!string.IsNullOrWhiteSpace(template.ContractTypeName))
+                            {
+                                <span> · fields from <strong>@template.ContractTypeName</strong></span>
+                            }
+                            · created @template.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")
+                        </p>
                     </div>
                     <MudChip T="string" Size="Size.Small" Color="@StatusColor(template.Status)" Variant="Variant.Filled">@template.Status</MudChip>
                 </div>

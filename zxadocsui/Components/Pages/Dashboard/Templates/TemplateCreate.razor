@@ -19,7 +19,9 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <MudTextField @bind-Value="name" Label="Template name" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 <div>
-                    <MudSelect T="int" @bind-Value="categoryId" Label="Category" Required="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelect T="int" @bind-Value="categoryId" Label="Category" Required="true" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" @bind-Value:after="OnCategoryChanged"
+                               ToStringFunc="@CategoryName">
                         @foreach (var c in categories)
                         {
                             <MudSelectItem Value="c.Id">@c.Name</MudSelectItem>
@@ -32,6 +34,21 @@
                         </MudText>
                     }
                 </div>
+                @* Only a contract category offers a type; anything else authors its own fields. *@
+                @if (IsContractCategory)
+                {
+                <div>
+                    <MudSelect T="int" @bind-Value="contractTypeId" Label="Contract type"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               @bind-Value:after="OnContractTypeChanged" ToStringFunc="@ContractTypeLabel">
+                        <MudSelectItem T="int" Value="0">None — define fields below</MudSelectItem>
+                        @foreach (var t in contractTypes)
+                        {
+                            <MudSelectItem T="int" Value="t.Id">@t.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                }
                 <div class="md:col-span-2">
                     <MudTextField @bind-Value="description" Label="Description" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </div>
@@ -42,10 +59,53 @@
         <section>
             <div class="flex items-center justify-between mb-3">
                 <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Merge fields</h2>
-                <MudButton OnClick="AddField" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
-                    Add field
-                </MudButton>
+                @if (!UsesContractType)
+                {
+                    <MudButton OnClick="AddField" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
+                        Add field
+                    </MudButton>
+                }
             </div>
+
+            @if (UsesContractType)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    These fields come from the <strong>@SelectedTypeName</strong> contract type and are
+                    edited there, not here. Every contract of this type collects the same data.
+                </MudAlert>
+
+                <table class="w-full text-sm border border-slate-200 rounded-xl overflow-hidden">
+                    <thead class="bg-slate-50 text-slate-500">
+                        <tr class="text-left">
+                            <th class="px-3 py-2 font-medium w-[22%]">Key</th>
+                            <th class="px-3 py-2 font-medium w-[28%]">Label</th>
+                            <th class="px-3 py-2 font-medium w-[16%]">Type</th>
+                            <th class="px-3 py-2 font-medium w-[22%]">Options</th>
+                            <th class="px-3 py-2 font-medium w-[8%] text-center">Required</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (typeFields.Count == 0)
+                        {
+                            <tr><td colspan="5" class="px-3 py-6 text-center text-slate-400">
+                                This contract type defines no fields yet.
+                            </td></tr>
+                        }
+                        @foreach (var f in typeFields)
+                        {
+                            <tr class="border-t border-slate-100">
+                                <td class="px-3 py-2"><code>@f.Key</code></td>
+                                <td class="px-3 py-2">@f.Label</td>
+                                <td class="px-3 py-2 text-slate-500">@f.FieldType</td>
+                                <td class="px-3 py-2 text-slate-500">@string.Join(", ", f.Options)</td>
+                                <td class="px-3 py-2 text-center">@(f.IsRequired ? "Yes" : "")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
 
             <table class="w-full text-sm border border-slate-200 rounded-xl overflow-hidden">
                 <thead class="bg-slate-50 text-slate-500">
@@ -96,6 +156,7 @@
                     }
                 </tbody>
             </table>
+            }
         </section>
 
         <!-- 3. Contract body (rich text) -->
@@ -104,7 +165,7 @@
                 Contract body
                 <span class="normal-case font-normal text-slate-400">— write the contract and use “Insert field” to drop <code>{{key}}</code> tokens</span>
             </h2>
-            <RichTextEditor @ref="editorRef" Tokens="@fields.Select(f => f.Key).Where(k => !string.IsNullOrWhiteSpace(k))" />
+            <RichTextEditor @ref="editorRef" Tokens="@TokenKeys" />
         </section>
 
         @if (busy && uploadProgress > 0)

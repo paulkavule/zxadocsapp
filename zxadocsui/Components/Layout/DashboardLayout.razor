@@ -76,7 +76,8 @@
                         <div id="contractsToggle"
                              class="flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer hover:bg-[#e0f2df] transition group menu-item">
                             <div class="flex items-center space-x-3">
-                                <i class="fa-solid fa-file-signature w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                <i
+                                class="fa-solid fa-file-signature w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
                                 <span class="font-medium whitespace-nowrap sidebar-menu-text">Contracts</span>
                             </div>
                             <i class="fa-solid fa-chevron-down text-[#5f8b74] transition-transform duration-200"
@@ -100,6 +101,16 @@
                                              ActiveClass="bg-[#e0f2df]">
                                         <i class="fa-regular fa-pen-to-square w-4 text-[#5f8b74] mr-2"></i>
                                         <span class="sidebar-submenu-text">Drafts</span>
+                                    </NavLink>
+                                }
+                                @if (canContractTypes)
+                                {
+                                    <NavLink href="/contract-types"
+                                             class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                             ActiveClass="bg-[#e0f2df]">
+                                        <i
+                                        class="fa fa-adjust w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                        <span class="font-medium whitespace-nowrap sidebar-menu-text">Contract types</span>
                                     </NavLink>
                                 }
                             </div>
@@ -135,13 +146,15 @@
                                     <span class="sidebar-submenu-text">Document activity</span>
                                 </NavLink>
                                 @* <NavLink href="/reports/approval-times"
-                                         class="flex items-center py-2.5 px-3 text-sm text-[#1e4a33] hover:bg-[#e0f2df] rounded-xl transition"
+                                         class="flex items-center py-2.5 px-3 text-sm text-[#1e4a33] hover:bg-[#e0f2df] rounded-xl
+                        transition"
                                          ActiveClass="bg-[#e0f2df]">
                                     <i class="fa-regular fa-clock w-4 text-[#5f8b74] mr-2"></i>
                                     <span class="sidebar-submenu-text">Approval times</span>
                                 </NavLink> *@
                                 @* <NavLink href="/reports/submissions"
-                                         class="flex items-center py-2.5 px-3 text-sm text-[#1e4a33] hover:bg-[#e0f2df] rounded-xl transition"
+                                         class="flex items-center py-2.5 px-3 text-sm text-[#1e4a33] hover:bg-[#e0f2df] rounded-xl
+                        transition"
                                          ActiveClass="bg-[#e0f2df]">
                                     <i class="fa-regular fa-user w-4 text-[#5f8b74] mr-2"></i>
                                     <span class="sidebar-submenu-text">User submissions</span>
@@ -166,8 +179,8 @@
                             @if (canUsers)
                             {
                                 <NavLink href="/users"
-                                        class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
-                                        ActiveClass="bg-[#e0f2df]">
+                                         class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                         ActiveClass="bg-[#e0f2df]">
                                     <i class="fa fa-user w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
                                     <span class="font-medium whitespace-nowrap sidebar-menu-text">Users</span>
                                 </NavLink>
@@ -175,29 +188,23 @@
                             @if (canRoles)
                             {
                                 <NavLink href="/roles"
-                                        class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
-                                        ActiveClass="bg-[#e0f2df]">
+                                         class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                         ActiveClass="bg-[#e0f2df]">
                                     <i class="fa-solid fa-user-shield w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
                                     <span class="font-medium whitespace-nowrap sidebar-menu-text">Roles</span>
                                 </NavLink>
                             }
-                            @if (canContractTypes)
-                            {
-                                <NavLink href="/contract-types"
-                                        class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
-                                        ActiveClass="bg-[#e0f2df]">
-                                    <i class="fa-solid fa-file-signature w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
-                                    <span class="font-medium whitespace-nowrap sidebar-menu-text">Contract types</span>
-                                </NavLink>
-                            }
+
                             @* <NavLink href="/settings"
-                                     class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition menu-item"
+                                     class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition
+                menu-item"
                                      ActiveClass="bg-[#e0f2df]">
                                 <i class="fa-solid fa-gear w-5 text-[#5b8c70] flex-shrink-0"></i>
                                 <span class="font-medium whitespace-nowrap sidebar-menu-text">Settings</span>
                             </NavLink>
                             <NavLink href="/notifications"
-                                     class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition menu-item"
+                                     class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition
+                menu-item"
                                      ActiveClass="bg-[#e0f2df]">
                                 <i class="fa-regular fa-bell w-5 text-[#5b8c70] flex-shrink-0"></i>
                                 <span class="font-medium whitespace-nowrap sidebar-menu-text">Notifications</span>
@@ -257,7 +264,8 @@
                                     <span class="font-medium whitespace-nowrap sidebar-menu-text">New</span>
                                 </NavLink>
                                 @* <button
-                                    class="bg-[#1f7b4d] hover:bg-[#16633d] text-white px-5 py-2 rounded-xl text-sm font-semibold shadow-sm transition flex items-center gap-2">
+                                    class="bg-[#1f7b4d] hover:bg-[#16633d] text-white px-5 py-2 rounded-xl text-sm font-semibold
+                    shadow-sm transition flex items-center gap-2">
                                     <i class="fa-solid fa-plus"></i> New
                                 </button> *@
                             </div>
@@ -293,7 +301,7 @@
     bool canRoles;
     bool canUsers;
     bool canContractTypes;
-    bool showContracts => canTemplates || canDrafts;
+    bool showContracts => canTemplates || canDrafts || canContractTypes;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -314,6 +322,7 @@
             canUsers = perms.Contains(Permission.ViewUsers)
                     || perms.Contains(Permission.CreateUser)
                     || perms.Contains(Permission.ManageUsers);
+            
             // Any contract permission reaches the catalogue; only CreateContractTypes writes.
             canContractTypes = perms.Contains(Permission.ViewContracts)
                             || perms.Contains(Permission.InitiateContract)
