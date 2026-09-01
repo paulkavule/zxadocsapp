@@ -67,7 +67,11 @@
                             <tr class="border-t border-slate-100 align-top">
                                 <td class="px-2 py-1">
                                     <MudTextField @bind-Value="f.Key" Placeholder="contract_value" Variant="Variant.Text"
-                                                  Margin="Margin.Dense" Disabled="@(!canManage)" />
+                                                  Margin="Margin.Dense" Disabled="@(!canManage || f.IsSystem)" />
+                                    @if (f.IsSystem)
+                                    {
+                                        <span class="text-xs text-slate-400">on every contract type</span>
+                                    }
                                 </td>
                                 <td class="px-2 py-1">
                                     <MudTextField @bind-Value="f.Label" Placeholder="Contract value" Variant="Variant.Text"
@@ -75,7 +79,8 @@
                                 </td>
                                 <td class="px-2 py-1">
                                     <MudSelect T="TemplateFieldType" @bind-Value="f.Type" Variant="Variant.Text"
-                                               Margin="Margin.Dense" Disabled="@(!canManage)">
+                                               Margin="Margin.Dense" Disabled="@(!canManage || f.IsSystem)"
+                                               ToStringFunc="@(t => t.ToString())">
                                         @foreach (var t in Enum.GetValues<TemplateFieldType>())
                                         {
                                             <MudSelectItem Value="t">@t</MudSelectItem>
@@ -91,7 +96,9 @@
                                     <MudCheckBox @bind-Value="f.Required" Disabled="@(!canManage)" />
                                 </td>
                                 <td class="px-2 py-1 text-right">
-                                    @if (canManage)
+                                    @* Award and expiry cannot be removed: duration and the
+                                       expiry-after-award rule read them by key. *@
+                                    @if (canManage && !f.IsSystem)
                                     {
                                         <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
                                                        Disabled="@(fields.IndexOf(f) == 0)"

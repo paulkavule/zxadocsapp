@@ -29,6 +29,12 @@ public partial class DraftEditor
 
     private TemplateVersionDto? version;   // the approved version being filled
     private int draftId;                   // 0 until saved/loaded
+    // Set when this draft came from a contract initiation request; its values are owned
+    // there and shown read-only here.
+    private int? contractRequestId;
+
+    /// <summary>A contract draft's values belong to its request; only a memo edits them here.</summary>
+    private bool FieldsAreReadOnly => contractRequestId is not null;
     private string title = string.Empty;
     private string? loadError;
     private bool busy;
@@ -87,13 +93,24 @@ public partial class DraftEditor
         if (!ok || draft is null) { loadError = error ?? "Draft not found."; return; }
         draftId = draft.Id;
         title = draft.Title;
+        // A contract draft answers from its initiation request (ZD-121), so its own rows are
+        // empty; the values arrive with the version's fields instead.
+        contractRequestId = draft.ContractRequestId;
         foreach (var v in draft.FieldValues) values[v.TemplateFieldId] = v.Value;
 
-        // The draft snapshots a template version id; fetch that version for its field defs.
-        var (okV, v2, verr) = await TemplatesApi.GetVersion(draft.TemplateVersionId);
-        if (!okV || v2 is null) { loadError = verr ?? "Template version not found."; return; }
-        version = v2;
-        await LoadTemplateBody(version.Id);
+        // Through the DRAFT endpoint, not the template one: a drafter holds CreateDraft and need
+        // not hold ViewTemplates, and /api/templates/versions/{id} 403s them. This route serves
+        // the field definitions and the body under the draft's own permissions.
+        var (okV, draftTemplate, verr) = await DraftsApi.GetTemplate(Id);
+        if (!okV || draftTemplate?.Version is null)
+        {
+            loadError = verr ?? "Template version not found.";
+            return;
+        }
+        version = draftTemplate.Version;
+        templateHtml = string.IsNullOrWhiteSpace(draftTemplate.ContentHtml)
+            ? string.Empty
+            : await TemplateHtml.WithDisplayableImagesAsync(draftTemplate.ContentHtml, TemplatesApi);
     }
 
     private async Task LoadTemplateBody(int versionId)

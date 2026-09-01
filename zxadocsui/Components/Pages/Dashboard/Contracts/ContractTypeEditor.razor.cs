@@ -149,6 +149,8 @@ public partial class ContractTypeEditor
         public bool Required { get; set; }
         public string OptionsCsv { get; set; } = string.Empty;
         public string DefaultValue { get; set; } = string.Empty;
+        // Award and expiry (ZD-117): the label may be changed, nothing else.
+        public bool IsSystem { get; set; }
 
         public static FieldRow From(ContractTypeFieldDto dto) => new()
         {
@@ -158,6 +160,7 @@ public partial class ContractTypeEditor
             Required = dto.IsRequired,
             OptionsCsv = string.Join(", ", dto.Options),
             DefaultValue = dto.DefaultValue,
+            IsSystem = dto.IsSystem,
         };
 
         public List<string> SplitOptions() => (OptionsCsv ?? string.Empty)
@@ -172,6 +175,7 @@ public partial class ContractTypeEditor
             IsRequired = Required,
             Options = Type == TemplateFieldType.Dropdown ? SplitOptions() : new List<string>(),
             DefaultValue = DefaultValue ?? string.Empty,
+            IsSystem = IsSystem,
             // Position in the table is the field order.
             Order = index + 1,
         };

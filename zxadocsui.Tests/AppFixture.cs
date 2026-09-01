@@ -47,7 +47,15 @@ public sealed class AppFixture : IAsyncLifetime
         }
 
         playwright = await Playwright.CreateAsync();
-        Browser = await playwright.Chromium.LaunchAsync(new() { Channel = "chrome", Headless = true });
+        // Headed on demand: ZXADOCS_HEADED=1 shows the browser, with a slight delay so a person
+        // can follow what the test is doing. Headless stays the default for routine runs.
+        var headed = Environment.GetEnvironmentVariable("ZXADOCS_HEADED") is "1" or "true";
+        Browser = await playwright.Chromium.LaunchAsync(new()
+        {
+            Channel = "chrome",
+            Headless = !headed,
+            SlowMo = headed ? 250 : 0,
+        });
         AppReachable = true;
     }
 

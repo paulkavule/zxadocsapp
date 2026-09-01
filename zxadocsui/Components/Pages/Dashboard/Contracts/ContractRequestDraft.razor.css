@@ -1,0 +1,52 @@
+/* Scoped, not Tailwind utilities: MudBlazor's stylesheet is unlayered and carries a bare
+   button{border:0;padding:0;text-align:center} rule, while ctailwindcss.css keeps its utilities
+   in @layer utilities. Unlayered CSS beats layered CSS whatever the specificity, so every utility
+   put on a <button> here loses to MudBlazor. */
+
+.tpl-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.tpl-item {
+    display: block;
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    text-align: left;
+    background-color: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.tpl-item:hover:not(:disabled) {
+    background-color: #f8fafc;
+}
+
+.tpl-item[aria-pressed="true"] {
+    border-color: #4ade80;
+    background-color: #f0fdf4;
+}
+
+.tpl-item:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.tpl-name {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1e293b;
+}
+
+/* Small, under the name: the description is context for the choice, not the label of it. */
+.tpl-desc {
+    display: block;
+    margin-top: 0.125rem;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: #64748b;
+}

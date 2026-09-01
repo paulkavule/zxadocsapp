@@ -75,6 +75,10 @@ public interface IHttpService
     Task<(bool success, T? data, string? error)> GetAsync<T>(string endpoint, List<fedtos.KeyValue>? headers = null);
     Task<(bool success, T? data, string? error)> ExecuteRequestAsync<T>(HttpVerb method, string endpoint, object? data = null, List<fedtos.KeyValue>? headers = null);
     /// <summary>Posts a signature image to /api/users/signature, keyed on the user's reference.</summary>
+    /// <summary>Posts one file as multipart/form-data under the field name "file".</summary>
+    Task<(bool success, T? data, string? error)> UploadFileAsync<T>(
+        string endpoint, byte[] content, string fileName, string contentType);
+
     Task<(bool success, T? data, string? error)> UploadUserSignatureAsync<T>(
         Guid userReference, byte[] content, string fileName);
 
@@ -185,6 +189,34 @@ public class HttpService : IHttpService
                     _client!.DefaultRequestHeaders.Remove(header.Name);
                 }
             }
+        }
+    }
+
+    public async Task<(bool success, T? data, string? error)> UploadFileAsync<T>(
+        string endpoint, byte[] content, string fileName, string contentType)
+    {
+        ApplyAuthorization();
+        try
+        {
+            using var form = new MultipartFormDataContent();
+            var part = new ByteArrayContent(content);
+            if (!string.IsNullOrWhiteSpace(contentType))
+                part.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+            form.Add(part, "file", fileName);
+
+            var response = await _client!.PostAsync(endpoint, form);
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode) return (false, default, body);
+
+            var result = string.IsNullOrWhiteSpace(body)
+                ? default
+                : System.Text.Json.JsonSerializer.Deserialize<T>(body, _jsonOptions);
+            return (true, result, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "File upload to {Endpoint} failed", endpoint);
+            return (false, default, ex.Message);
         }
     }
 

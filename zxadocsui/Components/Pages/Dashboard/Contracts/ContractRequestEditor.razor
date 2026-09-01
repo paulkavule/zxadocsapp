@@ -1,0 +1,277 @@
+@page "/contract-requests/new"
+@page "/contract-requests/{Id:int}"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+@using zxadocslib.Helpers
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90 backdrop-blur-sm">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-file-contract text-sm"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">
+                @(IsNew ? "New contract request" : reference)
+            </h1>
+            <p class="text-xs text-slate-500">what was awarded, to whom, and on what terms</p>
+        </div>
+    </div>
+
+    <div class="p-6">
+        @if (loading)
+        {
+            <div class="py-10 text-center text-slate-500">Loading…</div>
+        }
+        else
+        {
+            @if (!editable)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+                    Its contract has been approved, so this request can no longer be changed.
+                </MudAlert>
+            }
+
+            <section class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <MudTextField @bind-Value="title" Label="Contract title" Required="true" Immediate="true"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@ReadOnly" />
+                <MudTextField @bind-Value="meetingNumber" Label="Meeting number" Immediate="true"
+                              Placeholder="e.g. CC/2026/14" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Disabled="@ReadOnly" />
+
+                <MudSelect T="ContractNature" @bind-Value="nature" Label="Nature of contract"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@ReadOnly"
+                           ToStringFunc="@(n => n.ToString())">
+                    @foreach (var option in Enum.GetValues<ContractNature>())
+                    {
+                        <MudSelectItem Value="option">@option</MudSelectItem>
+                    }
+                </MudSelect>
+
+                @if (nature == ContractNature.Extension)
+                {
+                    <MudSelect T="int" @bind-Value="extendsRequestId" Label="Extends"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@ReadOnly"
+                               ToStringFunc="@ExtendsLabel">
+                        <MudSelectItem T="int" Value="0">Select the contract being extended</MudSelectItem>
+                        @foreach (var candidate in extendable)
+                        {
+                            <MudSelectItem T="int" Value="candidate.Id">
+                                @candidate.RequestReference — @candidate.Title
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+
+                @* The type cannot change once values exist: they are keyed to its fields. *@
+                <MudSelect T="int" @bind-Value="contractTypeId" Label="Contract type" Required="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Disabled="@(ReadOnly || fieldValues.Count > 0 && !IsNew)"
+                           @bind-Value:after="OnContractTypeChanged" ToStringFunc="@ContractTypeName">
+                    <MudSelectItem T="int" Value="0">Select a contract type</MudSelectItem>
+                    @foreach (var type in contractTypes)
+                    {
+                        <MudSelectItem T="int" Value="type.Id">@type.Name</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudNumericField @bind-Value="amount" Label="Contract amount" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" HideSpinButtons="true" Disabled="@ReadOnly" Format="N2" />
+
+                <div class="md:col-span-2">
+                    <MudTextField @bind-Value="description" Label="Description" Lines="2"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@ReadOnly" />
+                </div>
+            </section>
+
+            @* Award and expiry live here, because ZD-117 makes them fields of every type. *@
+            <section class="mb-6">
+                <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">
+                    Contract details
+                    @if (!string.IsNullOrWhiteSpace(Duration))
+                    {
+                        <span class="normal-case font-normal text-slate-500">— term: @Duration</span>
+                    }
+                </h2>
+
+                @if (fieldValues.Count == 0)
+                {
+                    <div class="py-6 text-center text-slate-400 border border-slate-200 rounded-xl">
+                        Choose a contract type to see the details it collects.
+                    </div>
+                }
+                else
+                {
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        @foreach (var field in fieldValues)
+                        {
+                            <div>
+                                @switch (field.FieldType)
+                                {
+                                    case TemplateFieldType.MultilineText:
+                                        <MudTextField T="string" Label="@field.Label" Lines="3"
+                                                      Value="@field.Value" ValueChanged="@(v => SetValue(field, v))"
+                                                      Required="field.IsRequired" Variant="Variant.Outlined"
+                                                      Margin="Margin.Dense" Disabled="@ReadOnly" />
+                                        break;
+                                    case TemplateFieldType.Date:
+                                        <MudTextField T="string" Label="@field.Label" InputType="InputType.Date"
+                                                      Value="@field.Value" ValueChanged="@(v => SetValue(field, v))"
+                                                      Required="field.IsRequired" Variant="Variant.Outlined"
+                                                      Margin="Margin.Dense" Disabled="@ReadOnly" />
+                                        break;
+                                    case TemplateFieldType.Number:
+                                    case TemplateFieldType.Currency:
+                                        <MudTextField T="string" Label="@field.Label"
+                                                      Value="@field.Value" ValueChanged="@(v => SetValue(field, v))"
+                                                      Required="field.IsRequired" Variant="Variant.Outlined"
+                                                      Margin="Margin.Dense" Disabled="@ReadOnly" />
+                                        break;
+                                    case TemplateFieldType.Boolean:
+                                        <MudCheckBox T="bool" Label="@field.Label"
+                                                     Value="@(field.Value == "true")"
+                                                     ValueChanged="@(v => SetValue(field, v ? "true" : "false"))"
+                                                     Disabled="@ReadOnly" />
+                                        break;
+                                    case TemplateFieldType.Dropdown:
+                                        <MudSelect T="string" Label="@field.Label" Value="@field.Value"
+                                                   ValueChanged="@(v => SetValue(field, v))"
+                                                   Required="field.IsRequired" Variant="Variant.Outlined"
+                                                   Margin="Margin.Dense" Disabled="@ReadOnly">
+                                            @foreach (var option in field.Options)
+                                            {
+                                                <MudSelectItem Value="@option">@option</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                        break;
+                                    default:
+                                        <MudTextField T="string" Label="@field.Label"
+                                                      Value="@field.Value" ValueChanged="@(v => SetValue(field, v))"
+                                                      Required="field.IsRequired" Variant="Variant.Outlined"
+                                                      Margin="Margin.Dense" Disabled="@ReadOnly" />
+                                        break;
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+
+            <section class="mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Performance KPIs</h2>
+                    @if (!ReadOnly)
+                    {
+                        <MudButton OnClick="AddKpi" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Add">
+                            Add KPI
+                        </MudButton>
+                    }
+                </div>
+
+                <table class="w-full text-sm border border-slate-200 rounded-xl overflow-hidden">
+                    <thead class="bg-slate-50 text-slate-500">
+                        <tr class="text-left">
+                            <th class="px-3 py-2 font-medium w-[50%]">Description</th>
+                            <th class="px-3 py-2 font-medium w-[28%]">Target</th>
+                            <th class="px-3 py-2 font-medium w-[18%]">Due</th>
+                            <th class="px-3 py-2 font-medium w-[8%]"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (kpis.Count == 0)
+                        {
+                            <tr><td colspan="4" class="px-3 py-6 text-center text-slate-400">
+                                No KPIs recorded for this contract.
+                            </td></tr>
+                        }
+                        @foreach (var kpi in kpis)
+                        {
+                            <tr class="border-t border-slate-100 align-top">
+                                <td class="px-2 py-1">
+                                    <MudTextField @bind-Value="kpi.Description" Placeholder="Delivery within 14 days"
+                                                  Variant="Variant.Text" Margin="Margin.Dense" Disabled="@ReadOnly" />
+                                </td>
+                                <td class="px-2 py-1">
+                                    <MudTextField @bind-Value="kpi.Target" Placeholder="98%"
+                                                  Variant="Variant.Text" Margin="Margin.Dense" Disabled="@ReadOnly" />
+                                </td>
+                                <td class="px-2 py-1">
+                                    <MudDatePicker @bind-Date="kpi.DueDate" Variant="Variant.Text"
+                                                   Margin="Margin.Dense" Disabled="@ReadOnly" />
+                                </td>
+                                <td class="px-2 py-1 text-right">
+                                    @if (!ReadOnly)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                       Color="Color.Error" OnClick="@(() => kpis.Remove(kpi))"
+                                                       aria-label="Remove KPI" />
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+
+            @* Documents attach to a request that exists, so the section appears after the first save. *@
+            @if (!IsNew)
+            {
+                <section class="mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Supporting documents</h2>
+                        @if (!ReadOnly)
+                        {
+                            <MudFileUpload T="IBrowserFile" FilesChanged="OnDocumentSelected" Class="shadow-none">
+                                <CustomContent>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                               StartIcon="@Icons.Material.Filled.AttachFile"
+                                               OnClick="@context.OpenFilePickerAsync">
+                                        Attach document
+                                    </MudButton>
+                                </CustomContent>
+                            </MudFileUpload>
+                        }
+                    </div>
+
+                    @if (documents.Count == 0)
+                    {
+                        <div class="py-6 text-center text-slate-400 border border-slate-200 rounded-xl">
+                            Nothing attached yet.
+                        </div>
+                    }
+                    else
+                    {
+                        <MudList T="string" Dense="true">
+                            @foreach (var document in documents)
+                            {
+                                <MudListItem T="string" Icon="@Icons.Material.Filled.InsertDriveFile">
+                                    <div class="flex items-center justify-between w-full">
+                                        <span>@document.FileName <span class="text-xs text-slate-400">(@Kilobytes(document.Size) KB)</span></span>
+                                        @if (!ReadOnly)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                           Color="Color.Error"
+                                                           OnClick="@(() => RemoveDocument(document))"
+                                                           aria-label="Remove document" />
+                                        }
+                                    </div>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    }
+                </section>
+            }
+
+            <div class="flex items-center gap-3 pt-4 border-t border-slate-200 mt-4">
+                @if (!ReadOnly)
+                {
+                    <MudButton OnClick="Save" Disabled="@saving" Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Save">
+                        @(saving ? "Saving…" : "Save")
+                    </MudButton>
+                }
+                <MudButton Href="/contract-requests" Variant="Variant.Text" Color="Color.Default">Back</MudButton>
+            </div>
+        }
+    </div>
+</div>
