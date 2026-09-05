@@ -125,8 +125,13 @@ public partial class ViewUsers
         return Contains(user.Name, term)
             || Contains(user.Username, term)
             || Contains(user.Email, term)
-            || Contains(user.PhoneNumber.ToString(), term);
+            || Contains(user.PhoneNumber.ToString(), term)
+            || Contains(RoleNames(user), term);
     };
+
+    /// <summary>Comma-separated role names. A user may hold several; the grid shows them in one cell.</summary>
+    private static string RoleNames(UserSummary user) =>
+        string.Join(", ", user.Roles.Select(role => role.RoleName));
 
     private static bool Contains(string? value, string term) =>
         !string.IsNullOrEmpty(value) && value.Contains(term, StringComparison.OrdinalIgnoreCase);

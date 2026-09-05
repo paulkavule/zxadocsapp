@@ -19,6 +19,10 @@ public partial class DocumentsWorkflow
     List<DocsWorkflow> workflowList = new(), usersList = new();
     List<WorkFlow> defaultWorkflow = new();
     [Parameter] public Document? Document { set; get; }
+
+    // MudStep destroys this component when its step is not active, so the chain the author built
+    // is handed back by the page on rebuild rather than regenerated from the category defaults.
+    [Parameter] public List<DocsWorkflow>? SavedWorkflow { set; get; }
     DocsWorkflow nextActor = new();
     int docCategory = 0, docType = 0;
     string roleId = "";
@@ -34,6 +38,10 @@ public partial class DocumentsWorkflow
         }
         if (docCategory != Document?.CategoryId && Document?.CategoryId > 0)
         {
+            // Before any request: both fetches below return early on failure, and the finally then
+            // sets docCategory, so a restore left until after them would never run at all.
+            var restored = RestoreSavedWorkflow();
+
             try
             {
                 var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<WorkFlow>>>($"api/doccategoryworkflow/category/{Document?.CategoryId}");
@@ -59,7 +67,8 @@ public partial class DocumentsWorkflow
                     Level = i + 1,
                     RoleIds = dd.Roles.Select(rr => rr.RoleId).ToList()
                 }).ToList();
-                RefreshWorkflow();
+                if (!restored)
+                    RefreshWorkflow();
 
 
             }
@@ -152,6 +161,24 @@ public partial class DocumentsWorkflow
     }
 
     /// <summary>Repopulates the workflow from the user pool, one copy each so edits leave the pool intact.</summary>
+    /// <summary>Puts the author's chain back. False when the page has none, so this is a first visit.</summary>
+    bool RestoreSavedWorkflow()
+    {
+        if (SavedWorkflow is not { Count: > 0 })
+            return false;
+
+        workflowList = SavedWorkflow.Select(wf => new DocsWorkflow
+        {
+            ActorId = wf.ActorId,
+            Name = wf.Name,
+            Level = wf.Level,
+            IsFinal = wf.IsFinal,
+            WorkflowType = wf.WorkflowType,
+            RoleIds = wf.RoleIds
+        }).ToList();
+        return true;
+    }
+
     void RefreshWorkflow() =>
         workflowList = usersList.Select((dd, i) => new DocsWorkflow
         {
@@ -166,7 +193,9 @@ public partial class DocumentsWorkflow
     }
     public List<DocsWorkflow> WorflowList()
     {
-        workflowList.Last()?.IsFinal = true;
+        var last = workflowList.LastOrDefault();
+        if (last is not null)
+            last.IsFinal = true;
         return workflowList;
     }
 

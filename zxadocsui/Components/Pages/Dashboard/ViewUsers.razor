@@ -31,6 +31,7 @@
                 <PropertyColumn Property="x => x.Username" Title="Username" />
                 <PropertyColumn Property="x => x.Email" Title="Email" />
                 <PropertyColumn Property="x => x.PhoneNumber" Title="Phone" />
+                <PropertyColumn Property="x => RoleNames(x)" Title="Roles" />
                 <TemplateColumn Title="Status" Sortable="false" Filterable="false">
                     <CellTemplate>
                         @if (IsPending(context.Item))

@@ -53,7 +53,12 @@
             // The org now comes from the token, not the URL (ZD-94).
             var (status, result, message) = await
 httpSvc!.GetAsync<ApiResponse<List<UserRole>>>("api/userroles");
-            if (status == false || result?.Data == null) return;
+            if (status == false || result?.Data == null)
+            {
+                // Silence here left an empty dropdown that read as "no roles exist".
+                Snackbar.Add(string.IsNullOrEmpty(message) ? "Couldn't load the roles" : message, Severity.Error);
+                return;
+            }
 
             userRoles = result.Data;
 

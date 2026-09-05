@@ -5,10 +5,10 @@
     <MudStepper NonLinear ShowResetButton OnPreviewInteraction="OnPreviewInteraction" Class="w-full h-[80%]">
         @* HasError="@(_step1Complete == false)" *@
         <MudStep Title="Step 1" SecondaryText="Document Details" HasError=validForm>
-            <DocumentDetails Document="document" @ref="docRef" />
+            <DocumentDetails Document="document" SavedExtraFields="extraFields" @ref="docRef" />
         </MudStep>
         <MudStep Title="Step 2" SecondaryText="Work flow">
-            <DocumentsWorkflow Document="document" @ref="wkflowRef" />
+            <DocumentsWorkflow Document="document" SavedWorkflow="workflowList" @ref="wkflowRef" />
         </MudStep>
         <MudStep Title="Step 3" SecondaryText="Upload and Sign">
             <DocumentEditor Document="document" @ref="childRef" DisableEdits="false" DocId="@(draftId.ToString())" IsDraft="(draftId != 0)" />

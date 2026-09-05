@@ -107,7 +107,6 @@ public partial class Login
         var claim1 = jwt.Claims.FirstOrDefault(dd => dd.Type == "sub");
         var claim2 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "userid");
         var claim3 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "orgid");
-        var claim4 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "lable");
         var claim5 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "orgentityid");
         var claim6 = jwt.Claims.FirstOrDefault(dd => dd.Type.ToLower() == "userreference");
 
@@ -118,7 +117,9 @@ public partial class Login
             OrgId = claim3!.Value,
             EntityId = claim5!.Value,
             UserReference = claim6!.Value,
-            RoleName = claim4!.Value,
+            // The Lable claim is roles[0], stamped before the dialog ran; only `role` is the choice.
+            // Encrypted like every other field here: GetCurrentUser decrypts what it reads back.
+            RoleName = DataEncryptor.Encrypt(role.RoleName),
             RoleId = role.RoleId.ToString(),
             FullName = jwt.Claims.First(dd => dd.Type == ClaimTypes.Name)!.Value,
             LoginDate = DateTime.Now,

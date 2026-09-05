@@ -61,9 +61,9 @@ public partial class DocumentEditor
         {
             await LoadUserInformation();
 
-        
+
             if (!string.IsNullOrEmpty(DocId) && DocId != "0")
-                if(IsDraft)
+                if (IsDraft)
                     await LoadDocumentFromDrafts();
                 else
                     await LoadDocumentInformation();
@@ -118,11 +118,43 @@ public partial class DocumentEditor
 
         }
 
-        var (success, user, message) = await httpSvc.GetAsync<ApiResponse<User>>($"/api/users/{userData.UserId}");
-        if (success == false)
-            return;
+        await LoadSignatureAsync();
+    }
 
-        signatureUrl = user.Data.Signature ?? string.Empty;
+    /// <summary>Fetches the signature bytes and inlines them; the stored value is a server path.</summary>
+    private async Task LoadSignatureAsync()
+    {
+        // if (string.IsNullOrWhiteSpace(signaturePath))
+        // {
+        //     Snackbar.Clear();
+        //     Snackbar.Add("You have no signature on file, so nothing can be placed on the document.", Severity.Warning);
+        //     return;
+        // }
+
+        if (!Guid.TryParse(userData.UserReference, out var reference))
+        {
+            Snackbar.Clear();
+            Snackbar.Add("User reference is invalid, so signature cannot be loaded.", Severity.Error);
+            return;
+        }
+        ;
+
+        try
+        {
+            var (ok, bytes, message) = await httpSvc.GetBytesAsync($"api/users/signature?ref={reference}");
+            if(ok == false || bytes is null)
+            {
+                Snackbar.Clear();
+                Snackbar.Add(message ?? "Signature load failed.", Severity.Error);
+                return;
+            }
+            
+            signatureUrl = "data:image/png;base64," + Convert.ToBase64String(bytes);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug("Signature load failed: {Message}", ex.Message);
+        }
     }
     private async Task LoadDocumentFromDrafts()
     {
@@ -130,10 +162,10 @@ public partial class DocumentEditor
         {
             Snackbar?.Clear();
             Snackbar?.Add("Downloading file. Please wait....", Severity.Info);
-         
+
             var (ok, fileBytes, error) = await DraftsApi!.Download(int.Parse(DocId));
 
-            if(!ok || fileBytes is null) { Snackbar?.Add(error ?? "Download failed. "+error, Severity.Error); return; }
+            if (!ok || fileBytes is null) { Snackbar?.Add(error ?? "Download failed. " + error, Severity.Error); return; }
 
 
             Snackbar?.Clear();
@@ -151,7 +183,7 @@ public partial class DocumentEditor
             logger.LogError(ex.Message);
         }
     }
-    
+
 
     private async Task LoadDocumentInformation()
     {
@@ -187,7 +219,7 @@ public partial class DocumentEditor
             logger.LogError(ex.Message);
         }
     }
-    
+
     // protected override bool ShouldRender()
     // {
     //     try

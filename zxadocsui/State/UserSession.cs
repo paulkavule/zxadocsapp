@@ -166,6 +166,10 @@ public class UserSession : IUserSession, ITokenProvider
                 RoleName = DataEncryptor.Encrypt(user.RoleName),
                 OrgId = DataEncryptor.Encrypt(user.OrgId),
                 UserId = DataEncryptor.Encrypt(user.UserId),
+                // Omitted before: a refresh then left EntityId blank, which the dashboard sends as
+                // organisationId, and UserReference blank, which the users table builds edit links from.
+                EntityId = DataEncryptor.Encrypt(user.EntityId),
+                UserReference = DataEncryptor.Encrypt(user.UserReference),
                 Token = DataEncryptor.Encrypt(accessToken),
                 RefreshToken = DataEncryptor.Encrypt(refreshToken),
                 LoginDate = user.LoginDate,

@@ -8,7 +8,7 @@
     <div class="flex justify-between items-center p-3 border-b-2 border-gray-100">
 
         <div class="text-xl">@_title</div>
-        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="Close" />
+        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => dialog.Close())" />
     </div>
 
     <div class="pa-4">

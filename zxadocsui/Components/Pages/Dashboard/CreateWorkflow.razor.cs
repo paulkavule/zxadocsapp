@@ -74,6 +74,9 @@ public partial class CreateWorkflow
     }
     private async Task OnPreviewInteraction(StepperInteractionEventArgs arg)
     {
+        // Before anything can cancel or move: the component being left is about to be destroyed.
+        CaptureStepState();
+
         if (arg.Action == StepAction.Complete)
         {
             // occurrs when clicking next
@@ -100,21 +103,28 @@ public partial class CreateWorkflow
                 }
                 break;
             case 1:
-                workflowList = wkflowRef!.WorflowList();
-                if (workflowList?.Count <= 0)
+                if (workflowList.Count <= 0)
                 {
                     await DialogService!.ShowMessageBoxAsync("Error", "Please provide the documents worflow");
                     arg.Cancel = true;
                 }
                 break;
             case 2:
-                attachmentList = childRef!.GetAttchments();
                 if (attachmentList.Count <= 1)
                 {
                     await DialogService!.ShowMessageBoxAsync("Error", "You need to attach at least one document");
+                    // Cancelling did not stop the upload below, so a document with no attachment
+                    // was still created after the author was told to attach one.
                     arg.Cancel = true;
+                    return;
                 }
                 var uploaded = await ProcessDocumentUpload();
+                if (uploaded)
+                {
+                    Navigator!.NavigateTo($"/documents/{1}");
+                    Snackbar!.Clear();
+                    Snackbar!.Add("Document created successfully", Severity.Success);
+                }
                 if (!uploaded)
                     arg.Cancel = true;
                 break;
@@ -235,25 +245,29 @@ public partial class CreateWorkflow
 
     private async Task ControlStepNavigation(StepperInteractionEventArgs arg)
     {
+        // arg.StepIndex is the step being navigated TO, so its component does not exist yet. The
+        // gate is what the page already holds from the steps behind it.
         switch (arg.StepIndex)
         {
-            case 1:
-                workflowList = wkflowRef!.WorflowList();
-                if (workflowList.Count <= 0)
-                {
-                    await DialogService!.ShowMessageBoxAsync("Error", "Please provide the documents worflow");
-                    arg.Cancel = true;
-                }
-                break;
             case 2:
-                attachmentList = childRef!.GetAttchments();
-                if (attachmentList.Count <= 1)
+                if (workflowList.Count <= 0)
                 {
                     await DialogService!.ShowMessageBoxAsync("Error", "Finish step 1 and 2 first");
                     arg.Cancel = true;
                 }
                 break;
         }
+    }
+
+    /// <summary>
+    /// Takes step state up before MudStep destroys the component holding it. A ref is null unless its
+    /// step is rendered, so whichever are set are exactly the ones with something to harvest.
+    /// </summary>
+    private void CaptureStepState()
+    {
+        if (docRef is not null) extraFields = docRef.ExtraFields();
+        if (wkflowRef is not null) workflowList = wkflowRef.WorflowList();
+        if (childRef is not null) attachmentList = childRef.GetAttchments();
     }
 
 

@@ -21,9 +21,13 @@ public partial class CreateDocumentWorkflow
     [Inject] IHttpService httpSvc { get; set; } = default!;
     private List<ListOption> doctypeList = new(), docCatList = new();
     List<WorkFlow> workflowList = new();
-    string docCategory = "", userid = "";
+    string docCategory = "", docTypeName = "", docCategoryName = "";
     bool rearranged = false, updating, saving;
     int orgId = 0;
+
+    /// <summary>True once a category is chosen, which is what tells an empty list apart from no selection.</summary>
+    bool CategorySelected => !string.IsNullOrEmpty(docCategory) && docCategory != "0";
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         try
@@ -33,8 +37,6 @@ public partial class CreateDocumentWorkflow
                 var userData = await session!.GetCurrentUser();
                 httpSvc.Initialize(AppConstants.HttpSchemes.Core);
                 int.TryParse(userData.OrgId, out orgId);
-                string _userId = userData.UserId ?? "";
-                //userid = DataEncryptor.Decrypt(_userId);
                 await loadDocumentTypes();
             }
 
@@ -64,14 +66,20 @@ public partial class CreateDocumentWorkflow
     {
         try
         {
+            // Changing the type invalidates the category and everything shown for it.
+            docCatList.Clear();
+            docCategory = "";
+            docCategoryName = "";
+            workflowList.Clear();
+            rearranged = false;
+            docTypeName = NameOf(doctypeList, value);
+
             if (value == "0")
                 return;
-            docCatList.Clear();
 
             var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{orgId}?type=documentcategory&category={value}");
             if (status == false || result?.Data == null)
             {
-                //show dialog at this point
                 Snackbar!.Add(message!, Severity.Error);
                 return;
             }
@@ -86,17 +94,36 @@ public partial class CreateDocumentWorkflow
     }
     async Task DocCatChanged(string value)
     {
-        docCategory = value;
+        docCategory = value == "0" ? "" : value;
+        docCategoryName = NameOf(docCatList, value);
+        rearranged = false;
+
+        if (!CategorySelected)
+        {
+            workflowList.Clear();
+            return;
+        }
+
+        await LoadCategoryWorkflow();
+    }
+
+    /// <summary>Fetches the selected category's levels. A failed fetch leaves the list empty rather than stale.</summary>
+    async Task LoadCategoryWorkflow()
+    {
+        workflowList.Clear();
+
         var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<WorkFlow>>>($"api/doccategoryworkflow/category/{docCategory}");
         if (status == false || result?.Data == null)
         {
-            //show dialog at this point
             Snackbar!.Add(message!, Severity.Error);
             return;
         }
 
         workflowList = result.Data;
     }
+
+    static string NameOf(List<ListOption> options, string id) =>
+        options.FirstOrDefault(o => o.Id.ToString() == id && o.Id != 0)?.Name ?? "";
 
     private void MoveUp(WorkFlow item)
     {
@@ -151,6 +178,7 @@ public partial class CreateDocumentWorkflow
                 Snackbar.Add(string.IsNullOrEmpty(message) ? "Couldn't save the changes" : message, Severity.Error);
                 return;
             }
+            rearranged = false;
             Snackbar.Add("Workflow has been successfully saved", Severity.Success);
         }
         catch (Exception ee)
@@ -163,29 +191,64 @@ public partial class CreateDocumentWorkflow
             updating = false;
         }
     }
+
+    /// <summary>Defines a category's whole chain in one pass, for a category that has none yet.</summary>
+    async Task CreateDefaultWorkflow()
+    {
+        var levels = await sideDialog.Show<DefaultWorkflowBuilder, List<WorkFlow>>(title: "Create default workflow");
+        if (levels == null || levels.Count == 0)
+            return;
+
+        Snackbar.Clear();
+        try
+        {
+            saving = true;
+            var (proceed, _, message) = await httpSvc.ExecuteRequestAsync<ApiResponse<object>>(
+                HttpVerb.Post, $"api/doccategoryworkflow/category/{docCategory}/default", levels);
+
+            if (proceed == false)
+            {
+                Snackbar.Add(string.IsNullOrEmpty(message) ? "Couldn't create the workflow" : message, Severity.Error);
+                return;
+            }
+
+            await LoadCategoryWorkflow();
+            Snackbar.Add($"Workflow created with {workflowList.Count} levels", Severity.Success);
+        }
+        catch (Exception ee)
+        {
+            Snackbar.Add(ee.Message, Severity.Error);
+            logger.LogError(ee, ee.Message);
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
     async Task AddStepToCategory()
     {
         var result = await sideDialog.Show<EditDocWorkflow, WorkFlow>(title: "Choose role");
         Snackbar.Clear();
         if (result == null)
             return;
-        result.Level = workflowList.Count() + 1;
-        workflowList.Add(result);
 
         var data = new zxadocslib.Dtos.WorkFlow
         {
             IsRequired = result.IsRequired,
             RoleId = result.RoleId,
-            Level = workflowList.Count,
+            Level = workflowList.Count + 1,
             OrganisationId = orgId,
             CategoryId = int.Parse(docCategory),
-            CreatedBy = int.Parse(userid),
-
         };
         var (proceed, _, message) = await httpSvc.ExecuteRequestAsync<ApiResponse<object>>(HttpVerb.Post, "api/doccategoryworkflow", data);
 
         Snackbar!.Clear();
         Snackbar!.Add(proceed ? "Success" : message ?? "Something went wrong", proceed ? Severity.Success : Severity.Error);
+
+        // Reload rather than append: the new step's server id is what a later reorder saves against.
+        if (proceed)
+            await LoadCategoryWorkflow();
     }
 
     async Task EditDocWorkflow(WorkFlow flow)
@@ -204,8 +267,6 @@ public partial class CreateDocumentWorkflow
             Level = workflowList.Count,
             OrganisationId = orgId,
             CategoryId = int.Parse(docCategory),
-            CreatedBy = int.Parse(userid),
-
         };
         var (proceed, _, message) = await httpSvc.ExecuteRequestAsync<ApiResponse<object>>(HttpVerb.Post, "api/doccategoryworkflow", data);
 

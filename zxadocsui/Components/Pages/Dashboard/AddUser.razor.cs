@@ -160,26 +160,13 @@ public partial class AddUser
         {
             var (ok, bytes, _) = await HttpSvc.GetBytesAsync($"api/users/signature?ref={reference}");
             if (ok && bytes is { Length: > 0 })
-                _signaturePreview = ToDataUri(bytes, signatureUrl);
+                _signaturePreview = SignatureImage.ToDataUri(bytes, signatureUrl);
         }
         catch (Exception ex)
         {
             // A missing preview must not stop the operator editing the rest of the form.
             Logger.LogDebug("Signature preview failed: {Message}", ex.Message);
         }
-    }
-
-    private static string ToDataUri(byte[] bytes, string fileName)
-    {
-        var extension = Path.GetExtension(fileName).ToLowerInvariant();
-        var mime = extension switch
-        {
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".gif" => "image/gif",
-            ".webp" => "image/webp",
-            _ => "image/png"
-        };
-        return $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
     }
 
     private async Task OnSignatureSelected(IBrowserFile? file)
@@ -208,7 +195,7 @@ public partial class AddUser
             await stream.CopyToAsync(ms);
             _signatureBytes = ms.ToArray();
             _signatureFileName = file.Name;
-            _signaturePreview = ToDataUri(_signatureBytes, file.Name);
+            _signaturePreview = SignatureImage.ToDataUri(_signatureBytes, file.Name);
         }
         catch (Exception ex)
         {

@@ -23,7 +23,8 @@ public class SideDialogService
 
     public void Close(object? result = null)
     {
-        _tcs?.SetResult(result);
+        // TrySetResult: closing twice (save, then the X) must not throw.
+        _tcs?.TrySetResult(result);
         OnClose?.Invoke();
     }
 }

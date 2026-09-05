@@ -17,7 +17,7 @@ public partial class Documents
     [Inject] IDialogService? DialogService { get; set; }
     [Inject] ISnackbar? Snackbar { get; set; }
     [Inject] IUserSession? Session { get; set; }
-
+    [Parameter] public int? LoadedTabsId { get; set; }
     [Inject] NavigationManager Navigator { set; get; } = default!;
     List<QueryDto.DocumentQuery> inboxList = new(), outboxList = new(), archievedList = new(), deletedList = new(), draftList = new();
 
@@ -41,6 +41,10 @@ public partial class Documents
         tabApplied = true;
         appliedTab = Tab;
         activeTab = TabIndex(Tab);
+        if(LoadedTabsId.HasValue)
+        {
+            activeTab = LoadedTabsId.Value;
+        }
 
         // Before the first render there is no session/token yet; OnAfterRenderAsync does that load.
         if (loaded) await LoadDocuments(FolderFor(activeTab));

@@ -18,6 +18,10 @@ public partial class DocumentDetails
     [Inject] private IUserSession session { get; set; } = default!;
     [Parameter] public Document? Document { set; get; }
 
+    // MudStep destroys this component when its step is not active. The choices live on Document, but
+    // the category fields do not, so the page hands them back on rebuild.
+    [Parameter] public List<DocCategoryField>? SavedExtraFields { set; get; }
+
     // The list-options endpoint reads the organisation from the route and never falls back to the
     // token, so a hardcoded id here serves org 1's values to every tenant.
     private int orgId;
@@ -62,6 +66,7 @@ public partial class DocumentDetails
 
             await loadPriorities();
             await loadDocumentTypes();
+            await RestoreSelections();
             StateHasChanged();
         }
     }
@@ -116,20 +121,39 @@ public partial class DocumentDetails
             docCatList.Clear();
             Document?.CategoryId = 0;
             Document?.TypeId = int.Parse(value);
-            var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{orgId}?type=documentcategory&category={value}");
-            if (status == false || result?.Data == null)
-            {
-                //show dialog at this point
-                Snackbar!.Add(message!, Severity.Error);
-                return;
-            }
             extraFields.Clear();
-            docCatList = result.Data;
+            await LoadCategories(int.Parse(value));
         }
         catch (Exception ex)
         {
             logger!.LogDebug(ex.Message);
         }
+    }
+
+    private async Task LoadCategories(int typeId)
+    {
+        var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{orgId}?type=documentcategory&category={typeId}");
+        if (status == false || result?.Data == null)
+        {
+            Snackbar!.Add(message!, Severity.Error);
+            return;
+        }
+
+        docCatList = result.Data;
+    }
+
+    /// <summary>Rebuilds what a destroyed component lost: the category list, and the category fields.</summary>
+    private async Task RestoreSelections()
+    {
+        if (Document is null || Document.TypeId <= 0)
+            return;
+
+        await LoadCategories(Document.TypeId);
+
+        // Copy: the picker clears this list when the type or category changes, and that must not
+        // reach into the page's copy. The page re-harvests on every step change anyway.
+        if (SavedExtraFields is { Count: > 0 })
+            extraFields = SavedExtraFields.ToList();
     }
     private async Task DocCategoryChanged(string value)
     {
@@ -170,6 +194,8 @@ public partial class DocumentDetails
     }
 
     public bool ValidateForm() => success;
+
+    public List<DocCategoryField> ExtraFields() => extraFields;
 
 
 }
