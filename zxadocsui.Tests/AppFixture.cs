@@ -80,6 +80,24 @@ public sealed class AppFixture : IAsyncLifetime
         }
     }
 
+    /// <summary>
+    /// An account holding ManageRole, read from ZXADOCS_ROLE_ADMIN and ZXADOCS_ROLE_ADMIN_PASSWORD,
+    /// or null when they are not set. The default login does not hold it, so nothing it does can
+    /// reach the category-field editor (ZD-126). The password stays in the environment because
+    /// this file is committed.
+    /// </summary>
+    public static (string User, string Password)? RoleAdmin
+    {
+        get
+        {
+            var user = Environment.GetEnvironmentVariable("ZXADOCS_ROLE_ADMIN");
+            var password = Environment.GetEnvironmentVariable("ZXADOCS_ROLE_ADMIN_PASSWORD");
+            return string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(password)
+                ? null
+                : (user, password);
+        }
+    }
+
     /// <summary>A page signed in as a named user, for the flows that need a second actor.</summary>
     public async Task<IPage> SignedInPageAsync(string username, string password)
     {
