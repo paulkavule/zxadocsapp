@@ -168,16 +168,7 @@ public partial class DocumentDetails
                 return;
             }
 
-            extraFields = data?.Data[0].ExtraFields.Select((dd) =>
-            {
-                return new DocCategoryField
-                {
-                    FieldName = dd.FieldName,
-                    FieldId = dd.FieldId,
-                    Options = dd.Options,
-                    CategoryId = dd.CategoryId
-                };
-            }).ToList() ?? new List<DocCategoryField>();
+            await LoadExtraFields(Document.CategoryId);
 
             (exists, var result, message) = await httpSvc!.GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{orgId}?type=documentworkflow&category={value}");
             if (!exists)
@@ -193,9 +184,42 @@ public partial class DocumentDetails
         }
     }
 
+    /// <summary>The category's extra fields, already ordered and stripped of the inactive ones.</summary>
+    private async Task LoadExtraFields(int categoryId)
+    {
+        extraFields.Clear();
+
+        var (status, result, _) = await httpSvc!.GetAsync<ApiResponse<List<CategoryField>>>(
+            $"api/doccategory/{categoryId}/fields");
+        if (status == false || result?.Data == null)
+            return;
+
+        extraFields = result.Data.Select(field => new DocCategoryField
+        {
+            FieldName = field.FieldName,
+            FieldId = field.FieldId,
+            FieldType = field.FieldType,
+            IsRequired = field.IsRequired,
+            Order = field.Order,
+            Options = field.Options,
+            CategoryId = field.CategoryId
+        }).ToList();
+    }
+
+    // MudDatePicker works in DateTime?; the captured value is the round-trip string on the DTO.
+    private static DateTime? DateOf(DocCategoryField field) =>
+        DateTime.TryParse(field.SelectedValue, out var date) ? date : null;
+
+    private static void DateChanged(DocCategoryField field, DateTime? value) =>
+        field.SelectedValue = value?.ToString("yyyy-MM-dd") ?? string.Empty;
+
     public bool ValidateForm() => success;
 
     public List<DocCategoryField> ExtraFields() => extraFields;
+
+    /// <summary>The first required field left empty, or null. Drives the step-1 gate in CreateWorkflow.</summary>
+    public string? FirstMissingRequiredField() => extraFields
+        .FirstOrDefault(f => f.IsRequired && string.IsNullOrWhiteSpace(f.SelectedValue))?.FieldName;
 
 
 }

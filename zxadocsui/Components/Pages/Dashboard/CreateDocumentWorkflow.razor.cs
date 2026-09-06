@@ -19,10 +19,13 @@ public partial class CreateDocumentWorkflow
     [Inject] SideDialogService sideDialog { get; set; } = default!;
     [Inject] IUserSession? session { set; get; }
     [Inject] IHttpService httpSvc { get; set; } = default!;
+    [Inject] IPermissionClientService permissions { get; set; } = default!;
     private List<ListOption> doctypeList = new(), docCatList = new();
     List<WorkFlow> workflowList = new();
+    readonly List<FieldRow> categoryFields = new();
     string docCategory = "", docTypeName = "", docCategoryName = "";
     bool rearranged = false, updating, saving;
+    bool canManage, savingFields;
     int orgId = 0;
 
     /// <summary>True once a category is chosen, which is what tells an empty list apart from no selection.</summary>
@@ -37,6 +40,7 @@ public partial class CreateDocumentWorkflow
                 var userData = await session!.GetCurrentUser();
                 httpSvc.Initialize(AppConstants.HttpSchemes.Core);
                 int.TryParse(userData.OrgId, out orgId);
+                canManage = (await permissions.GetPermissions()).Contains(Permission.ManageRole);
                 await loadDocumentTypes();
             }
 
@@ -71,6 +75,7 @@ public partial class CreateDocumentWorkflow
             docCategory = "";
             docCategoryName = "";
             workflowList.Clear();
+            categoryFields.Clear();
             rearranged = false;
             docTypeName = NameOf(doctypeList, value);
 
@@ -101,10 +106,12 @@ public partial class CreateDocumentWorkflow
         if (!CategorySelected)
         {
             workflowList.Clear();
+            categoryFields.Clear();
             return;
         }
 
         await LoadCategoryWorkflow();
+        await LoadCategoryFields();
     }
 
     /// <summary>Fetches the selected category's levels. A failed fetch leaves the list empty rather than stale.</summary>
@@ -273,5 +280,129 @@ public partial class CreateDocumentWorkflow
         Snackbar!.Clear();
         Snackbar!.Add(proceed ? "Success" : message ?? "Something went wrong", proceed ? Severity.Success : Severity.Error);
 
+    }
+
+    // ---------------------------------------------------------- category fields (ZD-126)
+
+    // Party is a contract-drafting concept and has no meaning on a document category.
+    static readonly TemplateFieldType[] FieldTypes =
+    [
+        TemplateFieldType.Text, TemplateFieldType.MultilineText, TemplateFieldType.Number,
+        TemplateFieldType.Currency, TemplateFieldType.Date, TemplateFieldType.Boolean,
+        TemplateFieldType.Dropdown
+    ];
+
+    /// <summary>Fetches the category's extra fields. A failed fetch leaves the list empty rather than stale.</summary>
+    async Task LoadCategoryFields()
+    {
+        categoryFields.Clear();
+
+        var (status, result, message) = await httpSvc!.GetAsync<ApiResponse<List<CategoryField>>>(
+            $"api/doccategory/{docCategory}/fields");
+        if (status == false || result?.Data == null)
+            return;
+
+        categoryFields.AddRange(result.Data.Select(FieldRow.From));
+    }
+
+    void AddField() => categoryFields.Add(new FieldRow());
+
+    void RemoveField(FieldRow row) => categoryFields.Remove(row);
+
+    void MoveField(FieldRow row, int offset)
+    {
+        var from = categoryFields.IndexOf(row);
+        var to = from + offset;
+        if (from < 0 || to < 0 || to >= categoryFields.Count)
+            return;
+
+        categoryFields.RemoveAt(from);
+        categoryFields.Insert(to, row);
+    }
+
+    async Task SaveFields()
+    {
+        // Checked here so the operator is told which row is wrong; the server re-checks it all.
+        var problem = FirstFieldProblem();
+        if (problem is not null)
+        {
+            Snackbar.Add(problem, Severity.Warning);
+            return;
+        }
+
+        savingFields = true;
+        try
+        {
+            var payload = categoryFields.Select((row, index) => row.ToDto(int.Parse(docCategory), index)).ToList();
+            var (proceed, _, message) = await httpSvc.ExecuteRequestAsync<ApiResponse<int>>(
+                HttpVerb.Put, $"api/doccategory/{docCategory}/fields", payload);
+
+            Snackbar.Clear();
+            Snackbar.Add(proceed ? "Category fields saved" : message ?? "Something went wrong",
+                proceed ? Severity.Success : Severity.Error);
+
+            // Reload rather than trust the local rows: a new field is only issued its FieldId here.
+            if (proceed)
+                await LoadCategoryFields();
+        }
+        finally
+        {
+            savingFields = false;
+        }
+    }
+
+    string? FirstFieldProblem()
+    {
+        var names = categoryFields.Select(f => (f.Name ?? "").Trim()).ToList();
+        if (names.Any(string.IsNullOrEmpty))
+            return "Every field needs a name.";
+
+        if (names.Count != names.Distinct(StringComparer.OrdinalIgnoreCase).Count())
+            return "Field names must be unique within a category.";
+
+        var emptyDropdown = categoryFields.FirstOrDefault(f =>
+            f.Type == TemplateFieldType.Dropdown && f.SplitOptions().Count == 0);
+
+        return emptyDropdown is null ? null : $"Dropdown field '{emptyDropdown.Name}' needs at least one option.";
+    }
+
+    /// <summary>The editor's own row: options are typed as a comma-separated string, split on save.</summary>
+    sealed class FieldRow
+    {
+        // 0 until the server issues one. Carried back on save so a rename keeps the field identity
+        // that captured values point at.
+        public int FieldId { get; set; }
+        public string Name { get; set; } = "";
+        public TemplateFieldType Type { get; set; } = TemplateFieldType.Text;
+        public bool Required { get; set; }
+        public string OptionsCsv { get; set; } = "";
+
+        public static FieldRow From(CategoryField dto) => new()
+        {
+            FieldId = dto.FieldId,
+            Name = dto.FieldName,
+            Type = dto.FieldType,
+            Required = dto.IsRequired,
+            OptionsCsv = string.Join(", ", dto.Options.Select(o => o.Name)),
+        };
+
+        public List<string> SplitOptions() => (OptionsCsv ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+
+        public CategoryField ToDto(int categoryId, int index) => new()
+        {
+            CategoryId = categoryId,
+            FieldId = FieldId,
+            FieldName = (Name ?? "").Trim(),
+            FieldType = Type,
+            IsRequired = Required,
+            // Position in the table is the field order.
+            Order = index + 1,
+            IsActive = true,
+            Options = Type == TemplateFieldType.Dropdown
+                ? SplitOptions().Select(o => new ListOption { Name = o }).ToList()
+                : new List<ListOption>(),
+        };
     }
 }

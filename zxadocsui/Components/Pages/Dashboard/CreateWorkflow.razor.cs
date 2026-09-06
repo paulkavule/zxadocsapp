@@ -96,6 +96,17 @@ public partial class CreateWorkflow
             case 0:
                 var validated = docRef!.ValidateForm();
                 validForm = !validated;
+
+                // Checked before the generic message so the author is told which of the category's
+                // own fields (ZD-126) is empty, rather than that the form is invalid somewhere.
+                var missing = docRef.FirstMissingRequiredField();
+                if (missing is not null)
+                {
+                    await DialogService!.ShowMessageBoxAsync("Error", $"{missing} is required");
+                    arg.Cancel = true;
+                    break;
+                }
+
                 if (!validated)
                 {
                     await DialogService!.ShowMessageBoxAsync("Error", "Please provide all required document details");
@@ -253,6 +264,15 @@ public partial class CreateWorkflow
                 if (workflowList.Count <= 0)
                 {
                     await DialogService!.ShowMessageBoxAsync("Error", "Finish step 1 and 2 first");
+                    arg.Cancel = true;
+                    break;
+                }
+
+                // Jumping straight to step 3 by its header skips the step-1 completion gate.
+                var unfilled = extraFields.FirstOrDefault(f => f.IsRequired && string.IsNullOrWhiteSpace(f.SelectedValue));
+                if (unfilled is not null)
+                {
+                    await DialogService!.ShowMessageBoxAsync("Error", $"{unfilled.FieldName} is required");
                     arg.Cancel = true;
                 }
                 break;

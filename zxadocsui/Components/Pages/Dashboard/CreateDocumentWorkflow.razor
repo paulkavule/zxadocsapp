@@ -1,6 +1,7 @@
 @page "/workflows"
 
 @using zxadocsfe.Dtos
+@using zxadocslib.Helpers
 
 <div class="flex  justify-between items-center gap-4 mb-3">
     <div class="flex-1 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
@@ -135,5 +136,96 @@
                 </div>
             }
         </article>
+
+        @if (CategorySelected)
+        {
+            <article class="p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <h3 class="text-base font-semibold text-slate-900">Category fields</h3>
+                        <p class="text-sm text-slate-500 mt-1">Collected from the author when a
+                            @(string.IsNullOrEmpty(docCategoryName) ? "document" : docCategoryName) is initiated.</p>
+                    </div>
+                    @if (canManage)
+                    {
+                        <MudButton OnClick="AddField" Variant="Variant.Outlined" Color="Color.Primary"
+                                   Size="Size.Small" StartIcon="@Icons.Material.Filled.Add">Add field</MudButton>
+                    }
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm border border-slate-200 rounded-xl overflow-hidden">
+                        <thead class="bg-slate-50 text-slate-500">
+                            <tr class="text-left">
+                                <th class="px-3 py-2 font-medium w-[26%]">Name</th>
+                                <th class="px-3 py-2 font-medium w-[18%]">Type</th>
+                                <th class="px-3 py-2 font-medium w-[34%]">Options (Dropdown)</th>
+                                <th class="px-3 py-2 font-medium w-[10%] text-center">Required</th>
+                                <th class="px-3 py-2 font-medium w-[12%]"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (categoryFields.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="5" class="px-3 py-6 text-center text-slate-400">
+                                        No extra fields. An author initiating this category fills in nothing beyond the basics.
+                                    </td>
+                                </tr>
+                            }
+                            @foreach (var field in categoryFields)
+                            {
+                                <tr class="border-t border-slate-100 align-top">
+                                    <td class="px-2 py-1">
+                                        <MudTextField @bind-Value="field.Name" Placeholder="Cost centre" Variant="Variant.Text"
+                                                      Margin="Margin.Dense" Disabled="@(!canManage)" />
+                                    </td>
+                                    <td class="px-2 py-1">
+                                        <MudSelect T="TemplateFieldType" @bind-Value="field.Type" Variant="Variant.Text"
+                                                   Margin="Margin.Dense" Disabled="@(!canManage)">
+                                            @foreach (var type in FieldTypes)
+                                            {
+                                                <MudSelectItem Value="type">@type</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </td>
+                                    <td class="px-2 py-1">
+                                        <MudTextField @bind-Value="field.OptionsCsv" Placeholder="North, South, Central"
+                                                      Disabled="@(!canManage || field.Type != TemplateFieldType.Dropdown)"
+                                                      Variant="Variant.Text" Margin="Margin.Dense" />
+                                    </td>
+                                    <td class="px-2 py-1 text-center">
+                                        <MudCheckBox @bind-Value="field.Required" Disabled="@(!canManage)" />
+                                    </td>
+                                    <td class="px-2 py-1 text-right">
+                                        @if (canManage)
+                                        {
+                                            <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
+                                                           Disabled="@(categoryFields.IndexOf(field) == 0)"
+                                                           OnClick="@(() => MoveField(field, -1))" aria-label="Move field up" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                           Color="Color.Error" OnClick="@(() => RemoveField(field))"
+                                                           aria-label="Remove field" />
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (canManage)
+                {
+                    <div class="flex items-center gap-3 mt-4">
+                        <MudButton OnClick="SaveFields" Disabled="@savingFields" Variant="Variant.Filled"
+                                   Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save">
+                            @(savingFields ? "Saving..." : "Save fields")
+                        </MudButton>
+                        <span class="text-xs text-slate-500">A removed field stops being collected; values already
+                            captured on existing documents are kept.</span>
+                    </div>
+                }
+            </article>
+        }
     </div>
 </div>
