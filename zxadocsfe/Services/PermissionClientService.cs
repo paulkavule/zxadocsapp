@@ -24,6 +24,12 @@ public interface IPermissionClientService
     // Role administration (ZD-93). The catalogue is every Permission the server knows, so a
     // new enum member appears in the UI without a client change.
     Task<(bool ok, PermissionItem[] data, string? error)> GetCatalogue();
+
+    /// <summary>
+    /// The caller's system roles (ZD-131), empty for an organisation user. Cached like the
+    /// permissions above, and cleared by the same ClearUserState.
+    /// </summary>
+    Task<IReadOnlySet<SystemRole>> GetSystemRoles(bool forceRefresh = false);
     Task<(bool ok, int[] values, string? error)> GetRolePermissions(int roleId);
     Task<(bool ok, string? error)> SetRolePermissions(int roleId, IEnumerable<int> values);
 }
@@ -32,12 +38,17 @@ public class PermissionClientService : IPermissionClientService, IScopedUserStat
 {
     private readonly IHttpService http;
     private HashSet<Permission>? cache;
+    private HashSet<SystemRole>? systemRoles;
 
     public PermissionClientService(IHttpService http) => this.http = http;
 
     // Without this the next user on the same circuit inherits the previous user's menu and page
     // gates until the browser is refreshed.
-    public void ClearUserState() => cache = null;
+    public void ClearUserState()
+    {
+        cache = null;
+        systemRoles = null;
+    }
 
     public async Task<IReadOnlySet<Permission>> GetPermissions(bool forceRefresh = false)
     {
@@ -56,6 +67,24 @@ public class PermissionClientService : IPermissionClientService, IScopedUserStat
             return cache;
         }
         return new HashSet<Permission>();
+    }
+
+    public async Task<IReadOnlySet<SystemRole>> GetSystemRoles(bool forceRefresh = false)
+    {
+        if (systemRoles is not null && !forceRefresh) return systemRoles;
+
+        http.Initialize("Api");
+        var (ok, resp, _) = await http.GetAsync<ApiResponse<int[]>>("api/me/system-roles");
+
+        // Same rule as above: an un-cached empty set on failure, so a tokenless cold load does not
+        // poison the circuit into hiding the Settings section for good.
+        if (ok && resp?.Data is not null)
+        {
+            systemRoles = resp.Data.Where(value => Enum.IsDefined((SystemRole)value))
+                .Select(value => (SystemRole)value).ToHashSet();
+            return systemRoles;
+        }
+        return new HashSet<SystemRole>();
     }
 
     public async Task<bool> Has(Permission permission) =>

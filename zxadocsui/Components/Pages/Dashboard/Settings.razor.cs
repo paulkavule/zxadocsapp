@@ -2,17 +2,20 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
+using zxadocslib.Helpers;
 using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard;
 
 // Organisation Settings — generic list-values manager (add/edit/delete the org's configurable
 // lookups). Template categories are the "TemplateCategory" list; more list types can be added
-// to `lists`. Mutations require the Admin role (server also enforces).
+// to `lists`. Mutations require ManageRole, which the server enforces on the list-option
+// endpoints since ZD-128.
 public partial class Settings
 {
     [Inject] private IListOptionClientService ListOptions { get; set; } = default!;
     [Inject] private IUserSession Session { get; set; } = default!;
+    [Inject] private IPermissionClientService Permissions { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
@@ -29,17 +32,24 @@ public partial class Settings
     private bool busy;
     private int orgId;
 
-    protected override async Task OnInitializedAsync()
+    // ZD-131. Was a role-name comparison, and the note above claimed the server enforced it too -
+    // false until ZD-128 gated the list-option writes on ManageRole. The two now agree, and this
+    // runs after first render, where the token is actually hydrated.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender) return;
+
         var user = await Session.GetCurrentUser();
-        if (!string.Equals(user.RoleName, "Admin", StringComparison.OrdinalIgnoreCase))
+        if (!await Permissions.Has(Permission.ManageRole))
         {
-            Snackbar.Add("Organisation settings are available to admins only.", Severity.Warning);
+            Snackbar.Add("Organisation settings require the role-management permission.", Severity.Warning);
             Nav.NavigateTo("/dashboard");
             return;
         }
+
         int.TryParse(user.OrgId, out orgId);
         await LoadValues();
+        StateHasChanged();
     }
 
     private async Task OnListChanged(string type)

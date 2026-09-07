@@ -98,6 +98,25 @@ public sealed class AppFixture : IAsyncLifetime
         }
     }
 
+    /// <summary>
+    /// A system user, read from ZXADOCS_SYSTEM_ADMIN and ZXADOCS_SYSTEM_ADMIN_PASSWORD, or null
+    /// when they are not set. No organisation user can reach the Settings section (ZD-131), and the
+    /// account is provisioned at startup rather than through the product, so it cannot be derived
+    /// from the other credentials here. The password stays in the environment because this file is
+    /// committed.
+    /// </summary>
+    public static (string User, string Password)? SystemAdmin
+    {
+        get
+        {
+            var user = Environment.GetEnvironmentVariable("ZXADOCS_SYSTEM_ADMIN");
+            var password = Environment.GetEnvironmentVariable("ZXADOCS_SYSTEM_ADMIN_PASSWORD");
+            return string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(password)
+                ? null
+                : (user, password);
+        }
+    }
+
     /// <summary>A page signed in as a named user, for the flows that need a second actor.</summary>
     public async Task<IPage> SignedInPageAsync(string username, string password)
     {
