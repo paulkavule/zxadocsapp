@@ -334,7 +334,7 @@ public class UserEditTests(AppFixture app)
     /// </summary>
     private static async Task CompleteRequiredFieldsAsync(IPage page)
     {
-        await FillIfEmptyAsync(page.GetByLabel("Department"), "1");
+        await ChooseDepartmentAsync(page);
         await FillIfEmptyAsync(page.GetByLabel("Grade"), "G1");
         await FillIfEmptyAsync(page.GetByLabel("Country Code"), "256");
         await FillIfEmptyAsync(page.GetByLabel("Phone Number"), "700000123");
@@ -382,4 +382,35 @@ public class UserEditTests(AppFixture app)
 
     private static byte[] OnePixelPng() => Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+
+    /// <summary>
+    /// Department became a picker in ZD-132: it was a free-text box, but the API requires the value
+    /// to parse as a department id, so typing a name always came back 400.
+    ///
+    /// Located by its control rather than GetByLabel: a MudSelect renders a hidden input alongside
+    /// the visible one, and .First resolves to the hidden one - which is never clickable and never
+    /// readable with InputValueAsync. Waits for the popover to detach, or the overlay swallows the
+    /// click on Save that follows.
+    /// </summary>
+    private static async Task ChooseDepartmentAsync(IPage page)
+    {
+        var control = page.Locator("div.mud-input-control:has(label:text-is('Department'))");
+        if (await control.CountAsync() == 0) return;
+
+        await control.First.ClickAsync(new() { Timeout = 15_000 });
+        var options = page.Locator("div.mud-popover-open .mud-list-item");
+        try
+        {
+            await options.First.WaitForAsync(new() { Timeout = 10_000 });
+        }
+        catch (TimeoutException)
+        {
+            await page.Keyboard.PressAsync("Escape");
+            return;
+        }
+
+        await options.First.ClickAsync();
+        await page.Locator("div.mud-popover-open").First
+            .WaitForAsync(new() { State = WaitForSelectorState.Detached, Timeout = 10_000 });
+    }
 }

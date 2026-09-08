@@ -59,6 +59,7 @@ public partial class AddUser
     // GetSignatureByReference, CreateDocument — already treats the column as a path.
     private byte[]? _signatureBytes;
     private UserData _currentUser = new();
+    private List<ListOption> _departments = new();
 
     // Signatures are small images; cap the upload so a huge file can't be streamed in.
     private const long MaxSignatureSize = 5 * 1024 * 1024; // 5 MB
@@ -70,9 +71,14 @@ public partial class AddUser
         if (!firstRender) return;
         _currentUser = await Session.GetCurrentUser();
 
+        // A System Support user provisions on a customer's behalf and holds no organisation
+        // permissions of its own, so the role stands in for the permission here (ZD-132). The
+        // organisation it lands in is the one selected in the header.
+        var supporting = (await Permissions.GetSystemRoles()).Contains(SystemRole.SystemSupport);
+
         // Editing sets roles, so it needs ManageUsers, which is what PATCH /api/users/{id} enforces.
         var required = IsEditMode ? Permission.ManageUsers : Permission.CreateUser;
-        if (!await Permissions.Has(required))
+        if (!supporting && !await Permissions.Has(required))
         {
             Snackbar.Add($"You do not have permission to {(IsEditMode ? "edit" : "create")} users.", Severity.Warning);
             Navigator.NavigateTo("/users");
@@ -80,11 +86,20 @@ public partial class AddUser
         }
 
         await LoadRoles();
+        await LoadDepartments();
 
         if (IsEditMode)
             await LoadUserAsync(UserReference!.Value);
 
         StateHasChanged();
+    }
+
+    /// <summary>The organisation's departments, so the form offers ids rather than free text.</summary>
+    private async Task LoadDepartments()
+    {
+        var (ok, result, _) = await HttpSvc.GetAsync<ApiResponse<List<ListOption>>>("api/departments");
+        if (ok && result?.Data is not null)
+            _departments = result.Data;
     }
 
     private async Task LoadRoles()

@@ -141,9 +141,33 @@ public sealed class AppFixture : IAsyncLifetime
         var login = page.GetByRole(AriaRole.Button, new() { Name = "Login" });
         await Assertions.Expect(login).ToBeEnabledAsync(new() { Timeout = 15_000 });
         await login.ClickAsync(new() { Timeout = 15_000 });
+
+        await ChooseRoleIfAskedAsync(page);
         await page.WaitForURLAsync("**/dashboard", new() { Timeout = 30_000 });
 
         return page;
+    }
+
+    /// <summary>
+    /// A user with more than one role is asked which to sign in as (Login.razor.cs, the side
+    /// dialog). One role goes straight through, so this only fires for the multi-role accounts -
+    /// and without it their login simply never reaches the dashboard.
+    /// </summary>
+    private static async Task ChooseRoleIfAskedAsync(IPage page)
+    {
+        var roles = page.Locator(".mud-list-item");
+        try
+        {
+            await roles.First.WaitForAsync(new() { Timeout = 6_000 });
+        }
+        catch (TimeoutException)
+        {
+            return; // single-role account: no dialog, already on its way
+        }
+
+        // Whichever role is first. Which one is chosen does not matter to any test here; that it
+        // gets chosen at all does.
+        await roles.First.ClickAsync(new() { Timeout = 10_000 });
     }
 
     /// <summary>

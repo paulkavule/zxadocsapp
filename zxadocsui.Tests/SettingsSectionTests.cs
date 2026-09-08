@@ -121,6 +121,63 @@ public class SettingsSectionTests(AppFixture app)
             .ToBeVisibleAsync(new() { Timeout = 15_000 });
     }
 
+    [Fact]
+    public async Task The_workflow_list_shows_the_selected_organisations_documents()
+    {
+        SkipIfAppDown();
+        var admin = AppFixture.SystemAdmin;
+        Assert.SkipWhen(admin is null, "ZXADOCS_SYSTEM_ADMIN/_PASSWORD are not set");
+
+        await using var page = await app.SignedInPageAsync(admin!.Value.User, admin.Value.Password);
+        await page.WaitForTimeoutAsync(3000);
+
+        // By href, not by name: the NavLink's accessible name carries the icon's leading space, and
+        // there is also a top-level /workflows link for authors. The screen needs System Support or
+        // System Viewer, so skip when the account holds neither.
+        var link = page.Locator("a[href='/settings/workflows']");
+        Assert.SkipWhen(await link.CountAsync() == 0, "this account holds no support or viewer role");
+
+        await link.First.ClickAsync();
+        await page.WaitForTimeoutAsync(3000);
+
+        var picked = await PickAnOrganisationAsync(page);
+        Assert.SkipWhen(picked is null, "the picker offered no organisation");
+        await page.WaitForTimeoutAsync(3000);
+
+        await Assertions.Expect(page.Locator("h1:text-is('Workflows') + p"))
+            .ToContainTextAsync(picked!, new() { Timeout = 15_000 });
+    }
+
+    [Fact]
+    public async Task The_reassign_panel_says_what_it_will_not_touch()
+    {
+        SkipIfAppDown();
+        var admin = AppFixture.SystemAdmin;
+        Assert.SkipWhen(admin is null, "ZXADOCS_SYSTEM_ADMIN/_PASSWORD are not set");
+
+        await using var page = await app.SignedInPageAsync(admin!.Value.User, admin.Value.Password);
+        await page.WaitForTimeoutAsync(3000);
+
+        var link = page.Locator("a[href='/settings/workflows']");
+        Assert.SkipWhen(await link.CountAsync() == 0, "this account holds no support or viewer role");
+
+        await link.First.ClickAsync();
+        await page.WaitForTimeoutAsync(3000);
+        Assert.SkipWhen(await PickAnOrganisationAsync(page) is null, "the picker offered no organisation");
+        await page.WaitForTimeoutAsync(3000);
+
+        var reassign = page.GetByRole(AriaRole.Button, new() { Name = "Reassign" });
+        Assert.SkipWhen(await reassign.CountAsync() == 0, "the organisation has no workflows to reassign");
+
+        await reassign.First.ClickAsync();
+        await page.WaitForTimeoutAsync(2500);
+
+        // Reassignment is deliberately not signing, and the panel has to say so.
+        await Assertions.Expect(page.GetByText("It does not sign, stamp or archive"))
+            .ToBeVisibleAsync(new() { Timeout = 15_000 });
+        await Assertions.Expect(page.GetByLabel("Hand to")).ToBeVisibleAsync(new() { Timeout = 15_000 });
+    }
+
     /// <summary>Picks the first real organisation from the header picker and returns its name.</summary>
     private static async Task<string?> PickAnOrganisationAsync(IPage page)
     {

@@ -1,0 +1,90 @@
+@page "/settings/workflows"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90 backdrop-blur-sm">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-diagram-project text-sm"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Workflows</h1>
+            <p class="text-xs text-slate-500">
+                @(string.IsNullOrWhiteSpace(Acting.Label) ? "for your organisation" : $"for {Acting.Label}")
+            </p>
+        </div>
+    </div>
+
+    <div class="p-6 space-y-4">
+        @if (Acting.IsAllOrganisations)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">
+                Workflows are listed per organisation. Choose one in the header.
+            </MudAlert>
+        }
+
+        <div class="overflow-x-auto">
+            <MudTable Items="@workflows" Hover="true" Dense="true" Striped="true" Elevation="0"
+                      Loading="@loading" LoadingProgressColor="Color.Primary">
+                <HeaderContent>
+                    <MudTh>Document</MudTh>
+                    <MudTh>Author</MudTh>
+                    <MudTh>Waiting on</MudTh>
+                    <MudTh>Due</MudTh>
+                    <MudTh Style="width:120px"></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Document">@context.Title</MudTd>
+                    <MudTd DataLabel="Author">@context.Author</MudTd>
+                    <MudTd DataLabel="Waiting on">
+                        @if (string.IsNullOrWhiteSpace(context.NextActor))
+                        {
+                            <span class="text-amber-600">unassigned</span>
+                        }
+                        else
+                        {
+                            @context.NextActor
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Due">@(context.DueDate?.ToString("dd MMM yyyy") ?? "-")</MudTd>
+                    <MudTd>
+                        @if (canReassign && !Acting.IsAllOrganisations)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                       OnClick="@(() => BeginReassign(context))">Reassign</MudButton>
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <div class="py-10 text-center text-slate-500">No workflows in this organisation.</div>
+                </NoRecordsContent>
+            </MudTable>
+        </div>
+
+        @if (reassigning is not null)
+        {
+            <div class="border border-slate-200 rounded-xl p-4 space-y-3">
+                <p class="text-sm font-medium text-slate-900">
+                    Reassign &ldquo;@reassigning.Title&rdquo;
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                    <MudSelect T="int" @bind-Value="targetUserId" Label="Hand to" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" Class="md:col-span-8">
+                        @foreach (var candidate in candidates)
+                        {
+                            <MudSelectItem Value="@candidate.Id">@candidate.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <div class="md:col-span-4 flex gap-2">
+                        <MudButton OnClick="ConfirmReassign" Variant="Variant.Filled" Color="Color.Primary"
+                                   Disabled="@(busy || targetUserId == 0)">Confirm</MudButton>
+                        <MudButton OnClick="CancelReassign" Variant="Variant.Text" Disabled="@busy">Cancel</MudButton>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500">
+                    Moves who must act next and records it. It does not sign, stamp or archive the document.
+                </p>
+            </div>
+        }
+    </div>
+</div>
