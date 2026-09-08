@@ -24,6 +24,7 @@ public partial class Dashboard
     [Inject] IJSRuntime JSRuntime { set; get; } = default!;
     [Inject] NavigationManager navigator { set; get; } = default!;
     [Inject] IActivityClientService ActivityApi { set; get; } = default!;
+    [Inject] IPermissionClientService permissions { set; get; } = default!;
     StatisticsDto statistics = new();
     UserData userData = new();
     List<ListValue> listValues = new();
@@ -32,6 +33,9 @@ public partial class Dashboard
     // few; the button carries the full count.
     List<QueryDto.DocumentQuery> pendingApprovals = new();
     const int PendingApprovalsShown = 3;
+
+    // The card's link into the activity report, which now needs reporting access (ZD-133).
+    bool canReports;
     protected override void OnInitialized()
     {
         httpSvc.Initialize(AppConstants.HttpSchemes.Core);
@@ -43,6 +47,10 @@ public partial class Dashboard
         {
 
             await LoadUserInformation();
+
+            canReports = (await permissions.GetPermissions()).Contains(Permission.ViewOrganisationReports)
+                      || (await permissions.GetSystemRoles()).Contains(SystemRole.SystemViewer);
+
             await GetDashboardStats();
             await GetRecentActivity();
             await GetPendingApprovals();

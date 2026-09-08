@@ -132,6 +132,8 @@
                         Analytics</div>
 
                         <!-- REPORTS SECTION (collapsible submenu) -->
+                        @if (canReports)
+                        {
                         <div id="reportsToggle"
                              class="flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer hover:bg-[#e0f2df] transition group menu-item">
                             <div class="flex items-center space-x-3">
@@ -168,6 +170,7 @@
                                 </NavLink> *@
                             </div>
                         </div>
+                        }
 
                         @if (canAudit)
                         {
@@ -363,6 +366,10 @@
     // permission (ZD-131). The server gates every system endpoint regardless.
     IReadOnlySet<SystemRole> systemRoles = new HashSet<SystemRole>();
     bool canSystem => systemRoles.Count > 0;
+
+    // Reporting is the organisation super user's permission, or the System Viewer role for a
+    // system user who holds none of the organisation's permissions (ZD-133).
+    bool canReports;
     List<ListOption> organisations = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -393,6 +400,9 @@
                             || perms.Contains(Permission.CreateContractTypes);
 
             systemRoles = await permissions.GetSystemRoles();
+            canReports = perms.Contains(Permission.ViewOrganisationReports)
+                      || systemRoles.Contains(SystemRole.SystemViewer);
+
             if (canSystem)
                 await LoadOrganisations();
 
