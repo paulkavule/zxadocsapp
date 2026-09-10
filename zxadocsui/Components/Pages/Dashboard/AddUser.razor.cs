@@ -12,9 +12,10 @@ using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard;
 
-public partial class AddUser
+public partial class AddUser : IDisposable
 {
     [Inject] private IHttpService HttpSvc { get; set; } = default!;
+    [Inject] private ActingOrganisationState Acting { get; set; } = default!;
     [Inject] private IUserSession Session { get; set; } = default!;
     [Inject] private IPermissionClientService Permissions { get; set; } = default!;
     [Inject] private IUserRoleClientService RolesApi { get; set; } = default!;
@@ -61,10 +62,44 @@ public partial class AddUser
     private UserData _currentUser = new();
     private List<ListOption> _departments = new();
 
+    // A system user provisions into whichever organisation the header names, and both the roles
+    // and the departments offered belong to that organisation. Without a selection the target is
+    // the reserved system organisation, so the form has nothing valid to offer.
+    private bool _systemUser;
+    private bool NeedsOrganisation =>
+        _systemUser && (Acting.IsAllOrganisations || Acting.OrganisationId is not > 0);
+
     // Signatures are small images; cap the upload so a huge file can't be streamed in.
     private const long MaxSignatureSize = 5 * 1024 * 1024; // 5 MB
 
-    protected override void OnInitialized() => HttpSvc.Initialize(AppConstants.HttpSchemes.Core);
+    protected override void OnInitialized()
+    {
+        HttpSvc.Initialize(AppConstants.HttpSchemes.Core);
+        Acting.Changed += OnActingChanged;
+    }
+
+    public void Dispose() => Acting.Changed -= OnActingChanged;
+
+    /// <summary>
+    /// Switching organisation invalidates both lists, and anything already picked from them. The
+    /// POST carries the new organisation, so a stale role is silently dropped and a stale
+    /// department id belongs to another tenant.
+    /// </summary>
+    private async Task OnActingChanged()
+    {
+        _user.Department = string.Empty;
+        _selectedRoleIds = new HashSet<int>();
+        _roles.Clear();
+        _departments.Clear();
+
+        if (!NeedsOrganisation)
+        {
+            await LoadRoles();
+            await LoadDepartments();
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -74,7 +109,9 @@ public partial class AddUser
         // A System Support user provisions on a customer's behalf and holds no organisation
         // permissions of its own, so the role stands in for the permission here (ZD-132). The
         // organisation it lands in is the one selected in the header.
-        var supporting = (await Permissions.GetSystemRoles()).Contains(SystemRole.SystemSupport);
+        var systemRoles = await Permissions.GetSystemRoles();
+        var supporting = systemRoles.Contains(SystemRole.SystemSupport);
+        _systemUser = systemRoles.Count > 0;
 
         // Editing sets roles, so it needs ManageUsers, which is what PATCH /api/users/{id} enforces.
         var required = IsEditMode ? Permission.ManageUsers : Permission.CreateUser;
@@ -85,8 +122,13 @@ public partial class AddUser
             return;
         }
 
-        await LoadRoles();
-        await LoadDepartments();
+        // Nothing to load until a customer is named: both lists would come from the system
+        // organisation and the form could never be satisfied.
+        if (!NeedsOrganisation)
+        {
+            await LoadRoles();
+            await LoadDepartments();
+        }
 
         if (IsEditMode)
             await LoadUserAsync(UserReference!.Value);

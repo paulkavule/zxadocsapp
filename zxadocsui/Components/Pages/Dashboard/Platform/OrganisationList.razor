@@ -15,7 +15,7 @@
         </div>
         @if (canManage)
         {
-            <MudButton Href="/settings/organisations/new" Variant="Variant.Filled" Color="Color.Primary"
+            <MudButton OnClick="OpenNew" Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add">
                 New organisation
             </MudButton>
@@ -57,7 +57,7 @@
                     @if (canManage)
                     {
                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                       Href="@($"/settings/organisations/{context.EntityId}")" aria-label="Edit" />
+                                       OnClick="@(() => OpenEdit(context))" aria-label="Edit" />
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                                        OnClick="@(() => ConfirmDelete(context))" aria-label="Delete" />
                     }

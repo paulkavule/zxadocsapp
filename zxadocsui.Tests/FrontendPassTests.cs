@@ -270,16 +270,27 @@ public class FrontendPassTests(AppFixture app)
                 .ClickAsync(new() { Timeout = 30_000 });
             await approver.WaitForTimeoutAsync(3000);
 
-            var handoff = approver.GetByRole(AriaRole.Button, new() { Name = "Start signing" });
+            // The hand-off belongs to the AUTHOR, not the approver: DraftDetail gates the button
+            // on CreateDraft, and the approver account holds neither create permission. Asserting
+            // it on the approver's page was asserting the wrong actor.
+            await author.GotoAsync($"{AppFixture.UiBase}/drafts/{draftId}");
+            await author.WaitForTimeoutAsync(3000);
+
+            var handoff = author.GetByRole(AriaRole.Button, new() { Name = "Start signing" });
             Assert.True(await handoff.CountAsync() > 0,
                 "an approved draft offers no hand-off action");
 
             await handoff.First.ClickAsync(new() { Timeout = 30_000 });
-            await approver.WaitForTimeoutAsync(5000);
+
+            // The click stages the hand-off and then navigates into the create-document wizard,
+            // so the draft's new status is not on screen to be read.
+            await author.WaitForURLAsync("**/createdocument", new() { Timeout = 60_000 });
 
             // The hand-off renders the PDF and stamps a reference; SentToWorkflow is the state
-            // that proves both happened.
-            await VisibleAsync(approver.GetByText("SentToWorkflow").First, 60_000);
+            // that proves both happened, so read it back off the draft itself.
+            await author.GotoAsync($"{AppFixture.UiBase}/drafts/{draftId}",
+                new() { WaitUntil = WaitUntilState.NetworkIdle });
+            await VisibleAsync(author.GetByText("Sent to workflow").First, 60_000);
         }
         finally { await ArchiveAsync(author, templateId); }
     }

@@ -51,7 +51,7 @@
                         @if (canReassign && !Acting.IsAllOrganisations)
                         {
                             <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
-                                       OnClick="@(() => BeginReassign(context))">Reassign</MudButton>
+                                       OnClick="@(() => OpenReassign(context))">Reassign</MudButton>
                         }
                     </MudTd>
                 </RowTemplate>
@@ -61,30 +61,5 @@
             </MudTable>
         </div>
 
-        @if (reassigning is not null)
-        {
-            <div class="border border-slate-200 rounded-xl p-4 space-y-3">
-                <p class="text-sm font-medium text-slate-900">
-                    Reassign &ldquo;@reassigning.Title&rdquo;
-                </p>
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                    <MudSelect T="int" @bind-Value="targetUserId" Label="Hand to" Variant="Variant.Outlined"
-                               Margin="Margin.Dense" Class="md:col-span-8">
-                        @foreach (var candidate in candidates)
-                        {
-                            <MudSelectItem Value="@candidate.Id">@candidate.Name</MudSelectItem>
-                        }
-                    </MudSelect>
-                    <div class="md:col-span-4 flex gap-2">
-                        <MudButton OnClick="ConfirmReassign" Variant="Variant.Filled" Color="Color.Primary"
-                                   Disabled="@(busy || targetUserId == 0)">Confirm</MudButton>
-                        <MudButton OnClick="CancelReassign" Variant="Variant.Text" Disabled="@busy">Cancel</MudButton>
-                    </div>
-                </div>
-                <p class="text-xs text-slate-500">
-                    Moves who must act next and records it. It does not sign, stamp or archive the document.
-                </p>
-            </div>
-        }
     </div>
 </div>

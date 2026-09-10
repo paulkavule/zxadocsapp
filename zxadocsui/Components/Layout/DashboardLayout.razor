@@ -205,24 +205,42 @@
                                 </NavLink>
                             }
 
-                            @if (canSystem)
+                            @if (canSystem || canDepartments)
                             {
                                 <div class="border-t border-[#d4ead5] my-4"></div>
                                 <div class="text-xs font-semibold text-[#5b8c70] uppercase tracking-wider px-4 mb-2 sidebar-menu-label">
-                                    System</div>
+                                    @(canSystem ? "System" : "Organisation")</div>
+                            }
 
-                                <NavLink href="/settings/organisations"
-                                         class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
-                                         ActiveClass="bg-[#e0f2df]">
-                                    <i class="fa-regular fa-building w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
-                                    <span class="font-medium whitespace-nowrap sidebar-menu-text">Organisations</span>
-                                </NavLink>
+                            @if (canDepartments)
+                            {
+                                @* The organisation's own administrator manages its structure, and
+                                   nothing else under here (ZD-134). *@
                                 <NavLink href="/settings/departments"
                                          class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
                                          ActiveClass="bg-[#e0f2df]">
                                     <i class="fa-solid fa-sitemap w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
                                     <span class="font-medium whitespace-nowrap sidebar-menu-text">Departments</span>
                                 </NavLink>
+                            }
+
+                            @if (canSystem)
+                            {
+                                <NavLink href="/settings/organisations"
+                                         class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                         ActiveClass="bg-[#e0f2df]">
+                                    <i class="fa-regular fa-building w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                    <span class="font-medium whitespace-nowrap sidebar-menu-text">Organisations</span>
+                                </NavLink>
+                                @if (!canDepartments)
+                                {
+                                    <NavLink href="/settings/departments"
+                                             class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                             ActiveClass="bg-[#e0f2df]">
+                                        <i class="fa-solid fa-sitemap w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                        <span class="font-medium whitespace-nowrap sidebar-menu-text">Departments</span>
+                                    </NavLink>
+                                }
                                 <NavLink href="/settings/workflows"
                                          class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
                                          ActiveClass="bg-[#e0f2df]">
@@ -370,6 +388,9 @@
     // Reporting is the organisation super user's permission, or the System Viewer role for a
     // system user who holds none of the organisation's permissions (ZD-133).
     bool canReports;
+
+    // The organisation's own administrator reaches Departments without being a system user (ZD-134).
+    bool canDepartments;
     List<ListOption> organisations = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -402,6 +423,7 @@
             systemRoles = await permissions.GetSystemRoles();
             canReports = perms.Contains(Permission.ViewOrganisationReports)
                       || systemRoles.Contains(SystemRole.SystemViewer);
+            canDepartments = perms.Contains(Permission.ManageDepartments);
 
             if (canSystem)
                 await LoadOrganisations();

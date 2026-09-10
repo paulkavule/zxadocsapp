@@ -1,0 +1,29 @@
+@using zxadocslib.Dtos
+
+<div class="space-y-4">
+    <p class="text-sm font-medium text-slate-900">@Title</p>
+
+    <MudSelect T="int" @bind-Value="targetUserId" Label="Hand to" Variant="Variant.Outlined"
+               Margin="Margin.Dense" Placeholder="Choose a user">
+        @foreach (var candidate in candidates)
+        {
+            <MudSelectItem Value="@candidate.Id">@candidate.Name</MudSelectItem>
+        }
+    </MudSelect>
+
+    @if (loaded && candidates.Count == 0)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">
+            No other user in this organisation can take this document.
+        </MudAlert>
+    }
+
+    <MudButton OnClick="Confirm" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+               StartIcon="@Icons.Material.Filled.SwapHoriz" Disabled="@(busy || targetUserId == 0)">
+        Reassign
+    </MudButton>
+
+    <p class="text-xs text-slate-500">
+        Moves who must act next and records it. It does not sign, stamp or archive the document.
+    </p>
+</div>

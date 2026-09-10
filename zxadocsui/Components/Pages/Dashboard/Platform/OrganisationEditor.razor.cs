@@ -3,55 +3,46 @@ using MudBlazor;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
-using zxadocslib.Helpers;
-using zxadocsui.State;
+using zxadocsui.Srevices;
 
 namespace zxadocsui.Components.Pages.Dashboard.Platform;
 
-// Create and edit a tenant on one form (ZD-131). Keyed on EntityId rather than an int id, because
-// that is the handle the organisation endpoints take.
+/// <summary>
+/// Create or edit a tenant, in the side panel rather than on its own route. Keyed on EntityId
+/// rather than an int id, because that is the handle the organisation endpoints take. Closes with
+/// true when it saved, so the list behind it knows whether to reload.
+///
+/// The System Admin gate lives on the list, which is the only thing that opens this; the
+/// endpoints re-check it regardless.
+/// </summary>
 public partial class OrganisationEditor
 {
-    [Parameter] public string? EntityId { get; set; }
+    /// <summary>Empty for a new organisation.</summary>
+    [Parameter] public string EntityId { get; set; } = string.Empty;
 
     [Inject] private IHttpService Http { get; set; } = default!;
-    [Inject] private IPermissionClientService Permissions { get; set; } = default!;
-    [Inject] private IUserSession Session { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
-    [Inject] private NavigationManager Nav { get; set; } = default!;
+    [Inject] private SideDialogService SideDialog { get; set; } = default!;
 
     private Organisation organisation = new();
-    private bool loading = true;
+    private bool loading;
     private bool saving;
 
     private bool IsNew => string.IsNullOrWhiteSpace(EntityId);
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (!firstRender) return;
+        if (IsNew) return;
 
-        await Session.GetCurrentUser();
-        var roles = await Permissions.GetSystemRoles();
-
-        // Both tiers, so a deep link cannot slip past: a non-system user goes to the dashboard, a
-        // system user who is not an admin goes back to the list they can legitimately read.
-        if (roles.Count == 0)
+        loading = true;
+        try
         {
-            Snackbar.Add("Organisation administration is available to system users only.", Severity.Warning);
-            Nav.NavigateTo("/dashboard");
-            return;
+            await LoadOrganisation();
         }
-
-        if (!roles.Contains(SystemRole.SystemAdmin))
+        finally
         {
-            Snackbar.Add("Changing organisations requires the System Admin role.", Severity.Warning);
-            Nav.NavigateTo("/settings/organisations");
-            return;
+            loading = false;
         }
-
-        if (!IsNew) await LoadOrganisation();
-        loading = false;
-        StateHasChanged();
     }
 
     private async Task LoadOrganisation()
@@ -63,7 +54,7 @@ public partial class OrganisationEditor
         if (!ok || result?.Data is null)
         {
             Snackbar.Add(ErrorMessage.Extract(error) ?? "That organisation could not be found.", Severity.Warning);
-            Nav.NavigateTo("/settings/organisations");
+            SideDialog.Close(false);
             return;
         }
 
@@ -100,7 +91,7 @@ public partial class OrganisationEditor
             }
 
             Snackbar.Add(IsNew ? "Organisation created." : "Organisation updated.", Severity.Success);
-            Nav.NavigateTo("/settings/organisations");
+            SideDialog.Close(true);
         }
         finally
         {

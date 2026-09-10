@@ -4,6 +4,7 @@ using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocslib.Helpers;
+using zxadocsui.Srevices;
 using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Platform;
@@ -29,13 +30,10 @@ public partial class SupportWorkflowList : IDisposable
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
     [Inject] private ActingOrganisationState Acting { get; set; } = default!;
+    [Inject] private SideDialogService SideDialog { get; set; } = default!;
 
     private List<SupportWorkflow> workflows = new();
-    private List<ListOption> candidates = new();
-    private SupportWorkflow? reassigning;
-    private int targetUserId;
     private bool loading = true;
-    private bool busy;
     private bool canReassign;
 
     protected override void OnInitialized() => Acting.Changed += OnActingChanged;
@@ -62,7 +60,6 @@ public partial class SupportWorkflowList : IDisposable
 
     private async Task OnActingChanged()
     {
-        CancelReassign();
         await Load();
         await InvokeAsync(StateHasChanged);
     }
@@ -94,65 +91,19 @@ public partial class SupportWorkflowList : IDisposable
         }
     }
 
-    private async Task BeginReassign(SupportWorkflow workflow)
+    /// <summary>Reassignment lives in the side panel; it reports back whether it actually moved.</summary>
+    private async Task OpenReassign(SupportWorkflow workflow)
     {
-        reassigning = workflow;
-        targetUserId = 0;
-        await LoadCandidates();
-    }
-
-    private void CancelReassign()
-    {
-        reassigning = null;
-        targetUserId = 0;
-        candidates.Clear();
-    }
-
-    /// <summary>
-    /// The organisation's users, from the search list option with an empty term. The endpoint takes
-    /// the organisation from the token, which is the acting one for a system user.
-    /// </summary>
-    private async Task LoadCandidates()
-    {
-        candidates.Clear();
-        Http.Initialize(AppConstants.HttpSchemes.Core);
-
-        var orgId = Acting.OrganisationId ?? 0;
-        var (ok, result, _) = await Http
-            .GetAsync<ApiResponse<List<ListOption>>>($"api/listoptions/{orgId}?type=usersearch");
-
-        if (ok && result?.Data is not null)
-            candidates = result.Data
-                .Where(user => user.Id != reassigning?.NextActorId)
-                .OrderBy(user => user.Name)
-                .ToList();
-    }
-
-    private async Task ConfirmReassign()
-    {
-        if (reassigning is null || targetUserId == 0) return;
-
-        busy = true;
-        try
-        {
-            Http.Initialize(AppConstants.HttpSchemes.Core);
-            var (ok, _, error) = await Http.ExecuteRequestAsync<ApiResponse<int>>(
-                HttpVerb.Post, $"api/support/workflows/{reassigning.DocumentId}/reassign",
-                new { UserId = targetUserId });
-
-            if (!ok)
+        var reassigned = await SideDialog.Show<WorkflowReassign, bool?>(
+            new Dictionary<string, object>
             {
-                Snackbar.Add(ErrorMessage.Extract(error) ?? "Failed to reassign.", Severity.Error);
-                return;
-            }
+                { nameof(WorkflowReassign.DocumentId), workflow.DocumentId },
+                { nameof(WorkflowReassign.Title), workflow.Title },
+                { nameof(WorkflowReassign.NextActorId), workflow.NextActorId },
+            },
+            title: "Reassign workflow");
 
-            Snackbar.Add("Workflow reassigned.", Severity.Success);
-            CancelReassign();
+        if (reassigned == true)
             await Load();
-        }
-        finally
-        {
-            busy = false;
-        }
     }
 }

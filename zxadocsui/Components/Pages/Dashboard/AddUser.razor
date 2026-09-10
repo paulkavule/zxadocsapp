@@ -18,9 +18,27 @@
         </div>
 
 
+        @if (_systemUser && !string.IsNullOrWhiteSpace(Acting.Label) && !Acting.IsAllOrganisations)
+        {
+            <span class="text-sm text-slate-500 mr-2">into @Acting.Label</span>
+        }
     </div>
 
-
+    @if (NeedsOrganisation)
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+            A user belongs to one organisation. Choose one in the header to provision into it.
+        </MudAlert>
+    }
+    else
+    {
+    @if (!IsEditMode && _departments.Count == 0)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
+            This organisation has no departments yet, and a user needs one. Create a department
+            under Settings first.
+        </MudAlert>
+    }
 
     <MudForm Model="@_user" @ref="_form" Validation="@(_validator.ValidateValue)" @bind-IsValid="@_isValid"
              Class="flex flex-col  w-[50%] gap-3 pt-3">
@@ -108,4 +126,5 @@
             @SubmitButtonLabel
         </MudButton>
     </MudForm>
+    }
 </div>

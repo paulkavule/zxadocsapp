@@ -4,6 +4,7 @@ using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocslib.Helpers;
+using zxadocsui.Srevices;
 using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Platform;
@@ -19,10 +20,11 @@ public partial class DepartmentList : IDisposable
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
     [Inject] private ActingOrganisationState Acting { get; set; } = default!;
+    [Inject] private SideDialogService SideDialog { get; set; } = default!;
 
     private List<ListOption> departments = new();
-    private string editName = string.Empty;
-    private int editingId;
+    private List<ListOption> organisations = new();
+    private bool systemUser;
     private bool loading = true;
     private bool busy;
     private bool canManage;
@@ -37,22 +39,44 @@ public partial class DepartmentList : IDisposable
 
         await Session.GetCurrentUser();
         var roles = await Permissions.GetSystemRoles();
-        if (roles.Count == 0)
+        systemUser = roles.Count > 0;
+
+        // Two ways in: the platform's System Admin acting on a chosen customer, or the
+        // organisation's own administrator holding ManageDepartments, confined to its own.
+        var ownAdministrator = await Permissions.Has(Permission.ManageDepartments);
+        if (!systemUser && !ownAdministrator)
         {
-            Snackbar.Add("Department administration is available to system users only.", Severity.Warning);
+            Snackbar.Add("Department administration requires the department permission.", Severity.Warning);
             Nav.NavigateTo("/dashboard");
             return;
         }
 
-        canManage = roles.Contains(SystemRole.SystemAdmin);
+        canManage = roles.Contains(SystemRole.SystemAdmin) || ownAdministrator;
+        if (systemUser) await LoadOrganisations();
         await Load();
         StateHasChanged();
     }
 
+    /// <summary>The organisations a system user may act on. Read is open to any system user.</summary>
+    private async Task LoadOrganisations()
+    {
+        Http.Initialize(AppConstants.HttpSchemes.Core);
+        var (ok, result, _) = await Http.GetAsync<ApiResponse<List<ListOption>>>("api/organisations/options");
+        if (ok && result?.Data is not null)
+            organisations = result.Data;
+    }
+
+    /// <summary>
+    /// For a system user, no selection means their own organisation -- the reserved system one --
+    /// so both that and "all" have to name a customer first. An organisation's own administrator
+    /// has nothing to choose: the token already names the only organisation they can touch.
+    /// </summary>
+    private bool NeedsOrganisation =>
+        systemUser && (Acting.IsAllOrganisations || Acting.OrganisationId is not > 0);
+
     /// <summary>Switching organisation in the header reloads the list without a re-login.</summary>
     private async Task OnActingChanged()
     {
-        CancelEdit();
         await Load();
         await InvokeAsync(StateHasChanged);
     }
@@ -63,7 +87,7 @@ public partial class DepartmentList : IDisposable
         try
         {
             departments.Clear();
-            if (Acting.IsAllOrganisations)
+            if (NeedsOrganisation)
                 return;
 
             // The acting organisation rides on a header applied by HttpService, so the URL is the
@@ -85,49 +109,25 @@ public partial class DepartmentList : IDisposable
         }
     }
 
-    private void BeginEdit(ListOption department)
+    private Task OpenNew() => OpenEditor(0, string.Empty);
+
+    private Task OpenEdit(ListOption department) => OpenEditor(department.Id, department.Name);
+
+    /// <summary>The editor lives in the side panel; it reports back whether it actually saved.</summary>
+    private async Task OpenEditor(int departmentId, string departmentName)
     {
-        editingId = department.Id;
-        editName = department.Name;
-    }
-
-    private void CancelEdit()
-    {
-        editingId = 0;
-        editName = string.Empty;
-    }
-
-    private async Task Save()
-    {
-        if (string.IsNullOrWhiteSpace(editName))
-        {
-            Snackbar.Add("A department needs a name.", Severity.Warning);
-            return;
-        }
-
-        busy = true;
-        try
-        {
-            Http.Initialize(AppConstants.HttpSchemes.Core);
-            var body = new { Name = editName.Trim(), Description = string.Empty };
-            var (ok, _, error) = editingId == 0
-                ? await Http.ExecuteRequestAsync<ApiResponse<int>>(HttpVerb.Post, "api/departments", body)
-                : await Http.ExecuteRequestAsync<ApiResponse<int>>(HttpVerb.Put, $"api/departments/{editingId}", body);
-
-            if (!ok)
+        var saved = await SideDialog.Show<DepartmentEditor, bool?>(
+            new Dictionary<string, object>
             {
-                Snackbar.Add(ErrorMessage.Extract(error) ?? "Failed to save the department.", Severity.Error);
-                return;
-            }
+                { nameof(DepartmentEditor.DepartmentId), departmentId },
+                { nameof(DepartmentEditor.DepartmentName), departmentName },
+                { nameof(DepartmentEditor.Organisations), organisations },
+                { nameof(DepartmentEditor.SystemUser), systemUser },
+            },
+            title: departmentId == 0 ? "New department" : "Edit department");
 
-            Snackbar.Add(editingId == 0 ? "Department added." : "Department updated.", Severity.Success);
-            CancelEdit();
+        if (saved == true)
             await Load();
-        }
-        finally
-        {
-            busy = false;
-        }
     }
 
     private async Task ConfirmDelete(ListOption department)

@@ -4,6 +4,7 @@ using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocslib.Helpers;
+using zxadocsui.Srevices;
 using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Platform;
@@ -18,6 +19,7 @@ public partial class OrganisationList
     [Inject] private IDialogService Dialogs { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
+    [Inject] private SideDialogService SideDialog { get; set; } = default!;
 
     private List<Organisation> organisations = new();
     private bool loading = true;
@@ -41,6 +43,22 @@ public partial class OrganisationList
         canManage = roles.Contains(SystemRole.SystemAdmin);
         await Load();
         StateHasChanged();
+    }
+
+    private Task OpenNew() => OpenEditor(string.Empty);
+
+    private Task OpenEdit(Organisation organisation) => OpenEditor(organisation.EntityId ?? string.Empty);
+
+    /// <summary>The editor lives in the side panel; it reports back whether it actually saved.</summary>
+    private async Task OpenEditor(string entityId)
+    {
+        var saved = await SideDialog.Show<OrganisationEditor, bool?>(
+            new Dictionary<string, object> { { nameof(OrganisationEditor.EntityId), entityId } },
+            title: string.IsNullOrWhiteSpace(entityId) ? "New organisation" : "Edit organisation",
+            width: 520);
+
+        if (saved == true)
+            await Load();
     }
 
     private async Task Load()
