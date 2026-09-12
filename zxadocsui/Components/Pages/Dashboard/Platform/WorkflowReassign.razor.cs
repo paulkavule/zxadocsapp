@@ -8,6 +8,17 @@ using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Platform;
 
+/// <summary>One step of the document's workflow. Mirrors the API's shape.</summary>
+public record WorkflowActor
+{
+    public int Level { get; set; }
+    public int UserId { get; set; }
+    public string User { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public string ExpectedRole { get; set; } = string.Empty;
+    public bool IsCurrent { get; set; }
+}
+
 /// <summary>
 /// Hand a document to a different actor, in the side panel rather than inline on the list. Closes
 /// with true when it reassigned, so the list behind it knows whether to reload.
@@ -26,7 +37,10 @@ public partial class WorkflowReassign
     /// <summary>Whoever holds it now, excluded from the candidates: the API refuses a no-op move.</summary>
     [Parameter] public int NextActorId { get; set; }
 
+    [Parameter] public string NextActorName { get; set; } = string.Empty;
+
     private List<ListOption> candidates = new();
+    private List<WorkflowActor> actors = new();
     private int targetUserId;
     private bool busy;
     private bool loaded;
@@ -46,6 +60,12 @@ public partial class WorkflowReassign
                 .Where(user => user.Id != NextActorId)
                 .OrderBy(user => user.Name)
                 .ToList();
+
+        var (gotActors, actorResult, _) = await Http
+            .GetAsync<ApiResponse<List<WorkflowActor>>>($"api/support/workflows/{DocumentId}/actors");
+
+        if (gotActors && actorResult?.Data is not null)
+            actors = actorResult.Data;
 
         loaded = true;
     }

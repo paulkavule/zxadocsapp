@@ -13,7 +13,7 @@ using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard;
 
-public partial class Dashboard
+public partial class Dashboard : IDisposable
 {
 
     [Inject] ISnackbar Snackbar { set; get; } = default!;
@@ -25,6 +25,7 @@ public partial class Dashboard
     [Inject] NavigationManager navigator { set; get; } = default!;
     [Inject] IActivityClientService ActivityApi { set; get; } = default!;
     [Inject] IPermissionClientService permissions { set; get; } = default!;
+    [Inject] ActingOrganisationState acting { set; get; } = default!;
     StatisticsDto statistics = new();
     UserData userData = new();
     List<ListValue> listValues = new();
@@ -39,6 +40,32 @@ public partial class Dashboard
     protected override void OnInitialized()
     {
         httpSvc.Initialize(AppConstants.HttpSchemes.Core);
+        acting.Changed += OnActingChanged;
+    }
+
+    public void Dispose() => acting.Changed -= OnActingChanged;
+
+    /// <summary>
+    /// The tiles, the recent activity and the chart are all organisation-scoped, so a system user
+    /// switching tenant in the header has to see them follow. The pending-approvals card is this
+    /// user's own inbox and does not move.
+    /// </summary>
+    private async Task OnActingChanged()
+    {
+        statistics = new();
+        listValues.Clear();
+        actionMix.Clear();
+
+        // Merged across tenants these say nothing, so the server refuses "all organisations"
+        // and there is nothing to ask for.
+        if (!acting.IsAllOrganisations)
+        {
+            await GetDashboardStats();
+            await GetRecentActivity();
+            await GetActionMix();
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

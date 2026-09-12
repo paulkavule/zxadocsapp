@@ -20,12 +20,17 @@ public partial class CreateDocumentWorkflow
     [Inject] IUserSession? session { set; get; }
     [Inject] IHttpService httpSvc { get; set; } = default!;
     [Inject] IPermissionClientService permissions { get; set; } = default!;
+    [Inject] NavigationManager navigator { get; set; } = default!;
     private List<ListOption> doctypeList = new(), docCatList = new();
     List<WorkFlow> workflowList = new();
     readonly List<FieldRow> categoryFields = new();
     string docCategory = "", docTypeName = "", docCategoryName = "";
     bool rearranged = false, updating, saving;
     bool canManage, savingFields;
+
+    // The workflow definitions, separate from canManage above, which is the category FIELDS
+    // editor and stays on ManageRole (ZD-126).
+    bool canCreateWorkflow, canManageWorkflow;
     int orgId = 0;
 
     /// <summary>True once a category is chosen, which is what tells an empty list apart from no selection.</summary>
@@ -40,7 +45,20 @@ public partial class CreateDocumentWorkflow
                 var userData = await session!.GetCurrentUser();
                 httpSvc.Initialize(AppConstants.HttpSchemes.Core);
                 int.TryParse(userData.OrgId, out orgId);
-                canManage = (await permissions.GetPermissions()).Contains(Permission.ManageRole);
+                var perms = await permissions.GetPermissions();
+                canManage = perms.Contains(Permission.ManageRole);
+                canCreateWorkflow = perms.Contains(Permission.CreateWorkflow);
+                canManageWorkflow = perms.Contains(Permission.ManageWorkflow);
+
+                // The page carries two features: the workflow definitions and the category fields
+                // card, which is ManageRole's (ZD-126). Either one earns the page.
+                if (!perms.Contains(Permission.ViewWorkflows) && !canCreateWorkflow && !canManageWorkflow && !canManage)
+                {
+                    Snackbar.Add("Viewing workflows requires a workflow permission.", Severity.Warning);
+                    navigator.NavigateTo("/dashboard");
+                    return;
+                }
+
                 await loadDocumentTypes();
             }
 

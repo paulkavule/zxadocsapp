@@ -34,8 +34,11 @@
                     <MudTh Style="width:120px"></MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Document">@context.Title</MudTd>
-                    <MudTd DataLabel="Author">@context.Author</MudTd>
+                    <MudTd DataLabel="Document">
+                        <div class="font-medium text-slate-800">@context.Title</div>
+                        <div class="text-sm text-slate-500">Document Id: #@context.DocumentId</div>
+                    </MudTd>
+                    <MudTd DataLabel="Author">@context.Author </MudTd>
                     <MudTd DataLabel="Waiting on">
                         @if (string.IsNullOrWhiteSpace(context.NextActor))
                         {

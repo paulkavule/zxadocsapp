@@ -50,6 +50,10 @@
                         class="ml-auto bg-[#daf1da] text-[#1f7b4d] text-xs font-semibold px-2 py-0.5 rounded-full sidebar-badge">24</span>
                     </NavLink>
 
+                    @* A system user authors nothing and signs nothing: the system organisation
+                       holds no documents, so these led only to empty screens (ZD-135). *@
+                    @if (!canSystem)
+                    {
                     <NavLink href="/documents"
                              class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
                              ActiveClass="bg-[#e0f2df]">
@@ -60,6 +64,8 @@
                         class="ml-auto bg-[#daf1da] text-[#1f7b4d] text-xs font-semibold px-2 py-0.5 rounded-full sidebar-badge">243</span>
                     </NavLink>
 
+                    @if (canWorkflows)
+                    {
                     <NavLink href="/workflows"
                              class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
                              ActiveClass="bg-[#e0f2df]">
@@ -67,6 +73,8 @@
                         class="fa-regular fa-rectangle-list w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
                         <span class="font-medium whitespace-nowrap sidebar-menu-text">Workflows</span>
                     </NavLink>
+                    }
+                    }
 
 
 
@@ -205,7 +213,7 @@
                                 </NavLink>
                             }
 
-                            @if (canSystem || canDepartments)
+                            @if (canSystem || canDepartments || canReassign)
                             {
                                 <div class="border-t border-[#d4ead5] my-4"></div>
                                 <div class="text-xs font-semibold text-[#5b8c70] uppercase tracking-wider px-4 mb-2 sidebar-menu-label">
@@ -221,6 +229,16 @@
                                          ActiveClass="bg-[#e0f2df]">
                                     <i class="fa-solid fa-sitemap w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
                                     <span class="font-medium whitespace-nowrap sidebar-menu-text">Departments</span>
+                                </NavLink>
+                            }
+
+                            @if (canReassign && !canSystem)
+                            {
+                                <NavLink href="/settings/workflows"
+                                         class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                         ActiveClass="bg-[#e0f2df]">
+                                    <i class="fa-solid fa-diagram-project w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                    <span class="font-medium whitespace-nowrap sidebar-menu-text">Workflows</span>
                                 </NavLink>
                             }
 
@@ -332,6 +350,8 @@
                                     <i class="fa-regular fa-envelope text-lg"></i>
                                 </button>
                                 <div class="h-8 w-px bg-[#cfe3d5]"></div>
+                                @if (!canSystem)
+                                {
                                 <NavLink href="/createdocument"
                                          class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
                                          ActiveClass="bg-[#e0f2df]">
@@ -339,6 +359,7 @@
                                     class="fa-regular fa-rectangle-list w-5 text-[#2a7f4f] group-hover:text-[#1d673e] shrink-0"></i>
                                     <span class="font-medium whitespace-nowrap sidebar-menu-text">New</span>
                                 </NavLink>
+                                }
                                 @* <button
                                     class="bg-[#1f7b4d] hover:bg-[#16633d] text-white px-5 py-2 rounded-xl text-sm font-semibold
                     shadow-sm transition flex items-center gap-2">
@@ -391,6 +412,9 @@
 
     // The organisation's own administrator reaches Departments without being a system user (ZD-134).
     bool canDepartments;
+
+    // The approval chains a category's documents follow, and moving a live document.
+    bool canWorkflows, canReassign;
     List<ListOption> organisations = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -424,6 +448,12 @@
             canReports = perms.Contains(Permission.ViewOrganisationReports)
                       || systemRoles.Contains(SystemRole.SystemViewer);
             canDepartments = perms.Contains(Permission.ManageDepartments);
+            // ManageRole is here because the page also carries the category fields card (ZD-126).
+            canWorkflows = perms.Contains(Permission.ViewWorkflows)
+                        || perms.Contains(Permission.CreateWorkflow)
+                        || perms.Contains(Permission.ManageWorkflow)
+                        || perms.Contains(Permission.ManageRole);
+            canReassign = perms.Contains(Permission.ProcessReassignment);
 
             if (canSystem)
                 await LoadOrganisations();

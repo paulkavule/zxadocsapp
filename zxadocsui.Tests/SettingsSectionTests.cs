@@ -23,6 +23,14 @@ public class SettingsSectionTests(AppFixture app)
         await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "Organisations" })).ToHaveCountAsync(0);
         await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "System users" })).ToHaveCountAsync(0);
         await Assertions.Expect(page.GetByLabel("Acting on")).ToHaveCountAsync(0);
+
+        // The converse of hiding these from a system user (ZD-135): an organisation user does the
+        // document work, so the nav change must not have taken them away from everyone.
+        await Assertions.Expect(page.Locator("a[href='/documents']")).ToHaveCountAsync(1);
+
+        // Workflow definitions are permission-gated now, and this account holds no workflow
+        // permission, so the link is absent for a second and separate reason.
+        await Assertions.Expect(page.Locator("a[href='/workflows']")).ToHaveCountAsync(0);
     }
 
     [Fact]
@@ -172,10 +180,63 @@ public class SettingsSectionTests(AppFixture app)
         await reassign.First.ClickAsync();
         await page.WaitForTimeoutAsync(2500);
 
-        // Reassignment is deliberately not signing, and the panel has to say so.
+        // The chain it is about to change: the roles the category expects beside the users the
+        // document actually names.
+        await Assertions.Expect(page.GetByText("Configured workflow"))
+            .ToBeVisibleAsync(new() { Timeout = 15_000 });
+        await Assertions.Expect(page.Locator(".mud-drawer th", new() { HasTextString = "Role" }))
+            .ToBeVisibleAsync(new() { Timeout = 15_000 });
+
+        // Most categories carry no workflow template, so a role resolved only from that template
+        // left this column empty on nearly every document.
+        var roleCells = page.Locator(".mud-drawer tbody tr td:nth-child(2)");
+        await roleCells.First.WaitForAsync(new() { Timeout = 15_000 });
+        var roles = (await roleCells.AllInnerTextsAsync()).Select(r => r.Trim()).ToList();
+        Assert.True(roles.Any(r => r.Length > 0 && r != "-"),
+            $"no actor carried a role: {string.Join(" | ", roles)}");
+
+        // Reassignment substitutes the actor, and is deliberately not signing; the panel says both.
+        await Assertions.Expect(page.GetByText("takes this person's place"))
+            .ToBeVisibleAsync(new() { Timeout = 15_000 });
         await Assertions.Expect(page.GetByText("It does not sign, stamp or archive"))
             .ToBeVisibleAsync(new() { Timeout = 15_000 });
-        await Assertions.Expect(page.GetByLabel("Hand to")).ToBeVisibleAsync(new() { Timeout = 15_000 });
+        await Assertions.Expect(page.GetByLabel("Replace with")).ToBeVisibleAsync(new() { Timeout = 15_000 });
+    }
+
+    [Fact]
+    public async Task The_reassign_panel_offers_the_acting_organisations_users()
+    {
+        SkipIfAppDown();
+        var admin = AppFixture.SystemAdmin;
+        Assert.SkipWhen(admin is null, "ZXADOCS_SYSTEM_ADMIN/_PASSWORD are not set");
+
+        await using var page = await app.SignedInPageAsync(admin!.Value.User, admin.Value.Password);
+        await page.WaitForTimeoutAsync(3000);
+
+        var link = page.Locator("a[href='/settings/workflows']");
+        Assert.SkipWhen(await link.CountAsync() == 0, "this account holds no support or viewer role");
+
+        await link.First.ClickAsync();
+        await page.WaitForTimeoutAsync(3000);
+        Assert.SkipWhen(await PickAnOrganisationAsync(page) is null, "the picker offered no organisation");
+        await page.WaitForTimeoutAsync(3000);
+
+        var reassign = page.GetByRole(AriaRole.Button, new() { Name = "Reassign" });
+        Assert.SkipWhen(await reassign.CountAsync() == 0, "the organisation has no workflows to reassign");
+
+        await reassign.First.ClickAsync();
+        await page.WaitForTimeoutAsync(2500);
+        await page.GetByLabel("Replace with").ClickAsync();
+
+        var options = page.Locator("div.mud-popover-open .mud-list-item");
+        await options.First.WaitForAsync(new() { Timeout = 15_000 });
+        var names = await options.AllInnerTextsAsync();
+
+        // The list options endpoint resolved the caller without the acting-organisation header, so
+        // it answered for the system organisation: the only candidate offered was the system
+        // account itself, who cannot hold a customer's document.
+        Assert.DoesNotContain("System Administrator", names.Select(n => n.Trim()));
+        Assert.True(names.Count > 1, $"expected the organisation's users, got: {string.Join(", ", names)}");
     }
 
     /// <summary>Picks the first real organisation from the header picker and returns its name.</summary>

@@ -46,14 +46,16 @@ public partial class SupportWorkflowList : IDisposable
 
         await Session.GetCurrentUser();
         var roles = await Permissions.GetSystemRoles();
-        if (!roles.Contains(SystemRole.SystemSupport) && !roles.Contains(SystemRole.SystemViewer))
+        // The organisation reaches this through the permission; the platform through its roles.
+        canReassign = await Permissions.Has(Permission.ProcessReassignment)
+                   || roles.Contains(SystemRole.SystemSupport);
+
+        if (!canReassign && !roles.Contains(SystemRole.SystemViewer))
         {
-            Snackbar.Add("This page requires the System Support or System Viewer role.", Severity.Warning);
+            Snackbar.Add("This page requires reassignment access.", Severity.Warning);
             Nav.NavigateTo("/dashboard");
             return;
         }
-
-        canReassign = roles.Contains(SystemRole.SystemSupport);
         await Load();
         StateHasChanged();
     }
@@ -100,8 +102,10 @@ public partial class SupportWorkflowList : IDisposable
                 { nameof(WorkflowReassign.DocumentId), workflow.DocumentId },
                 { nameof(WorkflowReassign.Title), workflow.Title },
                 { nameof(WorkflowReassign.NextActorId), workflow.NextActorId },
+                { nameof(WorkflowReassign.NextActorName), workflow.NextActor },
             },
-            title: "Reassign workflow");
+            title: "Reassign workflow",
+            width: 520);
 
         if (reassigned == true)
             await Load();

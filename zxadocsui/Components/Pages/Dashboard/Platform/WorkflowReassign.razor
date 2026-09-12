@@ -2,8 +2,49 @@
 
 <div class="space-y-4">
     <p class="text-sm font-medium text-slate-900">@Title</p>
+    <p class="text-xs text-slate-500">Currently with @(string.IsNullOrWhiteSpace(NextActorName) ? "nobody" : NextActorName)</p>
 
-    <MudSelect T="int" @bind-Value="targetUserId" Label="Hand to" Variant="Variant.Outlined"
+    @if (actors.Count > 0)
+    {
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <p class="text-xs font-medium text-slate-700 px-3 py-2 bg-slate-50 border-b border-slate-200">
+                Configured workflow
+            </p>
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="text-slate-500">
+                        <th class="text-left font-medium px-3 py-1.5">Step</th>
+                        <th class="text-left font-medium px-3 py-1.5">Role</th>
+                        <th class="text-left font-medium px-3 py-1.5">User</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var actor in actors)
+                    {
+                        <tr class="@(actor.IsCurrent ? "bg-green-50 text-slate-900" : "text-slate-600")">
+                            <td class="px-3 py-1.5">@actor.Level</td>
+                            <td class="px-3 py-1.5">
+                                @(string.IsNullOrWhiteSpace(actor.Role) ? "-" : actor.Role)
+                                @if (!string.IsNullOrWhiteSpace(actor.ExpectedRole) && actor.ExpectedRole != actor.Role)
+                                {
+                                    <span class="block text-slate-400">category expects @actor.ExpectedRole</span>
+                                }
+                            </td>
+                            <td class="px-3 py-1.5">
+                                @(string.IsNullOrWhiteSpace(actor.User) ? "-" : actor.User)
+                                @if (actor.IsCurrent)
+                                {
+                                    <span class="text-green-700"> - has it now</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <MudSelect T="int" @bind-Value="targetUserId" Label="Replace with" Variant="Variant.Outlined"
                Margin="Margin.Dense" Placeholder="Choose a user">
         @foreach (var candidate in candidates)
         {
@@ -24,6 +65,7 @@
     </MudButton>
 
     <p class="text-xs text-slate-500">
-        Moves who must act next and records it. It does not sign, stamp or archive the document.
+        The chosen user takes this person's place in the document's workflow, and the transfer is
+        logged. It does not sign, stamp or archive the document.
     </p>
 </div>

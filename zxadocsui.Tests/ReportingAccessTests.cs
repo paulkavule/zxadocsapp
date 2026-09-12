@@ -57,7 +57,9 @@ public class ReportingAccessTests(AppFixture app)
         await page.WaitForTimeoutAsync(4000);
 
         Assert.Contains("/reports/activity", page.Url);
-        await Assertions.Expect(page.GetByText("Document Activity")).ToBeVisibleAsync(new() { Timeout = 15_000 });
+        // Scoped to the heading: the sidebar link matches the same text.
+        await Assertions.Expect(page.Locator("h1:text-is('Document Activity')"))
+            .ToBeVisibleAsync(new() { Timeout = 15_000 });
     }
 
     [Fact]

@@ -77,12 +77,14 @@
                 @if (CategorySelected && workflowList.Count > 0)
                 {
                     <div class="flex gap-2">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(()=>AddStepToCategory())">Add
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!canCreateWorkflow)"
+                                   OnClick="@(()=>AddStepToCategory())">Add
                         </MudButton>
                         @if (rearranged)
                         {
-                            <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="@(()=>SaveLevelChanges())"
-                                       Disabled="@updating">save
+                            <MudButton Variant="Variant.Filled" Color="Color.Warning"
+                                       OnClick="@(()=>SaveLevelChanges())"
+                                       Disabled="@(updating || !canManageWorkflow)">save
                             </MudButton>
                         }
                     </div>
@@ -102,7 +104,8 @@
                                     @wf.Level</span>
                                 <div class="flex justify-between items-center gap-2">
                                     <span class="text-sm text-slate-500">@(wf.IsRequired ? "Required":"Optional")</span>
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                                   Disabled="@(!canManageWorkflow)" />
                                 </div>
                             </div>
 
@@ -126,10 +129,10 @@
                     <p class="text-sm font-medium text-slate-900">No workflow defined for this category</p>
                     <p class="text-sm text-slate-500 mt-1">Define the whole chain at once, or add one level at a time.</p>
                     <div class="flex justify-center gap-3 mt-4">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@saving"
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(saving || !canCreateWorkflow)"
                                    OnClick="@(()=>CreateDefaultWorkflow())">Create default workflow
                         </MudButton>
-                        <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Disabled="@(!canCreateWorkflow)"
                                    OnClick="@(()=>AddStepToCategory())">Add step
                         </MudButton>
                     </div>
