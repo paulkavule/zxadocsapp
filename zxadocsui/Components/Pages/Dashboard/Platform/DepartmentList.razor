@@ -1,0 +1,59 @@
+@page "/settings/departments"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90 backdrop-blur-sm">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-sitemap text-sm"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Departments</h1>
+            <p class="text-xs text-slate-500">
+                @(NeedsOrganisation ? "no organisation chosen" : $"for {Acting.Label}")
+            </p>
+        </div>
+    </div>
+
+    <div class="p-6 space-y-6">
+        @if (NeedsOrganisation)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">
+                Departments belong to one organisation. Choose one in the header, or when adding.
+            </MudAlert>
+        }
+
+        @if (canManage)
+        {
+            <div class="flex justify-end">
+                <MudButton OnClick="OpenNew" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" Disabled="@busy">
+                    New department
+                </MudButton>
+            </div>
+        }
+
+        <MudTable Items="@departments" Hover="true" Dense="true" Striped="true" Elevation="0"
+                  Loading="@loading" LoadingProgressColor="Color.Primary">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh Style="width:120px"></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">@context.Name</MudTd>
+                <MudTd>
+                    @if (canManage && !NeedsOrganisation)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       OnClick="@(() => OpenEdit(context))" aria-label="Edit department" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => ConfirmDelete(context))" aria-label="Delete department" />
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="py-10 text-center text-slate-500">No departments yet.</div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</div>

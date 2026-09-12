@@ -100,6 +100,9 @@ public class TailwindDeadClassTests
                      Paths.Ui("Components", "Pages", "Dashboard", "Templates"),
                      Paths.Ui("Components", "Pages", "Dashboard", "Drafts"),
                      Paths.Ui("Components", "Pages", "Dashboard", "Roles"),
+                     // ZD-131. Added with the folder: the whole point of this guard is that a
+                     // missing class fails silently, so an unscanned new folder has no protection.
+                     Paths.Ui("Components", "Pages", "Dashboard", "Platform"),
                      Paths.Ui("Components", "Custom"),
                  })
         {

@@ -16,7 +16,12 @@ public class CategoryFieldsCardTests(AppFixture app)
     public async Task The_card_appears_only_once_a_category_is_chosen()
     {
         SkipIfAppDown();
-        await using var page = await app.SignedInPageAsync();
+        // The role admin, like the rest of this class: /workflows is permission-gated now, and
+        // the default account holds neither ManageRole nor a workflow permission.
+        var admin = AppFixture.RoleAdmin;
+        Assert.SkipWhen(admin is null, "ZXADOCS_ROLE_ADMIN/_PASSWORD are not set");
+
+        await using var page = await app.SignedInPageAsync(admin!.Value.User, admin.Value.Password);
         await page.GotoAsync($"{AppFixture.UiBase}/workflows",
             new() { WaitUntil = WaitUntilState.NetworkIdle });
 

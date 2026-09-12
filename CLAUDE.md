@@ -257,3 +257,7 @@ If any answer is unclear, read the code first, then edit.
 # Test Credentials
  - Usernames: pkavule, dkavule, hbakileke ,rnanzili , vagaba, jzake, pboaz, stamale, lkatongole, sgeorge
  - Default Password: 1234..34
+
+# Git Instructions
+- **Git user / committer email** is set in the local config — do not change it.
+- **Do not run** `git push`, `git push --force`, `gh pr merge`, or any branch-deletion command without explicit user confirmation.

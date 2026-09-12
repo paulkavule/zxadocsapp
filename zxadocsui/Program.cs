@@ -45,6 +45,10 @@ builder.Services.AddScoped<IUserRoleClientService, UserRoleClientService>();
 builder.Services.AddScoped<IContractTypeClientService, ContractTypeClientService>();
 builder.Services.AddScoped<IContractRequestClientService, ContractRequestClientService>();
 builder.Services.AddScoped<DraftHandoffState>();
+// Concrete-then-forward again: HttpService reads it as IActingOrganisation on every request while
+// the shell writes to it as the concrete type, and both must be the same instance.
+builder.Services.AddScoped<ActingOrganisationState>();
+builder.Services.AddScoped<IActingOrganisation>(sp => sp.GetRequiredService<ActingOrganisationState>());
 
 // Per-circuit caches that belong to ONE signed-in user. Each forwards to the SAME scoped
 // instance registered above, so UserSession.ResetUserState() clears the live objects rather
@@ -55,6 +59,7 @@ builder.Services.AddScoped<IScopedUserState>(sp => sp.GetRequiredService<AppStat
 builder.Services.AddScoped<IScopedUserState>(sp => sp.GetRequiredService<RequestsContext>());
 builder.Services.AddScoped<IScopedUserState>(sp => sp.GetRequiredService<DraftHandoffState>());
 builder.Services.AddScoped<IScopedUserState>(sp => sp.GetRequiredService<PermissionClientService>());
+builder.Services.AddScoped<IScopedUserState>(sp => sp.GetRequiredService<ActingOrganisationState>());
 
 builder.Services.AddScoped<HttpCoreIntercetpor>();
 

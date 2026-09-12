@@ -253,7 +253,10 @@
                                     }
 
                                 </div>
-                                <NavLink href="/reports/activity" class="block mt-3 text-green-600 text-xs hover:underline">View full audit trail →</NavLink>
+                                @if (canReports)
+                                {
+                                    <NavLink href="/reports/activity" class="block mt-3 text-green-600 text-xs hover:underline">View full audit trail →</NavLink>
+                                }
                             </div>
                         </div>
                     </div>

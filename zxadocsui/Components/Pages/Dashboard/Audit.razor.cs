@@ -22,7 +22,7 @@ public partial class Audit
     private static readonly string[] KnownActions =
     {
         "create", "submit", "approve", "reject", "download",
-        "archive", "upload-version", "generate-for-signing",
+        "archive", "upload-version", "generate-for-signing", "reassign",
     };
 
     private MudTable<AuditEntryDto>? table;

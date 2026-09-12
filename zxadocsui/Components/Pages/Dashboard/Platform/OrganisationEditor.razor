@@ -1,0 +1,33 @@
+@using zxadocslib.Dtos
+
+@if (loading)
+{
+    <div class="py-10 text-center text-slate-500">Loading…</div>
+}
+else
+{
+    <div class="space-y-4">
+        @if (IsNew)
+        {
+            <p class="text-xs text-slate-500">
+                Admin, Approver and Super User roles are created with it.
+            </p>
+        }
+
+        <MudTextField @bind-Value="organisation.Name" Label="Name" Immediate="true"
+                      Placeholder="Kampala Widgets" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        <MudTextField @bind-Value="organisation.Email" Label="Email"
+                      Placeholder="admin@example.com" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        <MudTextField @bind-Value="organisation.PhoneNumber" Label="Phone number"
+                      Placeholder="700000000" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        <MudTextField @bind-Value="organisation.Website" Label="Website"
+                      Placeholder="example.com" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        <MudTextField @bind-Value="organisation.Address" Label="Address" Lines="2"
+                      Placeholder="Plot 1, Kampala" Variant="Variant.Outlined" Margin="Margin.Dense" />
+
+        <MudButton OnClick="Save" Disabled="@saving" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                   StartIcon="@(IsNew ? Icons.Material.Filled.Add : Icons.Material.Filled.Save)">
+            @(saving ? "Saving…" : IsNew ? "Add organisation" : "Save changes")
+        </MudButton>
+    </div>
+}

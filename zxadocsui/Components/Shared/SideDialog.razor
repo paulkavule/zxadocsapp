@@ -2,22 +2,26 @@
 
 @implements IDisposable
 
-<MudDrawer @bind-Open="_open" Anchor="Anchor.Right" Variant="DrawerVariant.Temporary" Width="@($"{_width}px")"
-           Class="z-20">
+@* Rendered only while something has been requested. A closed MudDrawer outside a MudBlazor
+   drawer container stays position:absolute and visible at the right edge, so it extended the
+   document by its own width and could be scrolled into view on any page. *@
+@if (_componentType != null)
+{
+    <MudDrawer @bind-Open="_open" Anchor="Anchor.Right" Variant="DrawerVariant.Temporary" Width="@($"{_width}px")"
+               Class="z-20">
 
-    <div class="flex justify-between items-center p-3 border-b-2 border-gray-100">
+        <div class="flex justify-between items-center p-3 border-b-2 border-gray-100">
 
-        <div class="text-xl">@_title</div>
-        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => dialog.Close())" />
-    </div>
+            <div class="text-xl">@_title</div>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => dialog.Close())"
+                           aria-label="Close" />
+        </div>
 
-    <div class="pa-4">
-        @if (_componentType != null)
-        {
+        <div class="pa-4">
             <DynamicComponent Type="_componentType" Parameters="_parameters" />
-        }
-    </div>
-</MudDrawer>
+        </div>
+    </MudDrawer>
+}
 
 @code {
     private bool _open;
@@ -50,6 +54,9 @@
     {
         _open = false;
         _componentType = null;
+        // Without this the markup is never re-evaluated, so the drawer stays in the DOM closed,
+        // which parks it past the right edge of the page and makes it scrollable into view.
+        InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()

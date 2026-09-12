@@ -69,6 +69,17 @@ public interface ITokenProvider
     string? AccessToken { get; }
 }
 
+/// <summary>
+/// The organisation a system user is currently acting on (ZD-131). Sent on every request so the
+/// API can substitute it once, in PermissionGate.Resolve, rather than every screen passing an id.
+/// Null means "my own organisation"; AllOrganisations is a read-only view the API refuses on writes.
+/// </summary>
+public interface IActingOrganisation
+{
+    /// <summary>The header value to send, or null to send nothing.</summary>
+    string? HeaderValue { get; }
+}
+
 public interface IHttpService
 {
     void Initialize(string scheme);
@@ -104,14 +115,17 @@ public class HttpService : IHttpService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<HttpService> _logger;
     private readonly ITokenProvider _tokenProvider;
+    private readonly IActingOrganisation _actingOrganisation;
     private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
     private HttpClient? _client;
 
-    public HttpService(IHttpClientFactory httpClientFactory, ILogger<HttpService> logger, ITokenProvider tokenProvider)
+    public HttpService(IHttpClientFactory httpClientFactory, ILogger<HttpService> logger,
+        ITokenProvider tokenProvider, IActingOrganisation actingOrganisation)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _tokenProvider = tokenProvider;
+        _actingOrganisation = actingOrganisation;
     }
 
     public void Initialize(string scheme)
@@ -127,7 +141,16 @@ public class HttpService : IHttpService
         _client.DefaultRequestHeaders.Authorization = string.IsNullOrWhiteSpace(token)
             ? null
             : new AuthenticationHeaderValue("Bearer", token);
+
+        // Attached here rather than at each call site: ApplyAuthorization already runs before every
+        // request, so this is the one place that cannot be forgotten.
+        _client.DefaultRequestHeaders.Remove(ActingOrganisationHeader);
+        var acting = _actingOrganisation.HeaderValue;
+        if (!string.IsNullOrWhiteSpace(acting))
+            _client.DefaultRequestHeaders.TryAddWithoutValidation(ActingOrganisationHeader, acting);
     }
+
+    public const string ActingOrganisationHeader = "X-Acting-Organisation";
     public Task<(bool success, T? data, string? error)> GetAsync<T>(string endpoint, List<fedtos.KeyValue>? headers = null)
     {
         return ExecuteRequestAsync<T>(HttpVerb.Get, endpoint, null, headers);

@@ -1,0 +1,39 @@
+@using zxadocslib.Dtos
+
+<div class="space-y-4">
+    @if (ChoosesOrganisation)
+    {
+        @* Part of the record, so it is chosen with the department and not somewhere else. *@
+        <MudSelect T="int?" Value="SelectedOrganisationId" ValueChanged="ChooseOrganisation"
+                   Label="Organisation" Variant="Variant.Outlined" Margin="Margin.Dense"
+                   Placeholder="Choose an organisation">
+            @foreach (var organisation in Organisations)
+            {
+                <MudSelectItem T="int?" Value="@organisation.Id">@organisation.Name</MudSelectItem>
+            }
+        </MudSelect>
+    }
+    else if (SystemUser)
+    {
+        @* An update only renames: the service scopes by organisation and cannot move a department
+           between them, so offering the choice here would silently do nothing. *@
+        <MudTextField T="string" Value="@Acting.Label" Label="Organisation" Variant="Variant.Outlined"
+                      Margin="Margin.Dense" Disabled="true" />
+    }
+
+    <MudTextField @bind-Value="name" Label="Department" Variant="Variant.Outlined" Margin="Margin.Dense"
+                  Placeholder="Finance" Immediate="true" Disabled="@NeedsOrganisation" />
+
+    @if (NeedsOrganisation)
+    {
+        <MudAlert Severity="Severity.Info" Dense="true">
+            A department belongs to one organisation. Choose one to continue.
+        </MudAlert>
+    }
+
+    <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+               StartIcon="@(IsNew ? Icons.Material.Filled.Add : Icons.Material.Filled.Save)"
+               Disabled="@(busy || NeedsOrganisation || string.IsNullOrWhiteSpace(name))">
+        @(IsNew ? "Add department" : "Save changes")
+    </MudButton>
+</div>

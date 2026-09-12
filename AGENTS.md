@@ -304,3 +304,7 @@ If any of those are unclear, inspect first and then change code.
 # Comments Rules
 - Comments should only be added where necessary
 - Comments should not exceed 2 lines
+
+# Git Instructions
+- **Git user / committer email** is set in the local config — do not change it.
+- **Do not run** `git push`, `git push --force`, `gh pr merge`, or any branch-deletion command without explicit user confirmation.

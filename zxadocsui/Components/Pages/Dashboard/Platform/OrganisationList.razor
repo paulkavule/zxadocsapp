@@ -1,0 +1,71 @@
+@page "/settings/organisations"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white/90 backdrop-blur-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+                <i class="fas fa-building text-sm"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Organisations</h1>
+                <p class="text-xs text-slate-500">the tenants on this platform</p>
+            </div>
+        </div>
+        @if (canManage)
+        {
+            <MudButton OnClick="OpenNew" Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add">
+                New organisation
+            </MudButton>
+        }
+    </div>
+
+    <div class="p-6">
+        <MudTable Items="@organisations" Hover="true" Dense="true" Striped="true" Elevation="0"
+                  Loading="@loading" LoadingProgressColor="Color.Primary">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Email</MudTh>
+                <MudTh>Phone</MudTh>
+                <MudTh Style="width:120px"></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">@context.Name</MudTd>
+                <MudTd DataLabel="Email">
+                    @if (string.IsNullOrWhiteSpace(context.Email))
+                    {
+                        <span class="text-slate-400">&mdash;</span>
+                    }
+                    else
+                    {
+                        @context.Email
+                    }
+                </MudTd>
+                <MudTd DataLabel="Phone">
+                    @if (string.IsNullOrWhiteSpace(context.PhoneNumber))
+                    {
+                        <span class="text-slate-400">&mdash;</span>
+                    }
+                    else
+                    {
+                        @context.PhoneNumber
+                    }
+                </MudTd>
+                <MudTd>
+                    @if (canManage)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       OnClick="@(() => OpenEdit(context))" aria-label="Edit" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => ConfirmDelete(context))" aria-label="Delete" />
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="py-10 text-center text-slate-500">No organisations yet.</div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</div>

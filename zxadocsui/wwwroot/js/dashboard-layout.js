@@ -51,7 +51,9 @@ function initializeSidebar() {
     }
 
     const savedReportsState = localStorage.getItem("zxadocs_reports_expanded");
-    if (savedReportsState !== null) {
+    // Guarded like the contracts block below: the Reports section is permission-gated, so
+    // it may not be in the DOM at all, and an unguarded read here breaks the whole sidebar.
+    if (savedReportsState !== null && reportsSubmenu) {
       reportsExpanded = savedReportsState === "true";
       if (reportsExpanded) {
         reportsSubmenu.classList.remove("max-h-0", "opacity-0");
