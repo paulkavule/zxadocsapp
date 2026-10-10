@@ -169,7 +169,7 @@ public partial class RoleEditor
     }
 
     // The enum's decades already encode the module, so grouping needs no server metadata:
-    // 1x Legal Templates, 2x Contract Drafting, 3x Audit and Reporting, 7x Workflows. An
+    // 1x Legal Templates, 2x Contract Drafting, 3x Audit and Reporting, 7x Workflows, 8x Petty Cash. An
     // unrecognised decade still renders.
     private static Dictionary<string, List<PermissionItem>> Group(IEnumerable<PermissionItem> all) =>
         all.GroupBy(p => p.Value / 10)
@@ -186,6 +186,7 @@ public partial class RoleEditor
         5 => "Role Management",
         6 => "Contract Management",
         7 => "Workflow Management",
+        8 => "Petty Cash",
         _ => "Other",
     };
 
