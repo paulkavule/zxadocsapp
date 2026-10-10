@@ -34,7 +34,13 @@
                 <PropertyColumn Property="x => RoleNames(x)" Title="Roles" />
                 <TemplateColumn Title="Status" Sortable="false" Filterable="false">
                     <CellTemplate>
-                        @if (IsPending(context.Item))
+                        @if (IsInactive(context.Item))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                                Inactive
+                            </MudChip>
+                        }
+                        else if (IsPending(context.Item))
                         {
                             <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">
                                 Never signed in
@@ -56,6 +62,12 @@
                                        StartIcon="@Icons.Material.Filled.Edit"
                                        Href="@($"/users/edit/{context.Item.UserReference}")">
                                 Edit
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text"
+                                       Color="@(IsInactive(context.Item) ? Color.Success : Color.Error)"
+                                       Disabled="@(_changingStatus == context.Item.Id)"
+                                       OnClick="@(() => ToggleStatus(context.Item))">
+                                @(IsInactive(context.Item) ? "Activate" : "Deactivate")
                             </MudButton>
                         </CellTemplate>
                     </TemplateColumn>

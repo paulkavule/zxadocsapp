@@ -16,6 +16,9 @@ else
 
         <MudTextField @bind-Value="organisation.Name" Label="Name" Immediate="true"
                       Placeholder="Kampala Widgets" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        <MudTextField @bind-Value="organisation.Code" Label="Code" Immediate="true" MaxLength="20"
+                      HelperText="Unique, 2-20 letters, digits or hyphens"
+                      Placeholder="KWIDGETS" Variant="Variant.Outlined" Margin="Margin.Dense" />
         <MudTextField @bind-Value="organisation.Email" Label="Email"
                       Placeholder="admin@example.com" Variant="Variant.Outlined" Margin="Margin.Dense" />
         <MudTextField @bind-Value="organisation.PhoneNumber" Label="Phone number"

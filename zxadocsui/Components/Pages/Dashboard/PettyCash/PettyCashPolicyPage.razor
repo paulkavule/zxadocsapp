@@ -1,0 +1,84 @@
+@page "/petty-cash/policy"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-scale-balanced text-sm"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Petty cash policy</h1>
+            <p class="text-xs text-slate-500">
+                @(policy.Version == 0 ? "defaults, never saved" : $"version {policy.Version}, in force since {policy.EffectiveFrom.ToLocalTime():d MMM yyyy HH:mm}")
+                &middot; changes apply to transactions started afterwards
+            </p>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="py-10 text-center text-slate-500">Loading…</div>
+    }
+    else
+    {
+        <div class="p-6 grid gap-4 max-w-2xl">
+            <MudNumericField @bind-Value="policy.DefaultApprovalLevels" Label="Default approval levels" Min="1" Max="5"
+                             ReadOnly="@(!canEdit)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudNumericField @bind-Value="policy.PerTransactionLimit" Label="Per-transaction limit (UGX, empty for none)"
+                             ReadOnly="@(!canEdit)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudNumericField @bind-Value="policy.DailyLimit" Label="Daily limit (UGX, empty for none)"
+                             ReadOnly="@(!canEdit)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudNumericField @bind-Value="policy.MonthlyLimit" Label="Monthly limit (UGX, empty for none)"
+                             ReadOnly="@(!canEdit)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+
+            <div>
+                <p class="text-sm text-slate-600 mb-1">Allowed payment methods</p>
+                @foreach (var method in Methods)
+                {
+                    <MudCheckBox T="bool" Value="@policy.AllowedPaymentMethods.Contains(method)" Label="@method"
+                                 ReadOnly="@(!canEdit)" ValueChanged="@(on => Toggle(method, on))" Dense="true" />
+                }
+            </div>
+
+            <div>
+                <p class="text-sm text-slate-600 mb-1">Notifications</p>
+                <MudCheckBox @bind-Value="policy.NotifyOnSubmission" Label="When a request is submitted" ReadOnly="@(!canEdit)" Dense="true" />
+                <MudCheckBox @bind-Value="policy.NotifyApprovers" Label="When approval is required" ReadOnly="@(!canEdit)" Dense="true" />
+                <MudCheckBox @bind-Value="policy.NotifyOnDecision" Label="When a request is approved, rejected or returned" ReadOnly="@(!canEdit)" Dense="true" />
+                <MudCheckBox @bind-Value="policy.NotifyOnPayment" Label="When a payment succeeds or fails" ReadOnly="@(!canEdit)" Dense="true" />
+            </div>
+
+            @if (canEdit)
+            {
+                <MudButton OnClick="Save" Disabled="@saving" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Save">
+                    @(saving ? "Saving…" : "Save as new version")
+                </MudButton>
+            }
+        </div>
+
+        @if (canEdit && history.Count > 0)
+        {
+            <div class="px-6 pb-6">
+                <h2 class="text-sm font-semibold text-slate-700 mb-2">History</h2>
+                <MudTable Items="@history" Dense="true" Elevation="0" Striped="true">
+                    <HeaderContent>
+                        <MudTh>Version</MudTh><MudTh>In force from</MudTh><MudTh>By</MudTh>
+                        <MudTh>Levels</MudTh><MudTh>Per txn</MudTh><MudTh>Daily</MudTh><MudTh>Monthly</MudTh><MudTh>Methods</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Version</MudTd>
+                        <MudTd>@context.EffectiveFrom.ToLocalTime().ToString("d MMM yyyy HH:mm")</MudTd>
+                        <MudTd>@context.ChangedBy</MudTd>
+                        <MudTd>@context.DefaultApprovalLevels</MudTd>
+                        <MudTd>@Money(context.PerTransactionLimit)</MudTd>
+                        <MudTd>@Money(context.DailyLimit)</MudTd>
+                        <MudTd>@Money(context.MonthlyLimit)</MudTd>
+                        <MudTd>@string.Join(", ", context.AllowedPaymentMethods)</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </div>
+        }
+    }
+</div>
