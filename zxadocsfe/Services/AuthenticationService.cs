@@ -6,7 +6,8 @@ namespace zxadocsfe.Services;
 public interface IAuthService
 {
     Task<(bool, AuthToken)> GenerateNewCoreToken(string refreshToken);
-    Task<(bool, AuthToken)> UserLogin(string username, string password);
+    /// <summary>Error is the server's message when the login is refused (e.g. a deactivated account).</summary>
+    Task<(bool, AuthToken, string? Error)> UserLogin(string username, string password);
 }
 public class AuthService : IAuthService
 {
@@ -17,16 +18,16 @@ public class AuthService : IAuthService
         this.httpService = httpService;
     }
 
-    public async Task<(bool, AuthToken)> UserLogin(string username, string password)
+    public async Task<(bool, AuthToken, string? Error)> UserLogin(string username, string password)
     {
         var data = new
         {
             username,
             password
         };
-        var (status, result, _) = await httpService.ExecuteRequestAsync<ApiResponse<AuthToken>>(HttpVerb.Post, $"/api/user/login", data);
+        var (status, result, error) = await httpService.ExecuteRequestAsync<ApiResponse<AuthToken>>(HttpVerb.Post, $"/api/user/login", data);
 
-        return (status, result?.Data)!;
+        return (status, result?.Data!, ErrorMessage.Extract(error));
     }
 
     public async Task<(bool, AuthToken)> GenerateNewCoreToken(string refreshToken)

@@ -70,11 +70,11 @@ public partial class Login
             snackBar?.Add(validationErrors, Severity.Info);
             return;
         }
-        var (status, token) = await authSvc!.UserLogin(_username, _password);
+        var (status, token, error) = await authSvc!.UserLogin(_username, _password);
         if (!status)
         {
             snackBar?.Clear();
-            snackBar?.Add("Invalid username or password", Severity.Error);
+            snackBar?.Add(error ?? "Invalid username or password", Severity.Error);
             return;
         }
 

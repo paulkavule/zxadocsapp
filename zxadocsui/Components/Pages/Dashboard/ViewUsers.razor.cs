@@ -16,6 +16,7 @@ public partial class ViewUsers
     [Inject] private IUserSession Session { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private IDialogService Dialogs { get; set; } = default!;
     [Inject] private ILogger<ViewUsers> Logger { get; set; } = default!;
 
     private List<UserSummary> _users = new();
@@ -30,6 +31,8 @@ public partial class ViewUsers
 
     // Id of the user currently being re-invited, so only that row's button shows a busy state.
     private int _resending;
+
+    private int _changingStatus;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -84,6 +87,38 @@ public partial class ViewUsers
     /// </summary>
     private static bool IsPending(UserSummary user) =>
         string.Equals(user.Status, "PENDING", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsInactive(UserSummary user) =>
+        string.Equals(user.Status, "INACTIVE", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Deactivation is confirmed: the user is signed out of every session at once.</summary>
+    private async Task ToggleStatus(UserSummary user)
+    {
+        var activate = IsInactive(user);
+        if (!activate)
+        {
+            var confirmed = await Dialogs.ShowMessageBoxAsync("Deactivate user",
+                $"Deactivate {user.Name}? They are signed out at once and cannot log in or approve until reactivated.",
+                yesText: "Deactivate", cancelText: "Cancel");
+            if (confirmed != true) return;
+        }
+
+        _changingStatus = user.Id;
+        try
+        {
+            var (status, _, message) = await HttpSvc.ExecuteRequestAsync<ApiResponse<int>>(
+                HttpVerb.Patch, $"api/users/{user.Id}/status", new { IsActive = activate });
+
+            Snackbar.Add(status ? $"{user.Name} {(activate ? "activated" : "deactivated")}."
+                                : $"Could not change the status. {message}",
+                status ? Severity.Success : Severity.Error);
+            if (status) await LoadUsers();
+        }
+        finally
+        {
+            _changingStatus = 0;
+        }
+    }
 
     private async Task ResendInvite(UserSummary user)
     {
