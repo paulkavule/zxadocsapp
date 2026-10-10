@@ -190,6 +190,16 @@
                             </NavLink>
                         }
 
+                        @if (canPettyCashPolicy)
+                        {
+                            <NavLink href="/petty-cash/policy"
+                                     class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item mt-2"
+                                     ActiveClass="bg-[#e0f2df]">
+                                <i class="fa-solid fa-scale-balanced w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                <span class="font-medium whitespace-nowrap sidebar-menu-text">Petty cash policy</span>
+                            </NavLink>
+                        }
+
                         <div class="border-t border-[#d4ead5] my-4"></div>
 
                         <div class="text-xs font-semibold text-[#5b8c70] uppercase tracking-wider px-4 mb-2 sidebar-menu-label">
@@ -408,6 +418,7 @@
     bool canRoles;
     bool canUsers;
     bool canContractTypes;
+    bool canPettyCashPolicy;
     bool showContracts => canTemplates || canDrafts || canContractTypes;
 
     // Settings is platform administration, so it hangs off the system roles rather than a
@@ -441,6 +452,7 @@
                      || perms.Contains(Permission.ApproveDraft);
             // No implying it from the approval permissions — ViewAudit is granted on its own.
             canAudit = perms.Contains(Permission.ViewAudit);
+            canPettyCashPolicy = perms.Contains(Permission.FinanceAdmin) || perms.Contains(Permission.ViewPettyCashFinance);
             canRoles = perms.Contains(Permission.CreateRole) || perms.Contains(Permission.ManageRole);
             canUsers = perms.Contains(Permission.ViewUsers)
                     || perms.Contains(Permission.CreateUser)
