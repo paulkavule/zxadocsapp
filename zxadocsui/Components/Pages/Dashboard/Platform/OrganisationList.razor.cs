@@ -84,6 +84,30 @@ public partial class OrganisationList
         }
     }
 
+    /// <summary>Deactivation is confirmed: the organisation can then start no new financial transactions.</summary>
+    private async Task ToggleStatus(Organisation organisation)
+    {
+        var activate = !organisation.IsActive;
+        if (!activate)
+        {
+            var confirmed = await Dialogs.ShowMessageBoxAsync(
+                "Deactivate organisation",
+                $"Deactivate {organisation.Name}? Its history stays readable, but it can start no new financial transactions.",
+                yesText: "Deactivate", cancelText: "Cancel");
+            if (confirmed != true) return;
+        }
+
+        Http.Initialize(AppConstants.HttpSchemes.Core);
+        var (ok, _, error) = await Http.ExecuteRequestAsync<ApiResponse<string>>(
+            HttpVerb.Patch, $"api/organisations/{organisation.EntityId}/status", new { IsActive = activate });
+
+        Snackbar.Add(ok ? $"{organisation.Name} {(activate ? "activated" : "deactivated")}."
+                        : ErrorMessage.Extract(error) ?? "Failed to change the status.",
+            ok ? Severity.Success : Severity.Error);
+        if (ok) await Load();
+        StateHasChanged();
+    }
+
     private async Task ConfirmDelete(Organisation organisation)
     {
         var confirmed = await Dialogs.ShowMessageBoxAsync(

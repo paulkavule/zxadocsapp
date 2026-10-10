@@ -70,6 +70,12 @@ public partial class OrganisationEditor
             return;
         }
 
+        if (string.IsNullOrWhiteSpace(organisation.Code))
+        {
+            Snackbar.Add("An organisation needs a code.", Severity.Warning);
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(organisation.Email) && string.IsNullOrWhiteSpace(organisation.PhoneNumber))
         {
             Snackbar.Add("Give the organisation an email or a phone number.", Severity.Warning);
