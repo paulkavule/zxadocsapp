@@ -1,0 +1,44 @@
+@page "/settings/system"
+@layout DashboardLayout
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-sliders text-sm"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">System settings</h1>
+            <p class="text-xs text-slate-500">deployment-wide; every change is validated and audited</p>
+        </div>
+    </div>
+
+    <MudTabs Elevation="0" ApplyEffectsToContainer="true" PanelClass="p-6" ActivePanelIndexChanged="OnTabChanged">
+        @foreach (var category in Categories)
+        {
+            <MudTabPanel Text="@category" />
+        }
+    </MudTabs>
+
+    <div class="px-6 pb-6 space-y-3">
+        @if (loading)
+        {
+            <div class="py-10 text-center text-slate-500">Loading…</div>
+        }
+        else
+        {
+            @foreach (var setting in settings)
+            {
+                <div class="flex items-end gap-3">
+                    <MudTextField @bind-Value="drafts[setting.Name]" Label="@setting.Name" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" Class="flex-1"
+                                  InputType="@(setting.IsSecret ? InputType.Password : InputType.Text)"
+                                  Placeholder="@(setting.IsSecret && setting.Value.Length > 0 ? "Stored - type to replace" : string.Empty)" />
+                    <MudButton OnClick="@(() => Save(setting))" Disabled="@(saving == setting.Name)"
+                               Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small">
+                        @(saving == setting.Name ? "Saving…" : "Save")
+                    </MudButton>
+                </div>
+            }
+        }
+    </div>
+</div>
