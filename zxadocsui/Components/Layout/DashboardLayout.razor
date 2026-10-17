@@ -224,6 +224,16 @@
                             </NavLink>
                         }
 
+                        @if (canFunding)
+                        {
+                            <NavLink href="/petty-cash/fundings"
+                                     class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                     ActiveClass="bg-[#e0f2df]">
+                                <i class="fa-solid fa-money-bill-transfer w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                <span class="font-medium whitespace-nowrap sidebar-menu-text">Wallet funding</span>
+                            </NavLink>
+                        }
+
                         @if (canAccounting)
                         {
                             <NavLink href="/accounting/accounts"
@@ -472,6 +482,7 @@
     bool canContractTypes;
     bool canPettyCashSetup;
     bool canAccounting;
+    bool canFunding;
     bool showContracts => canTemplates || canDrafts || canContractTypes;
 
     // Settings is platform administration, so it hangs off the system roles rather than a
@@ -508,6 +519,7 @@
             canPettyCashSetup = perms.Contains(Permission.FinanceAdmin) || perms.Contains(Permission.ViewPettyCashFinance);
             canAccounting = perms.Contains(Permission.ManageAccounting) || perms.Contains(Permission.ReverseJournal)
                          || perms.Contains(Permission.ViewPettyCashFinance);
+            canFunding = canPettyCashSetup || perms.Contains(Permission.ApprovePettyCashRequest);
             canRoles = perms.Contains(Permission.CreateRole) || perms.Contains(Permission.ManageRole);
             canUsers = perms.Contains(Permission.ViewUsers)
                     || perms.Contains(Permission.CreateUser)

@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="pkavule.zxadocslib" Version="1.1.52" />
+    <PackageReference Include="pkavule.zxadocslib" Version="1.1.53" />
   </ItemGroup>
 
 </Project>
