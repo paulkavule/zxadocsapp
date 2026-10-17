@@ -1,0 +1,27 @@
+@using zxadocslib.Dtos
+
+<div class="space-y-4">
+    <MudTextField @bind-Value="Account.Code" Label="Code" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="20" />
+    <MudTextField @bind-Value="Account.Name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="100" />
+    <MudSelect T="GlAccountType" @bind-Value="Account.Type" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense">
+        @foreach (var type in Enum.GetValues<GlAccountType>())
+        {
+            <MudSelectItem T="GlAccountType" Value="@type">@type</MudSelectItem>
+        }
+    </MudSelect>
+    <MudSelect T="int?" @bind-Value="Account.ParentId" Label="Parent (optional)" Variant="Variant.Outlined" Margin="Margin.Dense"
+               Clearable="true">
+        @foreach (var parent in Parents)
+        {
+            <MudSelectItem T="int?" Value="@parent.Id">@parent.Code &middot; @parent.Name</MudSelectItem>
+        }
+    </MudSelect>
+    <MudSwitch T="bool" @bind-Value="Account.AllowPosting" Label="@(Account.AllowPosting ? "Journals can post here" : "Header account: no posting")"
+               Color="Color.Success" />
+    <MudSwitch T="bool" @bind-Value="Account.IsActive" Label="@(Account.IsActive ? "Active" : "Inactive")" Color="Color.Success" />
+
+    <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Disabled="@busy"
+               StartIcon="@(Account.Id == 0 ? Icons.Material.Filled.Add : Icons.Material.Filled.Save)">
+        @(Account.Id == 0 ? "Add account" : "Save changes")
+    </MudButton>
+</div>

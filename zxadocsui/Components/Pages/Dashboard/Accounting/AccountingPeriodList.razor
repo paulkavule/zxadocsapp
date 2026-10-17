@@ -1,0 +1,52 @@
+@page "/accounting/periods"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-calendar-days text-sm"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Accounting periods</h1>
+            <p class="text-xs text-slate-500">journals post only into an open period covering their date</p>
+        </div>
+    </div>
+
+    <div class="p-6 space-y-6">
+        @if (canEdit)
+        {
+            <div class="flex justify-end">
+                <MudButton OnClick="OpenEditor" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
+                    New period
+                </MudButton>
+            </div>
+        }
+
+        <MudTable Items="@periods" Hover="true" Dense="true" Striped="true" Elevation="0"
+                  Loading="@loading" LoadingProgressColor="Color.Primary">
+            <HeaderContent>
+                <MudTh>Name</MudTh><MudTh>From</MudTh><MudTh>To</MudTh><MudTh>Status</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">@context.Name</MudTd>
+                <MudTd DataLabel="From">@context.StartDate.ToString("d MMM yyyy")</MudTd>
+                <MudTd DataLabel="To">@context.EndDate.ToString("d MMM yyyy")</MudTd>
+                <MudTd DataLabel="Status">
+                    @if (canEdit)
+                    {
+                        <MudSwitch T="bool" Value="@context.IsOpen" ValueChanged="@(open => SetOpen(context, open))"
+                                   Label="@(context.IsOpen ? "Open" : "Closed")" Color="Color.Success" />
+                    }
+                    else
+                    {
+                        @(context.IsOpen ? "Open" : "Closed")
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="py-10 text-center text-slate-500">No periods yet. Nothing can be posted until one is open.</div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</div>

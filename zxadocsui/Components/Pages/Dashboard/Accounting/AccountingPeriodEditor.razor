@@ -1,0 +1,9 @@
+<div class="space-y-4">
+    <MudTextField @bind-Value="name" Label="Name" Placeholder="Oct 2026" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="40" />
+    <MudDatePicker @bind-Date="start" Label="From" Variant="Variant.Outlined" Margin="Margin.Dense" />
+    <MudDatePicker @bind-Date="end" Label="To" Variant="Variant.Outlined" Margin="Margin.Dense" />
+    <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+               Disabled="@(busy || start is null || end is null)" StartIcon="@Icons.Material.Filled.Add">
+        Add open period
+    </MudButton>
+</div>

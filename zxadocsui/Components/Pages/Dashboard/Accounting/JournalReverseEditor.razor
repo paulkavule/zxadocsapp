@@ -1,0 +1,13 @@
+@using zxadocslib.Dtos
+
+<div class="space-y-4">
+    <p class="text-sm text-slate-600">
+        Posts a new journal dated today that offsets @Journal.Number line for line. The original stays in the ledger,
+        and a journal can be reversed only once.
+    </p>
+    <MudTextField @bind-Value="reason" Label="Reason" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="150" Lines="2" />
+    <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Error" FullWidth="true"
+               Disabled="@(busy || string.IsNullOrWhiteSpace(reason))" StartIcon="@Icons.Material.Filled.Undo">
+        Reverse @Journal.Number
+    </MudButton>
+</div>

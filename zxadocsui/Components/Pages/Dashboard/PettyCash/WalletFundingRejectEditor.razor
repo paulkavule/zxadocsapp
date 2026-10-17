@@ -1,0 +1,10 @@
+@using zxadocslib.Dtos
+
+<div class="space-y-4">
+    <p class="text-sm text-slate-600">@Funding.Amount.ToString("N0") UGX into @Funding.BillingUnitCode, reference @Funding.Reference.</p>
+    <MudTextField @bind-Value="reason" Label="Reason" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="150" Lines="2" />
+    <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Error" FullWidth="true"
+               Disabled="@(busy || string.IsNullOrWhiteSpace(reason))" StartIcon="@Icons.Material.Filled.Close">
+        Reject funding
+    </MudButton>
+</div>
