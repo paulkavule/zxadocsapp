@@ -28,6 +28,7 @@ public partial class RequestEditor
     private List<UtilityAccountDto> utilityAccounts = new();
     private bool loading = true;
     private bool askReason;
+    private string returnComment = string.Empty;
     private string duplicateMessage = string.Empty;
     private string duplicateReason = string.Empty;
     private bool busy;
@@ -64,6 +65,11 @@ public partial class RequestEditor
                     return;
                 }
                 request = existing.Data;
+                if (request.Status == RequestStatus.Returned)
+                {
+                    var (reviewOk, review, _) = await Http.GetAsync<ApiResponse<RequestReviewDto>>($"api/petty-cash/requests/{id}/review");
+                    returnComment = reviewOk ? review?.Data?.History.LastOrDefault(h => h.Action == ApprovalAction.Return)?.Comment ?? "" : "";
+                }
             }
         }
         finally

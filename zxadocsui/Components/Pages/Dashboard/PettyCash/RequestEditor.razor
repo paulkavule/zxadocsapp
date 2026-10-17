@@ -36,6 +36,10 @@
     else
     {
         <div class="p-6 grid gap-4 max-w-2xl">
+            @if (returnComment.Length > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true">Returned: @returnComment</MudAlert>
+            }
             <MudSelect T="int?" @bind-Value="request.CategoryId" Label="Category" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var category in categories)
                 {

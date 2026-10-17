@@ -67,10 +67,18 @@
             @if (review.CanAct)
             {
                 <section class="space-y-2">
-                    <MudTextField @bind-Value="comment" Label="Comment" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="500" />
+                    <MudTextField @bind-Value="comment" Label="Comment (required to return or reject)" Immediate="true" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="500" />
                     <div class="flex gap-2">
                         <MudButton OnClick="Approve" Disabled="@busy" Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Check">
                             Approve level @r.CurrentLevel
+                        </MudButton>
+                        <MudButton OnClick="Return" Disabled="@(busy || string.IsNullOrWhiteSpace(comment))" Variant="Variant.Outlined"
+                                   Color="Color.Warning" StartIcon="@Icons.Material.Filled.Undo">
+                            Return to maker
+                        </MudButton>
+                        <MudButton OnClick="Reject" Disabled="@(busy || string.IsNullOrWhiteSpace(comment))" Variant="Variant.Outlined"
+                                   Color="Color.Error" StartIcon="@Icons.Material.Filled.Block">
+                            Reject
                         </MudButton>
                     </div>
                 </section>

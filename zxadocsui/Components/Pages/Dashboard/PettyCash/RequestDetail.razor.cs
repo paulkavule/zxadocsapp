@@ -47,6 +47,10 @@ public partial class RequestDetail
 
     private Task Approve() => Decide("approve", "Approved.");
 
+    private Task Return() => Decide("return", "Returned to the maker.");
+
+    private Task Reject() => Decide("reject", "Rejected.");
+
     private async Task Decide(string action, string done)
     {
         busy = true;
