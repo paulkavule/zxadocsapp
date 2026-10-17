@@ -1,0 +1,44 @@
+@using zxadocslib.Dtos
+@using Microsoft.AspNetCore.Components.Forms
+
+<section>
+    <div class="flex items-center justify-between mb-2">
+        <h2 class="text-sm font-semibold text-slate-700">Supporting documents</h2>
+        @if (Editable)
+        {
+            <MudFileUpload T="IBrowserFile" FilesChanged="Upload" Class="shadow-none">
+                <CustomContent>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Disabled="@busy"
+                               StartIcon="@Icons.Material.Filled.AttachFile" OnClick="@context.OpenFilePickerAsync">
+                        Attach
+                    </MudButton>
+                </CustomContent>
+            </MudFileUpload>
+        }
+    </div>
+    @if (attachments.Count == 0)
+    {
+        <div class="py-4 text-center text-slate-400 border border-slate-200 rounded-xl text-sm">Nothing attached.</div>
+    }
+    else
+    {
+        <MudList T="string" Dense="true">
+            @foreach (var attachment in attachments)
+            {
+                <MudListItem T="string" Icon="@Icons.Material.Filled.InsertDriveFile">
+                    <div class="flex items-center justify-between w-full">
+                        <span>@attachment.FileName <span class="text-xs text-slate-400">(@((attachment.Size + 1023) / 1024) KB, @attachment.UploadedBy)</span></span>
+                        <span>
+                            <MudIconButton Icon="@Icons.Material.Filled.Download" Size="Size.Small" OnClick="@(() => Download(attachment))" aria-label="Download" />
+                            @if (Editable)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                               OnClick="@(() => Remove(attachment))" aria-label="Remove" />
+                            }
+                        </span>
+                    </div>
+                </MudListItem>
+            }
+        </MudList>
+    }
+</section>

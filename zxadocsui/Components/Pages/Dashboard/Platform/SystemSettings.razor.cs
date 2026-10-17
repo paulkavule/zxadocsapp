@@ -15,7 +15,7 @@ namespace zxadocsui.Components.Pages.Dashboard.Platform;
 /// </summary>
 public partial class SystemSettings
 {
-    private static readonly string[] Categories = ["Payments", "Notifications", "Passwords"];
+    private static readonly string[] Categories = ["Payments", "PettyCash", "Notifications", "Passwords"];
 
     [Inject] private IHttpService Http { get; set; } = default!;
     [Inject] private IPermissionClientService Permissions { get; set; } = default!;

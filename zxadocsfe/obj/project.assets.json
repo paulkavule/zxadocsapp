@@ -277,7 +277,7 @@
           "lib/netstandard1.0/_._": {}
         }
       },
-      "pkavule.zxadocslib/1.1.55": {
+      "pkavule.zxadocslib/1.1.56": {
         "type": "package",
         "compile": {
           "lib/net10.0/zxadocslib.dll": {}
@@ -811,14 +811,14 @@
         "runtime.json"
       ]
     },
-    "pkavule.zxadocslib/1.1.55": {
-      "sha512": "7H3QGW89nS5WUvsvauP4j2SnPBnmwbaR+Ti8CTpqFsTyy84Zt+N63P236hBMwmf5oofW/ToF3NLCdhKcxkrxbA==",
+    "pkavule.zxadocslib/1.1.56": {
+      "sha512": "qOVo47rszs++CAZv+LAnwOJPBRGULYsFUlrHrOJLF+6qQAFfXn7tX2957QZ7aY414WAymQ2e0VY17FfwmyZjjg==",
       "type": "package",
-      "path": "pkavule.zxadocslib/1.1.55",
+      "path": "pkavule.zxadocslib/1.1.56",
       "files": [
         ".nupkg.metadata",
         "lib/net10.0/zxadocslib.dll",
-        "pkavule.zxadocslib.1.1.55.nupkg.sha512",
+        "pkavule.zxadocslib.1.1.56.nupkg.sha512",
         "pkavule.zxadocslib.nuspec"
       ]
     },
@@ -912,7 +912,7 @@
       "Microsoft.Extensions.Http >= 9.0.10",
       "Microsoft.Extensions.Logging.Abstractions >= 9.0.10",
       "System.Net.Http >= 4.3.4",
-      "pkavule.zxadocslib >= 1.1.55"
+      "pkavule.zxadocslib >= 1.1.56"
     ]
   },
   "packageFolders": {
@@ -977,7 +977,7 @@
           },
           "pkavule.zxadocslib": {
             "target": "Package",
-            "version": "[1.1.55, )"
+            "version": "[1.1.56, )"
           }
         },
         "imports": [

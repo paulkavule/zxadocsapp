@@ -66,6 +66,15 @@
             <MudTextField @bind-Value="request.Description" Label="What is it for" Lines="3" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="300" />
             <MudTextField @bind-Value="request.CostCentre" Label="Cost centre (defaults to the unit's)" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="40" />
 
+            @if (request.Id == 0)
+            {
+                <p class="text-xs text-slate-500">Save the draft first, then attach supporting documents.</p>
+            }
+            else
+            {
+                <RequestAttachments RequestId="@request.Id" Editable="true" />
+            }
+
             <div class="flex gap-2">
                 <MudButton OnClick="Save" Disabled="@busy" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save">
                     Save draft
