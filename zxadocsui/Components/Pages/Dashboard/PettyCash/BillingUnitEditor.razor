@@ -1,0 +1,27 @@
+@using zxadocslib.Dtos
+
+<div class="space-y-4">
+    <MudTextField @bind-Value="Unit.Code" Label="Code" Variant="Variant.Outlined" Margin="Margin.Dense"
+                  Placeholder="OPS-KLA" MaxLength="20" />
+    <MudTextField @bind-Value="Unit.Name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="100" />
+    <MudSelect T="int" @bind-Value="Unit.DepartmentId" Label="Department" Variant="Variant.Outlined" Margin="Margin.Dense">
+        @foreach (var department in departments)
+        {
+            <MudSelectItem T="int" Value="@department.Id">@department.Name</MudSelectItem>
+        }
+    </MudSelect>
+    <MudTextField @bind-Value="Unit.CostCentre" Label="Cost centre" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="40" />
+    <MudNumericField @bind-Value="Unit.PerTransactionLimit" Label="Per-transaction limit (UGX, empty for policy)"
+                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+    <MudNumericField @bind-Value="Unit.DailyLimit" Label="Daily limit (UGX, empty for policy)"
+                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+    <MudNumericField @bind-Value="Unit.MonthlyLimit" Label="Monthly limit (UGX, empty for policy)"
+                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+    <MudSwitch T="bool" @bind-Value="Unit.IsActive" Label="@(Unit.IsActive ? "Active" : "Inactive: no new requests")"
+               Color="Color.Success" />
+
+    <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Disabled="@busy"
+               StartIcon="@(Unit.Id == 0 ? Icons.Material.Filled.Add : Icons.Material.Filled.Save)">
+        @(Unit.Id == 0 ? "Add billing unit" : "Save changes")
+    </MudButton>
+</div>
