@@ -61,6 +61,16 @@
                 <MudTextField @bind-Value="request.BeneficiaryPhone" Label="Beneficiary phone" Placeholder="256772123456"
                               Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="12" />
                 <MudTextField @bind-Value="request.BeneficiaryName" Label="Beneficiary name" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="100" />
+                @if (request.Id != 0)
+                {
+                    <div class="flex items-center gap-3">
+                        <MudButton OnClick="Lookup" Disabled="@busy" Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.PersonSearch">
+                            Verify name with provider
+                        </MudButton>
+                        <BeneficiaryResult Request="@request" />
+                    </div>
+                    <p class="text-xs text-slate-500">Save the phone first; changing it later clears the check.</p>
+                }
             }
             <MudNumericField @bind-Value="request.Amount" Label="Amount (UGX)" Min="0" Variant="Variant.Outlined" Margin="Margin.Dense" />
             <MudTextField @bind-Value="request.Description" Label="What is it for" Lines="3" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="300" />

@@ -1,0 +1,23 @@
+@using zxadocslib.Dtos
+
+@* The stored provider lookup (ZD-196); makers and approvers see the same record. *@
+@switch (Request.BeneficiaryLookupStatus)
+{
+    case BeneficiaryLookupStatus.Verified:
+        <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.Verified">
+            @Request.BeneficiaryVerifiedName &middot; @Request.BeneficiaryLookedUpAt?.ToLocalTime().ToString("d MMM HH:mm")
+        </MudChip>
+        break;
+    case BeneficiaryLookupStatus.Failed:
+        <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.ErrorOutline">
+            Not verified: @Request.BeneficiaryLookupError
+        </MudChip>
+        break;
+    default:
+        <MudChip T="string" Size="Size.Small">Not checked</MudChip>
+        break;
+}
+
+@code {
+    [Parameter] public PettyCashRequestDto Request { get; set; } = new();
+}

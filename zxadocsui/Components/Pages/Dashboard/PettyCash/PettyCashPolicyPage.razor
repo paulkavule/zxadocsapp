@@ -41,6 +41,9 @@
                 }
             </div>
 
+            <MudCheckBox @bind-Value="policy.AllowUnverifiedBeneficiary" ReadOnly="@(!canEdit)" Dense="true"
+                         Label="Allow submission when the beneficiary name cannot be verified (recorded as an exception)" />
+
             <div>
                 <p class="text-sm text-slate-600 mb-1">Notifications</p>
                 <MudCheckBox @bind-Value="policy.NotifyOnSubmission" Label="When a request is submitted" ReadOnly="@(!canEdit)" Dense="true" />

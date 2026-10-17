@@ -70,6 +70,27 @@ public partial class RequestEditor
         StateHasChanged();
     }
 
+    private async Task Lookup()
+    {
+        busy = true;
+        try
+        {
+            Http.Initialize(AppConstants.HttpSchemes.Core);
+            var (ok, result, error) = await Http.ExecuteRequestAsync<ApiResponse<PettyCashRequestDto>>(
+                HttpVerb.Post, $"api/petty-cash/requests/{request.Id}/beneficiary-lookup", new { });
+            if (!ok || result?.Data is null)
+            {
+                Snackbar.Add(ErrorMessage.Extract(error) ?? "The lookup could not run.", Severity.Error);
+                return;
+            }
+            request = result.Data;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
     private async Task Save()
     {
         busy = true;
