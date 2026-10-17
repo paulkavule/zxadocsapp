@@ -1,0 +1,15 @@
+@using zxadocslib.Dtos
+
+<div class="space-y-4">
+    <p class="text-sm text-slate-600">
+        Available now: <strong>@Wallet.AvailableBalance.ToString("N0") UGX</strong>. One alert is raised when it falls
+        below the threshold, and again only after it has recovered.
+    </p>
+    <MudNumericField @bind-Value="threshold" Label="Low-balance threshold (UGX, empty for none)" Min="0"
+                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+    <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Disabled="@busy"
+               StartIcon="@Icons.Material.Filled.Save">
+        Save threshold
+    </MudButton>
+</div>
+

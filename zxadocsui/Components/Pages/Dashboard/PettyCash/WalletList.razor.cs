@@ -4,11 +4,15 @@ using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocslib.Helpers;
+using zxadocsui.Srevices;
 using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.PettyCash;
 
-/// <summary>Wallet balances (ZD-273). FinanceAdmin can suspend or reactivate a wallet; ViewPettyCashFinance reads.</summary>
+/// <summary>
+/// Wallet balances (ZD-273). FinanceAdmin can suspend or reactivate a wallet and set its low-balance
+/// threshold (ZD-312); ViewPettyCashFinance reads.
+/// </summary>
 public partial class WalletList
 {
     [Inject] private IHttpService Http { get; set; } = default!;
@@ -16,6 +20,7 @@ public partial class WalletList
     [Inject] private IUserSession Session { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
+    [Inject] private SideDialogService SideDialog { get; set; } = default!;
 
     private List<WalletDto> wallets = new();
     private bool canEdit;
@@ -55,6 +60,19 @@ public partial class WalletList
         finally
         {
             loading = false;
+        }
+    }
+
+    private async Task EditThreshold(WalletDto wallet)
+    {
+        var saved = await SideDialog.Show<WalletThresholdEditor, bool?>(
+            new Dictionary<string, object> { { nameof(WalletThresholdEditor.Wallet), wallet } },
+            title: $"Threshold for {wallet.BillingUnitCode}");
+
+        if (saved == true)
+        {
+            await Load();
+            StateHasChanged();
         }
     }
 

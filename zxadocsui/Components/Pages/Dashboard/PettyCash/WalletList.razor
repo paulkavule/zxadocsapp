@@ -17,13 +17,21 @@
         <MudTable Items="@wallets" Hover="true" Dense="true" Striped="true" Elevation="0"
                   Loading="@loading" LoadingProgressColor="Color.Primary">
             <HeaderContent>
-                <MudTh>Billing unit</MudTh><MudTh>Ledger</MudTh><MudTh>Reserved</MudTh><MudTh>Available</MudTh><MudTh>Status</MudTh>
+                <MudTh>Billing unit</MudTh><MudTh>Ledger</MudTh><MudTh>Reserved</MudTh><MudTh>Available</MudTh><MudTh>Low-balance threshold</MudTh><MudTh>Status</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Billing unit">@context.BillingUnitCode &middot; @context.BillingUnitName</MudTd>
                 <MudTd DataLabel="Ledger">@context.LedgerBalance.ToString("N0")</MudTd>
                 <MudTd DataLabel="Reserved">@context.ReservedBalance.ToString("N0")</MudTd>
                 <MudTd DataLabel="Available"><strong>@context.AvailableBalance.ToString("N0")</strong></MudTd>
+                <MudTd DataLabel="Low-balance threshold">
+                    @(context.LowBalanceThreshold?.ToString("N0") ?? "none")
+                    @if (canEdit)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       OnClick="@(() => EditThreshold(context))" aria-label="Edit threshold" />
+                    }
+                </MudTd>
                 <MudTd DataLabel="Status">
                     @if (canEdit)
                     {
