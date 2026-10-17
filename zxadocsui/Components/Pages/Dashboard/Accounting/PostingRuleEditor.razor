@@ -7,6 +7,16 @@
             <MudSelectItem T="PostingStage" Value="@stage">@stage</MudSelectItem>
         }
     </MudSelect>
+    @if (rule.Stage == PostingStage.Approval)
+    {
+        <MudSelect T="int?" @bind-Value="rule.CategoryId" Label="Category (empty for the default)" Clearable="true"
+                   Variant="Variant.Outlined" Margin="Margin.Dense">
+            @foreach (var category in categories)
+            {
+                <MudSelectItem T="int?" Value="@category.Id">@category.Name</MudSelectItem>
+            }
+        </MudSelect>
+    }
     <MudSelect T="int" @bind-Value="rule.DebitAccountId" Label="Debit account" Variant="Variant.Outlined" Margin="Margin.Dense">
         @foreach (var account in accounts)
         {

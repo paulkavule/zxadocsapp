@@ -1,0 +1,19 @@
+@using zxadocslib.Dtos
+
+<div class="space-y-4">
+    <MudTextField @bind-Value="Category.Name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="60" />
+    <MudTextField @bind-Value="Category.Description" Label="Description" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="150" />
+    <MudSelect T="int" MultiSelection="true" @bind-SelectedValues="selectedUnits" Label="Enabled for billing units"
+               Variant="Variant.Outlined" Margin="Margin.Dense">
+        @foreach (var unit in Units)
+        {
+            <MudSelectItem T="int" Value="@unit.Id">@unit.Code &middot; @unit.Name</MudSelectItem>
+        }
+    </MudSelect>
+    <MudSwitch T="bool" @bind-Value="Category.IsActive" Label="@(Category.IsActive ? "Active" : "Disabled: no new requests")"
+               Color="Color.Success" />
+    <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Disabled="@busy"
+               StartIcon="@(Category.Id == 0 ? Icons.Material.Filled.Add : Icons.Material.Filled.Save)">
+        @(Category.Id == 0 ? "Add category" : "Save changes")
+    </MudButton>
+</div>
