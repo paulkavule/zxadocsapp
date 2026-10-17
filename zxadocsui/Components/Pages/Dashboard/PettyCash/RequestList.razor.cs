@@ -31,6 +31,7 @@ public partial class RequestList
         userId = int.TryParse((await Session.GetCurrentUser()).UserId, out var id) ? id : 0;
         canCreate = await Permissions.Has(Permission.CreatePettyCashRequest);
         if (canCreate) scopes.Add(("mine", "My requests"));
+        if (await Permissions.Has(Permission.ApprovePettyCashRequest)) scopes.Add(("queue", "Awaiting my approval"));
         if (await Permissions.HasAny(Permission.FinanceAdmin, Permission.ViewPettyCashFinance)) scopes.Add(("all", "All requests"));
         if (scopes.Count == 0)
         {
@@ -56,7 +57,8 @@ public partial class RequestList
         try
         {
             Http.Initialize(AppConstants.HttpSchemes.Core);
-            var (ok, result, error) = await Http.GetAsync<ApiResponse<List<PettyCashRequestDto>>>($"api/petty-cash/requests?scope={scope}");
+            var url = scope == "queue" ? "api/petty-cash/requests/queue" : $"api/petty-cash/requests?scope={scope}";
+            var (ok, result, error) = await Http.GetAsync<ApiResponse<List<PettyCashRequestDto>>>(url);
             if (!ok || result?.Data is null)
             {
                 Snackbar.Add(ErrorMessage.Extract(error) ?? "Failed to load requests.", Severity.Error);
