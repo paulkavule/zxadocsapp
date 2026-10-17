@@ -1,0 +1,39 @@
+@using zxadocslib.Dtos
+
+<div class="space-y-4">
+    <MudTextField @bind-Value="Workflow.Name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="60" />
+    <MudSwitch T="bool" @bind-Value="Workflow.IsDefault" Label="Default for units without their own" Color="Color.Info" />
+    <MudSwitch T="bool" @bind-Value="Workflow.IsActive" Label="@(Workflow.IsActive ? "Active" : "Inactive")" Color="Color.Success" />
+
+    <p class="text-sm text-slate-600">Levels, in order. A level applies to amounts inside its band; together they must cover every amount.</p>
+    @foreach (var level in Workflow.Levels)
+    {
+        <div class="border border-slate-200 rounded-lg p-3 space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-medium">Level @(Workflow.Levels.IndexOf(level) + 1)</span>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               Disabled="@(Workflow.Levels.Count == 1)" OnClick="@(() => Workflow.Levels.Remove(level))" aria-label="Remove level" />
+            </div>
+            <MudSelect T="int?" @bind-Value="level.RoleId" Label="Approver role (empty for any approver)" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var role in roles)
+                {
+                    <MudSelectItem T="int?" Value="@role.Id">@role.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <div class="grid grid-cols-2 gap-2">
+                <MudNumericField @bind-Value="level.MinAmount" Label="From (UGX)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudNumericField @bind-Value="level.MaxAmount" Label="To (UGX)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </div>
+        </div>
+    }
+    <MudButton OnClick="@(() => Workflow.Levels.Add(new ApprovalLevelDto()))" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add"
+               Disabled="@(Workflow.Levels.Count >= 10)">
+        Add level
+    </MudButton>
+
+    <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Disabled="@busy"
+               StartIcon="@Icons.Material.Filled.Save">
+        @(Workflow.Id == 0 ? "Create workflow" : "Save as new version")
+    </MudButton>
+</div>

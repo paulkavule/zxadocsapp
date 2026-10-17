@@ -1,0 +1,112 @@
+@page "/petty-cash/requests/new"
+@page "/petty-cash/requests/{Id:int}/edit"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-receipt text-sm"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">
+                @(request.Id == 0 ? "New petty cash request" : $"Request {request.Reference}")
+            </h1>
+            <p class="text-xs text-slate-500">
+                @if (wallet is not null)
+                {
+                    <span>wallet @wallet.BillingUnitCode &middot; available @wallet.AvailableBalance.ToString("N0") UGX</span>
+                }
+                @if (request.Status == RequestStatus.Returned)
+                {
+                    <span> &middot; returned for correction</span>
+                }
+            </p>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="py-10 text-center text-slate-500">Loading…</div>
+    }
+    else if (wallet is null)
+    {
+        <div class="p-6"><MudAlert Severity="Severity.Warning">No wallet is assigned to you. Ask a finance administrator to assign one.</MudAlert></div>
+    }
+    else
+    {
+        <div class="p-6 grid gap-4 max-w-2xl">
+            @if (returnComment.Length > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true">Returned: @returnComment</MudAlert>
+            }
+            <MudSelect T="int?" @bind-Value="request.CategoryId" Label="Category" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var category in categories)
+                {
+                    <MudSelectItem T="int?" Value="@category.Id">@category.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="PaymentType?" @bind-Value="request.PaymentType" Label="Pay by" Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="PaymentType?" Value="@PaymentType.MtnMobileMoney">MTN Mobile Money</MudSelectItem>
+                <MudSelectItem T="PaymentType?" Value="@PaymentType.AirtelMoney">Airtel Money</MudSelectItem>
+                <MudSelectItem T="PaymentType?" Value="@PaymentType.Utility">Utility bill</MudSelectItem>
+            </MudSelect>
+            @if (request.PaymentType == PaymentType.Utility)
+            {
+                <MudSelect T="int?" @bind-Value="request.UtilityAccountId" Label="Utility account" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var account in utilityAccounts)
+                    {
+                        <MudSelectItem T="int?" Value="@account.Id">@account.UtilityType &middot; @account.Provider @account.AccountNumber</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            else if (request.PaymentType is not null)
+            {
+                <MudTextField @bind-Value="request.BeneficiaryPhone" Label="Beneficiary phone" Placeholder="256772123456"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="12" />
+                <MudTextField @bind-Value="request.BeneficiaryName" Label="Beneficiary name" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="100" />
+                @if (request.Id != 0)
+                {
+                    <div class="flex items-center gap-3">
+                        <MudButton OnClick="Lookup" Disabled="@busy" Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.PersonSearch">
+                            Verify name with provider
+                        </MudButton>
+                        <BeneficiaryResult Request="@request" />
+                    </div>
+                    <p class="text-xs text-slate-500">Save the phone first; changing it later clears the check.</p>
+                }
+            }
+            <MudNumericField @bind-Value="request.Amount" Label="Amount (UGX)" Min="0" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudTextField @bind-Value="request.Description" Label="What is it for" Lines="3" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="300" />
+            <MudTextField @bind-Value="request.CostCentre" Label="Cost centre (defaults to the unit's)" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="40" />
+
+            @if (request.Id == 0)
+            {
+                <p class="text-xs text-slate-500">Save the draft first, then attach supporting documents.</p>
+            }
+            else
+            {
+                <RequestAttachments RequestId="@request.Id" Editable="true" />
+            }
+
+            @if (askReason)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true">@duplicateMessage</MudAlert>
+                <MudTextField @bind-Value="duplicateReason" Label="Why submit it anyway" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" />
+            }
+
+            <div class="flex gap-2">
+                <MudButton OnClick="Save" Disabled="@busy" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save">
+                    Save draft
+                </MudButton>
+                @if (request.Id != 0)
+                {
+                    <MudButton OnClick="Submit" Disabled="@busy" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send">
+                        Submit for approval
+                    </MudButton>
+                }
+                <MudButton Href="/petty-cash/requests" Variant="Variant.Text">Back</MudButton>
+            </div>
+        </div>
+    }
+</div>

@@ -41,6 +41,13 @@
                 }
             </div>
 
+            <MudNumericField @bind-Value="policy.DuplicateWindowDays" Label="Duplicate check window (days, 0 turns it off)" Min="0" Max="90"
+                             ReadOnly="@(!canEdit)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudCheckBox @bind-Value="policy.BlockExactDuplicates" ReadOnly="@(!canEdit)" Dense="true"
+                         Label="Refuse exact duplicates (same payee, amount and category) instead of accepting them with a reason" />
+            <MudCheckBox @bind-Value="policy.AllowUnverifiedBeneficiary" ReadOnly="@(!canEdit)" Dense="true"
+                         Label="Allow submission when the beneficiary name cannot be verified (recorded as an exception)" />
+
             <div>
                 <p class="text-sm text-slate-600 mb-1">Notifications</p>
                 <MudCheckBox @bind-Value="policy.NotifyOnSubmission" Label="When a request is submitted" ReadOnly="@(!canEdit)" Dense="true" />
