@@ -190,13 +190,31 @@
                             </NavLink>
                         }
 
-                        @if (canPettyCashPolicy)
+                        @if (canPettyCashSetup)
                         {
                             <NavLink href="/petty-cash/policy"
                                      class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item mt-2"
                                      ActiveClass="bg-[#e0f2df]">
                                 <i class="fa-solid fa-scale-balanced w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
                                 <span class="font-medium whitespace-nowrap sidebar-menu-text">Petty cash policy</span>
+                            </NavLink>
+                            <NavLink href="/petty-cash/billing-units"
+                                     class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                     ActiveClass="bg-[#e0f2df]">
+                                <i class="fa-solid fa-building-columns w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                <span class="font-medium whitespace-nowrap sidebar-menu-text">Billing units</span>
+                            </NavLink>
+                            <NavLink href="/petty-cash/wallets"
+                                     class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                     ActiveClass="bg-[#e0f2df]">
+                                <i class="fa-solid fa-wallet w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                <span class="font-medium whitespace-nowrap sidebar-menu-text">Wallets</span>
+                            </NavLink>
+                            <NavLink href="/petty-cash/utility-accounts"
+                                     class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                     ActiveClass="bg-[#e0f2df]">
+                                <i class="fa-solid fa-bolt w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                <span class="font-medium whitespace-nowrap sidebar-menu-text">Utility accounts</span>
                             </NavLink>
                         }
 
@@ -418,7 +436,7 @@
     bool canRoles;
     bool canUsers;
     bool canContractTypes;
-    bool canPettyCashPolicy;
+    bool canPettyCashSetup;
     bool showContracts => canTemplates || canDrafts || canContractTypes;
 
     // Settings is platform administration, so it hangs off the system roles rather than a
@@ -452,7 +470,7 @@
                      || perms.Contains(Permission.ApproveDraft);
             // No implying it from the approval permissions — ViewAudit is granted on its own.
             canAudit = perms.Contains(Permission.ViewAudit);
-            canPettyCashPolicy = perms.Contains(Permission.FinanceAdmin) || perms.Contains(Permission.ViewPettyCashFinance);
+            canPettyCashSetup = perms.Contains(Permission.FinanceAdmin) || perms.Contains(Permission.ViewPettyCashFinance);
             canRoles = perms.Contains(Permission.CreateRole) || perms.Contains(Permission.ManageRole);
             canUsers = perms.Contains(Permission.ViewUsers)
                     || perms.Contains(Permission.CreateUser)

@@ -1,0 +1,17 @@
+@using zxadocslib.Dtos
+
+<div class="space-y-4">
+    <p class="text-sm text-slate-600">
+        A user transacts on one wallet at a time. Assigning someone who already has a wallet moves them here.
+    </p>
+    <MudSelect T="int" @bind-Value="userId" Label="User" Variant="Variant.Outlined" Margin="Margin.Dense">
+        @foreach (var user in users)
+        {
+            <MudSelectItem T="int" Value="@user.Id">@user.Name</MudSelectItem>
+        }
+    </MudSelect>
+    <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+               Disabled="@(busy || userId == 0)" StartIcon="@Icons.Material.Filled.PersonAdd">
+        Assign to @Wallet.BillingUnitCode
+    </MudButton>
+</div>

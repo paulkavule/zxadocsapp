@@ -1,0 +1,25 @@
+@using zxadocslib.Dtos
+
+<div class="space-y-4">
+    <MudSelect T="int" @bind-Value="Account.BillingUnitId" Label="Billing unit" Variant="Variant.Outlined" Margin="Margin.Dense">
+        @foreach (var unit in units)
+        {
+            <MudSelectItem T="int" Value="@unit.Id">@unit.Code &middot; @unit.Name</MudSelectItem>
+        }
+    </MudSelect>
+    <MudAutocomplete T="string" @bind-Value="Account.UtilityType" Label="Utility type" Variant="Variant.Outlined"
+                     Margin="Margin.Dense" SearchFunc="SearchTypes" CoerceValue="true" MaxLength="30" />
+    <MudTextField @bind-Value="Account.Provider" Label="Provider" Variant="Variant.Outlined" Margin="Margin.Dense"
+                  Placeholder="UMEME" MaxLength="40" />
+    <MudTextField @bind-Value="Account.AccountNumber" Label="Account or meter number" Variant="Variant.Outlined"
+                  Margin="Margin.Dense" MaxLength="40" />
+    <MudTextField @bind-Value="Account.Description" Label="Description" Variant="Variant.Outlined" Margin="Margin.Dense"
+                  MaxLength="150" />
+    <MudSwitch T="bool" @bind-Value="Account.IsActive" Label="@(Account.IsActive ? "Active" : "Inactive: cannot be paid")"
+               Color="Color.Success" />
+
+    <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Disabled="@busy"
+               StartIcon="@(Account.Id == 0 ? Icons.Material.Filled.Add : Icons.Material.Filled.Save)">
+        @(Account.Id == 0 ? "Add utility account" : "Save changes")
+    </MudButton>
+</div>

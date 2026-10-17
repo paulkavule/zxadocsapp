@@ -1,0 +1,70 @@
+@page "/petty-cash/wallets"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-wallet text-sm"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Wallets</h1>
+            <p class="text-xs text-slate-500">one per billing unit, in UGX &middot; available = ledger less reserved</p>
+        </div>
+    </div>
+
+    <div class="p-6">
+        <MudTable Items="@wallets" Hover="true" Dense="true" Striped="true" Elevation="0"
+                  Loading="@loading" LoadingProgressColor="Color.Primary">
+            <HeaderContent>
+                <MudTh>Billing unit</MudTh><MudTh>Ledger</MudTh><MudTh>Reserved</MudTh><MudTh>Available</MudTh><MudTh>Low-balance threshold</MudTh><MudTh>Users</MudTh><MudTh>Status</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Billing unit">@context.BillingUnitCode &middot; @context.BillingUnitName</MudTd>
+                <MudTd DataLabel="Ledger">@context.LedgerBalance.ToString("N0")</MudTd>
+                <MudTd DataLabel="Reserved">@context.ReservedBalance.ToString("N0")</MudTd>
+                <MudTd DataLabel="Available"><strong>@context.AvailableBalance.ToString("N0")</strong></MudTd>
+                <MudTd DataLabel="Low-balance threshold">
+                    @(context.LowBalanceThreshold?.ToString("N0") ?? "none")
+                    @if (canEdit)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       OnClick="@(() => EditThreshold(context))" aria-label="Edit threshold" />
+                    }
+                </MudTd>
+                <MudTd DataLabel="Users">
+                    @foreach (var assignment in assignments.Where(a => a.WalletId == context.Id))
+                    {
+                        @if (canEdit)
+                        {
+                            <MudChip T="string" Size="Size.Small" OnClose="@(_ => Unassign(assignment))">@assignment.UserName</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small">@assignment.UserName</MudChip>
+                        }
+                    }
+                    @if (canEdit && context.IsActive)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Small"
+                                       OnClick="@(() => Assign(context))" aria-label="Assign user" />
+                    }
+                </MudTd>
+                <MudTd DataLabel="Status">
+                    @if (canEdit)
+                    {
+                        <MudSwitch T="bool" Value="@context.IsActive" ValueChanged="@(on => SetStatus(context, on))"
+                                   Label="@(context.IsActive ? "Active" : "Suspended")" Color="Color.Success" />
+                    }
+                    else
+                    {
+                        @(context.IsActive ? "Active" : "Suspended")
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="py-10 text-center text-slate-500">No wallets yet. Each billing unit gets one when it is added.</div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</div>
