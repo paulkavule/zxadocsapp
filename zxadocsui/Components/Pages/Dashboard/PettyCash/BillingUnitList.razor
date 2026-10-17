@@ -29,7 +29,7 @@
             <HeaderContent>
                 <MudTh>Code</MudTh><MudTh>Name</MudTh><MudTh>Department</MudTh><MudTh>Cost centre</MudTh>
                 <MudTh>Per txn</MudTh><MudTh>Daily</MudTh><MudTh>Monthly</MudTh><MudTh>Status</MudTh>
-                <MudTh Style="width:60px"></MudTh>
+                <MudTh Style="width:100px"></MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Code">@context.Code</MudTd>
@@ -49,6 +49,8 @@
                     {
                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
                                        OnClick="@(() => OpenEditor(context))" aria-label="Edit billing unit" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => ConfirmDelete(context))" aria-label="Delete billing unit" />
                     }
                 </MudTd>
             </RowTemplate>

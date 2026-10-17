@@ -18,6 +18,7 @@ public partial class BillingUnitList
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
     [Inject] private SideDialogService SideDialog { get; set; } = default!;
+    [Inject] private IDialogService Dialogs { get; set; } = default!;
 
     private List<BillingUnitDto> units = new();
     private bool canEdit;
@@ -71,6 +72,20 @@ public partial class BillingUnitList
             await Load();
             StateHasChanged();
         }
+    }
+
+    /// <summary>The API refuses once the unit's wallet has financial history; deactivating is the alternative.</summary>
+    private async Task ConfirmDelete(BillingUnitDto unit)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            "Delete billing unit", $"Delete {unit.Code} and its wallet?", yesText: "Delete", cancelText: "Cancel");
+        if (confirmed != true) return;
+
+        Http.Initialize(AppConstants.HttpSchemes.Core);
+        var (ok, _, error) = await Http.ExecuteRequestAsync<ApiResponse<int>>(HttpVerb.Delete, $"api/petty-cash/billing-units/{unit.Id}");
+        Snackbar.Add(ok ? "Billing unit deleted." : ErrorMessage.Extract(error) ?? "Failed to delete.", ok ? Severity.Success : Severity.Error);
+        if (ok) await Load();
+        StateHasChanged();
     }
 
     private static string Money(decimal? amount) => amount is null ? "policy" : amount.Value.ToString("N0");
