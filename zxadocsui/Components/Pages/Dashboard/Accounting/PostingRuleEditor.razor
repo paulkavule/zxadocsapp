@@ -1,0 +1,27 @@
+@using zxadocslib.Dtos
+
+<div class="space-y-4">
+    <MudSelect T="PostingStage" @bind-Value="rule.Stage" Label="Stage" Variant="Variant.Outlined" Margin="Margin.Dense">
+        @foreach (var stage in Enum.GetValues<PostingStage>())
+        {
+            <MudSelectItem T="PostingStage" Value="@stage">@stage</MudSelectItem>
+        }
+    </MudSelect>
+    <MudSelect T="int" @bind-Value="rule.DebitAccountId" Label="Debit account" Variant="Variant.Outlined" Margin="Margin.Dense">
+        @foreach (var account in accounts)
+        {
+            <MudSelectItem T="int" Value="@account.Id">@account.Code &middot; @account.Name</MudSelectItem>
+        }
+    </MudSelect>
+    <MudSelect T="int" @bind-Value="rule.CreditAccountId" Label="Credit account" Variant="Variant.Outlined" Margin="Margin.Dense">
+        @foreach (var account in accounts)
+        {
+            <MudSelectItem T="int" Value="@account.Id">@account.Code &middot; @account.Name</MudSelectItem>
+        }
+    </MudSelect>
+    <MudDatePicker @bind-Date="from" Label="Effective from" Variant="Variant.Outlined" Margin="Margin.Dense" />
+    <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+               Disabled="@(busy || from is null)" StartIcon="@Icons.Material.Filled.Add">
+        Add rule
+    </MudButton>
+</div>

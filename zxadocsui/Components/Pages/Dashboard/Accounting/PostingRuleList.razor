@@ -1,0 +1,44 @@
+@page "/accounting/posting-rules"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-shuffle text-sm"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Posting rules</h1>
+            <p class="text-xs text-slate-500">a new rule replaces the current one from its date; earlier journals keep theirs</p>
+        </div>
+    </div>
+
+    <div class="p-6 space-y-6">
+        @if (canEdit)
+        {
+            <div class="flex justify-end">
+                <MudButton OnClick="OpenEditor" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
+                    New rule
+                </MudButton>
+            </div>
+        }
+
+        <MudTable Items="@rules" Hover="true" Dense="true" Striped="true" Elevation="0"
+                  Loading="@loading" LoadingProgressColor="Color.Primary">
+            <HeaderContent>
+                <MudTh>Stage</MudTh><MudTh>Category</MudTh><MudTh>Debit</MudTh><MudTh>Credit</MudTh><MudTh>From</MudTh><MudTh>Until</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Stage">@context.Stage</MudTd>
+                <MudTd DataLabel="Category">@(context.CategoryId is null ? "default" : context.CategoryName)</MudTd>
+                <MudTd DataLabel="Debit">@context.DebitAccountCode</MudTd>
+                <MudTd DataLabel="Credit">@context.CreditAccountCode</MudTd>
+                <MudTd DataLabel="From">@context.EffectiveFrom.ToString("d MMM yyyy")</MudTd>
+                <MudTd DataLabel="Until">@(context.EffectiveTo?.ToString("d MMM yyyy") ?? "current")</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="py-10 text-center text-slate-500">No posting rules yet. Nothing can be posted until each stage has one.</div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</div>
