@@ -1,0 +1,59 @@
+@page "/accounting/accounts"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-book text-sm"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Chart of accounts</h1>
+            <p class="text-xs text-slate-500">UGX &middot; journals post only to active accounts that allow posting</p>
+        </div>
+    </div>
+
+    <div class="p-6 space-y-6">
+        @if (canEdit)
+        {
+            <div class="flex justify-end">
+                <MudButton OnClick="@(() => OpenEditor(new GlAccountDto()))" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add">
+                    New account
+                </MudButton>
+            </div>
+        }
+
+        <MudTable Items="@accounts" Hover="true" Dense="true" Striped="true" Elevation="0"
+                  Loading="@loading" LoadingProgressColor="Color.Primary">
+            <HeaderContent>
+                <MudTh>Code</MudTh><MudTh>Name</MudTh><MudTh>Type</MudTh><MudTh>Parent</MudTh>
+                <MudTh>Posting</MudTh><MudTh>Status</MudTh><MudTh Style="width:100px"></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Code">@context.Code</MudTd>
+                <MudTd DataLabel="Name">@context.Name</MudTd>
+                <MudTd DataLabel="Type">@context.Type</MudTd>
+                <MudTd DataLabel="Parent">@ParentCode(context.ParentId)</MudTd>
+                <MudTd DataLabel="Posting">@(context.AllowPosting ? "Allowed" : "Header")</MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip T="string" Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)">
+                        @(context.IsActive ? "Active" : "Inactive")
+                    </MudChip>
+                </MudTd>
+                <MudTd>
+                    @if (canEdit)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       OnClick="@(() => OpenEditor(context))" aria-label="Edit account" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => ConfirmDelete(context))" aria-label="Delete account" />
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="py-10 text-center text-slate-500">No accounts yet.</div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</div>
