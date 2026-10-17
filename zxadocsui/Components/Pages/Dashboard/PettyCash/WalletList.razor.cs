@@ -11,7 +11,7 @@ namespace zxadocsui.Components.Pages.Dashboard.PettyCash;
 
 /// <summary>
 /// Wallet balances (ZD-273). FinanceAdmin can suspend or reactivate a wallet and set its low-balance
-/// threshold (ZD-312); ViewPettyCashFinance reads.
+/// threshold (ZD-312), and assign users to it (ZD-234); ViewPettyCashFinance reads.
 /// </summary>
 public partial class WalletList
 {
@@ -23,6 +23,7 @@ public partial class WalletList
     [Inject] private SideDialogService SideDialog { get; set; } = default!;
 
     private List<WalletDto> wallets = new();
+    private List<WalletAssignmentDto> assignments = new();
     private bool canEdit;
     private bool loading = true;
 
@@ -56,6 +57,9 @@ public partial class WalletList
                 return;
             }
             wallets = result.Data;
+
+            var (assignedOk, assigned, _) = await Http.GetAsync<ApiResponse<List<WalletAssignmentDto>>>("api/petty-cash/wallet-assignments");
+            assignments = assignedOk && assigned?.Data is not null ? assigned.Data : new();
         }
         finally
         {
@@ -74,6 +78,30 @@ public partial class WalletList
             await Load();
             StateHasChanged();
         }
+    }
+
+    private async Task Assign(WalletDto wallet)
+    {
+        var saved = await SideDialog.Show<WalletAssignEditor, bool?>(
+            new Dictionary<string, object> { { nameof(WalletAssignEditor.Wallet), wallet } },
+            title: $"Assign a user to {wallet.BillingUnitCode}");
+
+        if (saved == true)
+        {
+            await Load();
+            StateHasChanged();
+        }
+    }
+
+    private async Task Unassign(WalletAssignmentDto assignment)
+    {
+        Http.Initialize(AppConstants.HttpSchemes.Core);
+        var (ok, _, error) = await Http.ExecuteRequestAsync<ApiResponse<int>>(
+            HttpVerb.Delete, $"api/petty-cash/wallet-assignments/{assignment.UserId}");
+
+        Snackbar.Add(ok ? $"{assignment.UserName} unassigned." : ErrorMessage.Extract(error) ?? "Failed to unassign.",
+            ok ? Severity.Success : Severity.Error);
+        await Load();
     }
 
     private async Task SetStatus(WalletDto wallet, bool isActive)
