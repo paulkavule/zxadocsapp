@@ -4,11 +4,12 @@ using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
 using zxadocslib.Helpers;
+using zxadocsui.Srevices;
 using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.Accounting;
 
-/// <summary>Posted journals with their lines (ZD-215), newest first.</summary>
+/// <summary>Posted journals with their lines (ZD-215), newest first. ReverseJournal holders can reverse one (ZD-235).</summary>
 public partial class JournalList
 {
     [Inject] private IHttpService Http { get; set; } = default!;
@@ -16,8 +17,10 @@ public partial class JournalList
     [Inject] private IUserSession Session { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
+    [Inject] private SideDialogService SideDialog { get; set; } = default!;
 
     private List<JournalDto> journals = new();
+    private bool canReverse;
     private bool loading = true;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -32,6 +35,7 @@ public partial class JournalList
             return;
         }
 
+        canReverse = await Permissions.Has(Permission.ReverseJournal);
         await Load();
         StateHasChanged();
     }
@@ -53,6 +57,19 @@ public partial class JournalList
         finally
         {
             loading = false;
+        }
+    }
+
+    private async Task Reverse(JournalDto journal)
+    {
+        var posted = await SideDialog.Show<JournalReverseEditor, bool?>(
+            new Dictionary<string, object> { { nameof(JournalReverseEditor.Journal), journal } },
+            title: $"Reverse {journal.Number}");
+
+        if (posted == true)
+        {
+            await Load();
+            StateHasChanged();
         }
     }
 

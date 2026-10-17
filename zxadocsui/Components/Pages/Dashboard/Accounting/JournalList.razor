@@ -17,7 +17,7 @@
         <MudTable Items="@journals" Hover="true" Dense="true" Elevation="0" Loading="@loading" LoadingProgressColor="Color.Primary">
             <HeaderContent>
                 <MudTh>Number</MudTh><MudTh>Date</MudTh><MudTh>Description</MudTh><MudTh>Source</MudTh>
-                <MudTh>Lines</MudTh><MudTh>Posted by</MudTh><MudTh>Reversal</MudTh>
+                <MudTh>Lines</MudTh><MudTh>Posted by</MudTh><MudTh>Reversal</MudTh><MudTh Style="width:60px"></MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Number">@context.Number</MudTd>
@@ -35,6 +35,13 @@
                 </MudTd>
                 <MudTd DataLabel="Posted by">@context.PostedBy</MudTd>
                 <MudTd DataLabel="Reversal">@ReversalText(context)</MudTd>
+                <MudTd>
+                    @if (canReverse && context.ReversesJournalId is null && context.ReversedByJournalId is null)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Undo" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => Reverse(context))" aria-label="Reverse journal" />
+                    }
+                </MudTd>
             </RowTemplate>
             <NoRecordsContent>
                 <div class="py-10 text-center text-slate-500">No journals yet.</div>
