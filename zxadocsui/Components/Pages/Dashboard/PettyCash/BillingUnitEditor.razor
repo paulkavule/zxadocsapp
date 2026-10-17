@@ -17,6 +17,13 @@
                      Variant="Variant.Outlined" Margin="Margin.Dense" />
     <MudNumericField @bind-Value="Unit.MonthlyLimit" Label="Monthly limit (UGX, empty for policy)"
                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+    <MudSelect T="int?" @bind-Value="Unit.WorkflowId" Label="Approval workflow (empty for the default)" Clearable="true"
+               Variant="Variant.Outlined" Margin="Margin.Dense">
+        @foreach (var workflow in workflows.Where(w => w.IsActive))
+        {
+            <MudSelectItem T="int?" Value="@workflow.Id">@workflow.Name</MudSelectItem>
+        }
+    </MudSelect>
     <MudSwitch T="bool" @bind-Value="Unit.IsActive" Label="@(Unit.IsActive ? "Active" : "Inactive: no new requests")"
                Color="Color.Success" />
 
