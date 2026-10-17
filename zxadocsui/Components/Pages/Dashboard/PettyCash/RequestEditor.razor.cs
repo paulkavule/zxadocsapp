@@ -27,6 +27,9 @@ public partial class RequestEditor
     private List<SpendingCategoryDto> categories = new();
     private List<UtilityAccountDto> utilityAccounts = new();
     private bool loading = true;
+    private bool askReason;
+    private string duplicateMessage = string.Empty;
+    private string duplicateReason = string.Empty;
     private bool busy;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -70,6 +73,36 @@ public partial class RequestEditor
         StateHasChanged();
     }
 
+    /// <summary>Saves first so the server judges what the maker sees, then submits.</summary>
+    private async Task Submit()
+    {
+        if (!await Save()) return;
+
+        busy = true;
+        try
+        {
+            Http.Initialize(AppConstants.HttpSchemes.Core);
+            var (ok, _, error) = await Http.ExecuteRequestAsync<ApiResponse<PettyCashRequestDto>>(
+                HttpVerb.Post, $"api/petty-cash/requests/{request.Id}/submit", new { DuplicateOverrideReason = duplicateReason });
+            if (!ok)
+            {
+                var message = ErrorMessage.Extract(error) ?? "The request could not be submitted.";
+                // A possible duplicate can still go ahead with a reason; anything else must be fixed.
+                askReason = message.Contains("give a reason");
+                duplicateMessage = message;
+                Snackbar.Add(message, askReason ? Severity.Warning : Severity.Error);
+                return;
+            }
+
+            Snackbar.Add($"{request.Reference} submitted for approval.", Severity.Success);
+            Nav.NavigateTo($"/petty-cash/requests/{request.Id}");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
     private async Task Lookup()
     {
         busy = true;
@@ -91,7 +124,7 @@ public partial class RequestEditor
         }
     }
 
-    private async Task Save()
+    private async Task<bool> Save()
     {
         busy = true;
         try
@@ -104,13 +137,14 @@ public partial class RequestEditor
             if (!ok || saved?.Data is null)
             {
                 Snackbar.Add(ErrorMessage.Extract(error) ?? "Failed to save the request.", Severity.Error);
-                return;
+                return false;
             }
 
             Snackbar.Add($"Draft {saved.Data.Reference} saved.", Severity.Success);
             if (request.Id == 0)
                 Nav.NavigateTo($"/petty-cash/requests/{saved.Data.Id}/edit", replace: true);
             request = saved.Data;
+            return true;
         }
         finally
         {

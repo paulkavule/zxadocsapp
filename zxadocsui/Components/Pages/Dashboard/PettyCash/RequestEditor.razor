@@ -85,10 +85,22 @@
                 <RequestAttachments RequestId="@request.Id" Editable="true" />
             }
 
+            @if (askReason)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true">@duplicateMessage</MudAlert>
+                <MudTextField @bind-Value="duplicateReason" Label="Why submit it anyway" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" />
+            }
+
             <div class="flex gap-2">
                 <MudButton OnClick="Save" Disabled="@busy" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save">
                     Save draft
                 </MudButton>
+                @if (request.Id != 0)
+                {
+                    <MudButton OnClick="Submit" Disabled="@busy" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send">
+                        Submit for approval
+                    </MudButton>
+                }
                 <MudButton Href="/petty-cash/requests" Variant="Variant.Text">Back</MudButton>
             </div>
         </div>
