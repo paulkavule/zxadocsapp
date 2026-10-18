@@ -10,8 +10,8 @@ using zxadocsui.State;
 namespace zxadocsui.Components.Pages.Dashboard.PettyCash;
 
 /// <summary>
-/// Wallet funding (ZD-291). FinanceAdmin initiates; ApprovePettyCashRequest holders approve or reject,
-/// and the API refuses the initiator. ViewPettyCashFinance reads.
+/// Wallet funding (ZD-291). CreateFundingRequest holders ask for their own unit's wallet;
+/// ApproveFundingRequest holders decide across the organisation, never on their own request.
 /// </summary>
 public partial class WalletFundingList
 {
@@ -33,15 +33,16 @@ public partial class WalletFundingList
         if (!firstRender) return;
 
         await Session.GetCurrentUser();
-        if (!await Permissions.HasAny(Permission.FinanceAdmin, Permission.ApprovePettyCashRequest, Permission.ViewPettyCashFinance))
+        if (!await Permissions.HasAny(Permission.FinanceAdmin, Permission.ViewPettyCashFinance,
+                Permission.CreateFundingRequest, Permission.ApproveFundingRequest))
         {
             Snackbar.Add("You do not have access to wallet funding.", Severity.Warning);
             Nav.NavigateTo("/dashboard");
             return;
         }
 
-        canInitiate = await Permissions.Has(Permission.FinanceAdmin);
-        canApprove = await Permissions.Has(Permission.ApprovePettyCashRequest);
+        canInitiate = await Permissions.Has(Permission.CreateFundingRequest);
+        canApprove = await Permissions.Has(Permission.ApproveFundingRequest);
         await Load();
         StateHasChanged();
     }

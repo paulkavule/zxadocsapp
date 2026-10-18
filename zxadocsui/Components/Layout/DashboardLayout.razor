@@ -536,7 +536,8 @@
             canPettyCashSetup = perms.Contains(Permission.FinanceAdmin) || perms.Contains(Permission.ViewPettyCashFinance);
             canAccounting = perms.Contains(Permission.ManageAccounting) || perms.Contains(Permission.ReverseJournal)
                          || perms.Contains(Permission.ViewPettyCashFinance);
-            canFunding = canPettyCashSetup || perms.Contains(Permission.ApprovePettyCashRequest);
+            canFunding = canPettyCashSetup || perms.Contains(Permission.CreateFundingRequest)
+                      || perms.Contains(Permission.ApproveFundingRequest);
             canRequests = canPettyCashSetup || perms.Contains(Permission.CreatePettyCashRequest)
                        || perms.Contains(Permission.ApprovePettyCashRequest);
             canRoles = perms.Contains(Permission.CreateRole) || perms.Contains(Permission.ManageRole);

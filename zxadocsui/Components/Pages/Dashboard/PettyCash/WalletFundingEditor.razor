@@ -1,19 +1,22 @@
 @using zxadocslib.Dtos
 
 <div class="space-y-4">
-    <MudSelect T="int" @bind-Value="funding.WalletId" Label="Wallet" Variant="Variant.Outlined" Margin="Margin.Dense">
-        @foreach (var wallet in wallets)
-        {
-            <MudSelectItem T="int" Value="@wallet.Id">@wallet.BillingUnitCode &middot; @wallet.BillingUnitName</MudSelectItem>
-        }
-    </MudSelect>
+    @if (wallet is null)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">No wallet is assigned to you, so you cannot request funding.</MudAlert>
+    }
+    else
+    {
+        <p class="text-sm text-slate-600">For your wallet <strong>@wallet.BillingUnitCode &middot; @wallet.BillingUnitName</strong>,
+            available @wallet.AvailableBalance.ToString("N0") UGX.</p>
+    }
     <MudNumericField @bind-Value="funding.Amount" Label="Amount (UGX)" Min="0" Variant="Variant.Outlined" Margin="Margin.Dense" />
     <MudTextField @bind-Value="funding.Source" Label="Source" Placeholder="Bank account the money came from"
                   Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="100" />
     <MudTextField @bind-Value="funding.Reference" Label="Reference" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="60" />
     <MudDatePicker @bind-Date="date" Label="Funding date" Variant="Variant.Outlined" Margin="Margin.Dense" />
     <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
-               Disabled="@(busy || date is null || funding.WalletId == 0)" StartIcon="@Icons.Material.Filled.Send">
+               Disabled="@(busy || date is null || wallet is null)" StartIcon="@Icons.Material.Filled.Send">
         Submit for approval
     </MudButton>
 </div>
