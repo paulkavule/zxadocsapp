@@ -7,7 +7,7 @@ using zxadocsui.Srevices;
 
 namespace zxadocsui.Components.Pages.Dashboard.PettyCash;
 
-/// <summary>Initiates a wallet funding (ZD-291) in the side panel; closes with true when it saved.</summary>
+/// <summary>Requests funding for the caller's own wallet (ZD-291) in the side panel; closes with true when it saved.</summary>
 public partial class WalletFundingEditor
 {
     [Inject] private IHttpService Http { get; set; } = default!;
@@ -15,15 +15,15 @@ public partial class WalletFundingEditor
     [Inject] private SideDialogService SideDialog { get; set; } = default!;
 
     private WalletFundingDto funding = new();
-    private List<WalletDto> wallets = new();
+    private WalletDto? wallet;
     private DateTime? date = DateTime.Today;
     private bool busy;
 
     protected override async Task OnInitializedAsync()
     {
         Http.Initialize(AppConstants.HttpSchemes.Core);
-        var (ok, result, _) = await Http.GetAsync<ApiResponse<List<WalletDto>>>("api/petty-cash/wallets");
-        wallets = ok && result?.Data is not null ? result.Data.Where(w => w.IsActive).ToList() : new();
+        var (ok, result, _) = await Http.GetAsync<ApiResponse<WalletDto>>("api/petty-cash/my-wallet");
+        wallet = ok ? result?.Data : null;
     }
 
     private async Task Save()

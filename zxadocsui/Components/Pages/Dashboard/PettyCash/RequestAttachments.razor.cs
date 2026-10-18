@@ -11,8 +11,8 @@ namespace zxadocsui.Components.Pages.Dashboard.PettyCash;
 /// <summary>A request's attachments (ZD-217): editable by the maker on a draft, read-only elsewhere. The API checks type and size.</summary>
 public partial class RequestAttachments
 {
-    // The API's configurable limit tops out at 25 MB; this only bounds what the browser will read.
-    private const long MaxReadBytes = 25L * 1024 * 1024;
+    // The API's configurable limit tops out at 4 MB; this only bounds what the browser will read.
+    private const long MaxReadBytes = 4L * 1024 * 1024;
 
     [Inject] private IHttpService Http { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
@@ -35,6 +35,11 @@ public partial class RequestAttachments
     private async Task Upload(IBrowserFile? file)
     {
         if (file is null) return;
+        if (file.Size > MaxReadBytes)
+        {
+            Snackbar.Add($"{file.Name} is larger than 4 MB.", Severity.Warning);
+            return;
+        }
         busy = true;
         try
         {
