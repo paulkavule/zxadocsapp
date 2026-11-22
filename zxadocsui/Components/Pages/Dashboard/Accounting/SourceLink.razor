@@ -1,0 +1,24 @@
+@* Drill-through from a report line to the record that caused it (ZD-255). Fundings have no detail page, so they open the list. *@
+@{
+    var label = Reference.Length > 0 ? Reference : $"{Type} #{Id}";
+    var href = Type switch
+    {
+        "PettyCashRequest" => $"/petty-cash/requests/{Id}",
+        "WalletFunding" => "/petty-cash/fundings",
+        _ => null,
+    };
+}
+@if (href is null)
+{
+    <span>@label</span>
+}
+else
+{
+    <a class="text-green-700 underline" href="@href">@label</a>
+}
+
+@code {
+    [Parameter] public string Type { get; set; } = string.Empty;
+    [Parameter] public int Id { get; set; }
+    [Parameter] public string Reference { get; set; } = string.Empty;
+}

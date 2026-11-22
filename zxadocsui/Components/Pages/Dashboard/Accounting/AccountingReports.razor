@@ -1,0 +1,177 @@
+@page "/accounting/reports"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-chart-bar text-sm"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Accounting reports</h1>
+            <p class="text-xs text-slate-500">read from posted journals and wallet movements; balances are debit minus credit</p>
+        </div>
+    </div>
+
+    <div class="p-6 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <MudSelect T="int?" Value="periodId" ValueChanged="PickPeriod" Label="Period" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var p in periods)
+                {
+                    <MudSelectItem T="int?" Value="@p.Id">@p.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker @bind-Date="from" Label="From" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudDatePicker @bind-Date="to" Label="To" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudSelect T="int?" @bind-Value="accountId" Label="Account" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                       Disabled="@(tab is Tab.TrialBalance or Tab.Wallet)">
+                @foreach (var a in accounts)
+                {
+                    <MudSelectItem T="int?" Value="@a.Id">@a.Code @a.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="int?" @bind-Value="unitId" Label="@(tab == Tab.Wallet ? "Billing unit (required)" : "Billing unit")" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(tab == Tab.TrialBalance)">
+                @foreach (var u in units)
+                {
+                    <MudSelectItem T="int?" Value="@u.Id">@u.Code - @u.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField T="string" @bind-Value="reference" Label="Reference" Placeholder="PC-000012, a funding reference or a journal number"
+                          Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(tab is Tab.TrialBalance or Tab.Wallet)" />
+        </div>
+        <div class="flex items-center gap-3">
+            <MudButton OnClick="Load" Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.FilterList"
+                       Disabled="@loading">Run report</MudButton>
+            <ExportButtons Url="@($"api/accounting/reports/{ReportName}/export{Query()}")" FileStem="@ReportName"
+                           Blocked="@(tab == Tab.Wallet && unitId is null ? "Choose a billing unit to export its wallet ledger." : null)" />
+        </div>
+
+        <MudTabs Elevation="0" ActivePanelIndex="@((int)tab)" ActivePanelIndexChanged="SwitchTab" PanelClass="pt-4">
+            <MudTabPanel Text="General ledger">
+                @if (ledger is not null)
+                {
+                    @foreach (var account in ledger.Accounts)
+                    {
+                        <section class="mb-6">
+                            <h2 class="text-sm font-semibold text-slate-700 mb-1">@account.Totals.Code @account.Totals.Name</h2>
+                            <MudTable Items="@account.Lines" Dense="true" Elevation="0">
+                                <HeaderContent>
+                                    <MudTh>Date</MudTh><MudTh>Journal</MudTh><MudTh>Description</MudTh><MudTh>Source</MudTh><MudTh>Unit</MudTh>
+                                    <MudTh Class="text-right">Debit</MudTh><MudTh Class="text-right">Credit</MudTh><MudTh Class="text-right">Balance</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Date">@context.Date.ToString("d MMM yyyy")</MudTd>
+                                    <MudTd DataLabel="Journal">@context.JournalNumber</MudTd>
+                                    <MudTd DataLabel="Description">@context.Description</MudTd>
+                                    <MudTd DataLabel="Source"><SourceLink Type="@context.SourceType" Id="@context.SourceId" Reference="@context.SourceReference" /></MudTd>
+                                    <MudTd DataLabel="Unit">@context.BillingUnitCode</MudTd>
+                                    <MudTd DataLabel="Debit" Class="text-right">@Amount(context.Debit)</MudTd>
+                                    <MudTd DataLabel="Credit" Class="text-right">@Amount(context.Credit)</MudTd>
+                                    <MudTd DataLabel="Balance" Class="text-right">@context.Balance.ToString("N2")</MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                            <div class="text-xs text-slate-600 mt-1">
+                                Opening @account.Totals.Opening.ToString("N2") · Debit @account.Totals.Debit.ToString("N2") ·
+                                Credit @account.Totals.Credit.ToString("N2") · <strong>Closing @account.Totals.Closing.ToString("N2")</strong>
+                            </div>
+                        </section>
+                    }
+                    <div class="text-sm font-semibold text-slate-700">
+                        @if (ledger.Accounts.Count == 0)
+                        {
+                            <span class="text-slate-500 font-normal">No postings match these filters.</span>
+                        }
+                        else
+                        {
+                            <span>Total debit @ledger.TotalDebit.ToString("N2") · total credit @ledger.TotalCredit.ToString("N2")</span>
+                        }
+                    </div>
+                }
+            </MudTabPanel>
+
+            <MudTabPanel Text="Trial balance">
+                @if (trialBalance is not null)
+                {
+                    <MudTable Items="@trialBalance.Rows" Dense="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Account</MudTh><MudTh>Type</MudTh><MudTh Class="text-right">Opening</MudTh><MudTh Class="text-right">Debit</MudTh>
+                            <MudTh Class="text-right">Credit</MudTh><MudTh Class="text-right">Closing</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Account">@context.Code @context.Name</MudTd>
+                            <MudTd DataLabel="Type">@context.Type</MudTd>
+                            <MudTd DataLabel="Opening" Class="text-right">@context.Opening.ToString("N2")</MudTd>
+                            <MudTd DataLabel="Debit" Class="text-right">@context.Debit.ToString("N2")</MudTd>
+                            <MudTd DataLabel="Credit" Class="text-right">@context.Credit.ToString("N2")</MudTd>
+                            <MudTd DataLabel="Closing" Class="text-right">@context.Closing.ToString("N2")</MudTd>
+                        </RowTemplate>
+                        <FooterContent>
+                            <MudTd><strong>Totals</strong></MudTd><MudTd></MudTd>
+                            <MudTd Class="text-right"><strong>@trialBalance.TotalOpening.ToString("N2")</strong></MudTd>
+                            <MudTd Class="text-right"><strong>@trialBalance.TotalDebit.ToString("N2")</strong></MudTd>
+                            <MudTd Class="text-right"><strong>@trialBalance.TotalCredit.ToString("N2")</strong></MudTd>
+                            <MudTd Class="text-right"><strong>@trialBalance.TotalClosing.ToString("N2")</strong></MudTd>
+                        </FooterContent>
+                        <NoRecordsContent><div class="py-4 text-center text-slate-500">No postings in this range.</div></NoRecordsContent>
+                    </MudTable>
+                    @if (trialBalance.TotalDebit != trialBalance.TotalCredit || trialBalance.TotalClosing != 0)
+                    {
+                        <MudAlert Severity="Severity.Error" Dense="true" Class="mt-2">The trial balance does not balance.</MudAlert>
+                    }
+                }
+            </MudTabPanel>
+
+            <MudTabPanel Text="Wallet ledger">
+                @if (wallet is not null)
+                {
+                    <div class="text-sm text-slate-600 mb-2">
+                        Wallet @wallet.BillingUnitCode · opening @wallet.Opening.ToString("N2") · <strong>closing @wallet.Closing.ToString("N2")</strong>
+                        · current ledger balance @wallet.LedgerBalance.ToString("N2")
+                    </div>
+                    <MudTable Items="@wallet.Lines" Dense="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>When</MudTh><MudTh>Type</MudTh><MudTh>Source</MudTh><MudTh Class="text-right">Amount</MudTh><MudTh Class="text-right">Balance</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="When">@context.CreatedAt.ToLocalTime().ToString("d MMM yyyy HH:mm")</MudTd>
+                            <MudTd DataLabel="Type">@context.Type</MudTd>
+                            <MudTd DataLabel="Source"><SourceLink Type="@context.SourceType" Id="@context.SourceId" Reference="@context.SourceReference" /></MudTd>
+                            <MudTd DataLabel="Amount" Class="text-right">@context.Amount.ToString("N2")</MudTd>
+                            <MudTd DataLabel="Balance" Class="text-right">@context.Balance.ToString("N2")</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent><div class="py-4 text-center text-slate-500">No movements in this range.</div></NoRecordsContent>
+                    </MudTable>
+                }
+            </MudTabPanel>
+
+            <MudTabPanel Text="Journals">
+                @if (journals is not null)
+                {
+                    <MudTable Items="@journals" Dense="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Number</MudTh><MudTh>Date</MudTh><MudTh>Description</MudTh><MudTh>Source</MudTh><MudTh>Unit</MudTh><MudTh>Lines</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Number">@context.Number</MudTd>
+                            <MudTd DataLabel="Date">@context.Date.ToString("d MMM yyyy")</MudTd>
+                            <MudTd DataLabel="Description">@context.Description</MudTd>
+                            <MudTd DataLabel="Source"><SourceLink Type="@context.SourceType" Id="@context.SourceId" Reference="@context.SourceReference" /></MudTd>
+                            <MudTd DataLabel="Unit">@context.BillingUnitCode</MudTd>
+                            <MudTd DataLabel="Lines">
+                                @foreach (var line in context.Lines)
+                                {
+                                    <div class="text-xs whitespace-nowrap">
+                                        @(line.Debit > 0 ? "Dr" : "Cr") @line.AccountCode @line.AccountName
+                                        <strong>@((line.Debit > 0 ? line.Debit : line.Credit).ToString("N2"))</strong>
+                                    </div>
+                                }
+                            </MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent><div class="py-4 text-center text-slate-500">No journals match these filters.</div></NoRecordsContent>
+                    </MudTable>
+                }
+            </MudTabPanel>
+        </MudTabs>
+    </div>
+</div>

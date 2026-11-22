@@ -21,12 +21,15 @@
                     <MudChip T="string" Value="@option.Value" Text="@option.Label" OnClick="@(() => Switch(option.Value))" />
                 }
             </MudChipSet>
-            @if (canCreate)
-            {
-                <MudButton Href="/petty-cash/requests/new" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
-                    New request
-                </MudButton>
-            }
+            <div class="flex items-center gap-3">
+                <ExportButtons Url="@ListUrl" FileStem="petty-cash-requests" />
+                @if (canCreate)
+                {
+                    <MudButton Href="/petty-cash/requests/new" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
+                        New request
+                    </MudButton>
+                }
+            </div>
         </div>
 
         <MudTable Items="@requests" Hover="true" Dense="true" Striped="true" Elevation="0" Loading="@loading"

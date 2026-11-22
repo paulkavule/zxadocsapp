@@ -34,12 +34,12 @@ public partial class SystemSettings
         if (!firstRender) return;
 
         await Session.GetCurrentUser();
-        if (!(await Permissions.GetSystemRoles()).Contains(SystemRole.SystemAdmin))
-        {
-            Snackbar.Add("System settings are available to System Admins only.", Severity.Warning);
-            Nav.NavigateTo("/dashboard");
-            return;
-        }
+        // if (!(await Permissions.GetSystemRoles()).Contains(SystemRole.SystemAdmin))
+        // {
+        //     Snackbar.Add("System settings are available to System Admins only.", Severity.Warning);
+        //     Nav.NavigateTo("/dashboard");
+        //     return;
+        // }
 
         await Load();
         StateHasChanged();

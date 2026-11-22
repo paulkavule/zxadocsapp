@@ -1,0 +1,46 @@
+@page "/exports"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-file-export text-sm"></i>
+        </div>
+        <div class="flex-1">
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">My exports</h1>
+            <p class="text-xs text-slate-500">large exports are prepared in the background and wait here for you</p>
+        </div>
+        <MudButton OnClick="Load" Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Refresh"
+                   Disabled="@loading">Refresh</MudButton>
+    </div>
+
+    <div class="p-6">
+        <MudTable Items="@jobs" Hover="true" Dense="true" Elevation="0" Loading="@loading" LoadingProgressColor="Color.Primary">
+            <HeaderContent>
+                <MudTh>Report</MudTh><MudTh>Format</MudTh><MudTh>Rows</MudTh><MudTh>Requested</MudTh><MudTh>Status</MudTh><MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Report">@context.Title</MudTd>
+                <MudTd DataLabel="Format">@context.Format.ToUpperInvariant()</MudTd>
+                <MudTd DataLabel="Rows">@context.RowCount.ToString("N0")</MudTd>
+                <MudTd DataLabel="Requested">@context.CreatedAt.ToLocalTime().ToString("d MMM yyyy HH:mm")</MudTd>
+                <MudTd DataLabel="Status">
+                    @context.Status
+                    @if (context.Error.Length > 0)
+                    {
+                        <div class="text-xs text-rose-600">@context.Error</div>
+                    }
+                </MudTd>
+                <MudTd>
+                    @if (context.Status == ExportJobStatus.Done)
+                    {
+                        <MudButton OnClick="@(() => Download(context))" Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Download">Download</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent><div class="py-10 text-center text-slate-500">No large exports yet. Smaller exports download straight away.</div></NoRecordsContent>
+        </MudTable>
+    </div>
+</div>

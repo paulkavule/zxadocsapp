@@ -10,7 +10,8 @@ namespace zxadocsui.Tests;
 // installing Playwright's browsers needs pwsh, which is not present on the dev machines here.
 public sealed class AppFixture : IAsyncLifetime
 {
-    public const string UiBase = "https://localhost:7086";
+    // ZXADOCS_UI_BASE points the browser tests at a UI started with another profile, e.g. http://localhost:5195.
+    public static readonly string UiBase = Environment.GetEnvironmentVariable("ZXADOCS_UI_BASE") ?? "https://localhost:7086";
     public const string ApiBase = "https://localhost:7028";
 
     private IPlaywright? playwright;

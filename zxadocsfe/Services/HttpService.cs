@@ -90,6 +90,10 @@ public interface IHttpService
     Task<(bool success, T? data, string? error)> UploadFileAsync<T>(
         string endpoint, byte[] content, string fileName, string contentType);
 
+    /// <summary>Posts form fields as multipart/form-data, with an optional file under the field name "file".</summary>
+    Task<(bool success, T? data, string? error)> PostFormAsync<T>(
+        string endpoint, IReadOnlyDictionary<string, string> fields, (byte[] Content, string Name, string ContentType)? file);
+
     Task<(bool success, T? data, string? error)> UploadUserSignatureAsync<T>(
         Guid userReference, byte[] content, string fileName);
 
@@ -107,6 +111,9 @@ public interface IHttpService
 
     // Raw bytes for an arbitrary GET (e.g. draft preview/download PDFs) — no JSON deserialisation.
     Task<(bool success, byte[]? data, string? error)> GetBytesAsync(string endpoint, CancellationToken ct = default);
+
+    /// <summary>GET returning the body with its status and content type, so a caller can tell a file from a JSON answer.</summary>
+    Task<(bool success, int status, string contentType, byte[]? data, string? error)> GetFileAsync(string endpoint, CancellationToken ct = default);
 
 }
 
@@ -215,17 +222,26 @@ public class HttpService : IHttpService
         }
     }
 
-    public async Task<(bool success, T? data, string? error)> UploadFileAsync<T>(
-        string endpoint, byte[] content, string fileName, string contentType)
+    public Task<(bool success, T? data, string? error)> UploadFileAsync<T>(
+        string endpoint, byte[] content, string fileName, string contentType) =>
+        PostFormAsync<T>(endpoint, new Dictionary<string, string>(), (content, fileName, contentType));
+
+    public async Task<(bool success, T? data, string? error)> PostFormAsync<T>(
+        string endpoint, IReadOnlyDictionary<string, string> fields, (byte[] Content, string Name, string ContentType)? file)
     {
         ApplyAuthorization();
         try
         {
             using var form = new MultipartFormDataContent();
-            var part = new ByteArrayContent(content);
-            if (!string.IsNullOrWhiteSpace(contentType))
-                part.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
-            form.Add(part, "file", fileName);
+            foreach (var (name, value) in fields)
+                form.Add(new StringContent(value), name);
+            if (file is var (content, fileName, contentType))
+            {
+                var part = new ByteArrayContent(content);
+                if (!string.IsNullOrWhiteSpace(contentType))
+                    part.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+                form.Add(part, "file", fileName);
+            }
 
             var response = await _client!.PostAsync(endpoint, form);
             var body = await response.Content.ReadAsStringAsync();
@@ -238,7 +254,7 @@ public class HttpService : IHttpService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "File upload to {Endpoint} failed", endpoint);
+            _logger.LogError(ex, "Form post to {Endpoint} failed", endpoint);
             return (false, default, ex.Message);
         }
     }
@@ -430,21 +446,29 @@ public class HttpService : IHttpService
 
     public async Task<(bool success, byte[]? data, string? error)> GetBytesAsync(string endpoint, CancellationToken ct = default)
     {
+        var (ok, _, _, data, error) = await GetFileAsync(endpoint, ct);
+        return (ok, data, error);
+    }
+
+    public async Task<(bool success, int status, string contentType, byte[]? data, string? error)> GetFileAsync(
+        string endpoint, CancellationToken ct = default)
+    {
         ApplyAuthorization();
         try
         {
             var response = await _client!.GetAsync(endpoint, ct);
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "";
             if (response.IsSuccessStatusCode)
-                return (true, await response.Content.ReadAsByteArrayAsync(ct), null);
+                return (true, (int)response.StatusCode, contentType, await response.Content.ReadAsByteArrayAsync(ct), null);
 
             var error = await response.Content.ReadAsStringAsync(ct);
             _logger.LogWarning("GET(bytes) {Endpoint} failed with status {Status}: {Error}", endpoint, response.StatusCode, error);
-            return (false, null, error);
+            return (false, (int)response.StatusCode, contentType, null, error);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GET(bytes) {Endpoint} failed with exception", endpoint);
-            return (false, null, ex.Message);
+            return (false, 0, "", null, ex.Message);
         }
     }
 

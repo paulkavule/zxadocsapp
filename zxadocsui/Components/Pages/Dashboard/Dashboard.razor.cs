@@ -37,6 +37,10 @@ public partial class Dashboard : IDisposable
 
     // The card's link into the activity report, which now needs reporting access (ZD-133).
     bool canReports;
+
+    // Petty cash panels (ZD-216); they load themselves once the session is known.
+    PettyCash.PettyCashDashboard? pettyCash;
+
     protected override void OnInitialized()
     {
         httpSvc.Initialize(AppConstants.HttpSchemes.Core);
@@ -63,6 +67,7 @@ public partial class Dashboard : IDisposable
             await GetDashboardStats();
             await GetRecentActivity();
             await GetActionMix();
+            if (pettyCash is not null) await pettyCash.LoadAsync();
         }
 
         await InvokeAsync(StateHasChanged);
@@ -74,6 +79,7 @@ public partial class Dashboard : IDisposable
         {
 
             await LoadUserInformation();
+            if (pettyCash is not null) await pettyCash.LoadAsync();
 
             canReports = (await permissions.GetPermissions()).Contains(Permission.ViewOrganisationReports)
                       || (await permissions.GetSystemRoles()).Contains(SystemRole.SystemViewer);

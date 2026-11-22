@@ -51,14 +51,16 @@ public partial class RequestList
         await Load();
     }
 
+    /// <summary>The endpoint for the chosen scope; the export uses the same one (ZD-230).</summary>
+    private string ListUrl => scope == "queue" ? "api/petty-cash/requests/queue" : $"api/petty-cash/requests?scope={scope}";
+
     private async Task Load()
     {
         loading = true;
         try
         {
             Http.Initialize(AppConstants.HttpSchemes.Core);
-            var url = scope == "queue" ? "api/petty-cash/requests/queue" : $"api/petty-cash/requests?scope={scope}";
-            var (ok, result, error) = await Http.GetAsync<ApiResponse<List<PettyCashRequestDto>>>(url);
+            var (ok, result, error) = await Http.GetAsync<ApiResponse<List<PettyCashRequestDto>>>(ListUrl);
             if (!ok || result?.Data is null)
             {
                 Snackbar.Add(ErrorMessage.Extract(error) ?? "Failed to load requests.", Severity.Error);

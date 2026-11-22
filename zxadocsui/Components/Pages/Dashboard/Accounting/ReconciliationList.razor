@@ -1,0 +1,85 @@
+@page "/accounting/reconciliation"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
+        <div class="w-8 h-8 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-sm">
+            <i class="fas fa-scale-balanced text-sm"></i>
+        </div>
+        <div class="flex-1">
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">Reconciliation</h1>
+            <p class="text-xs text-slate-500">requests that disagree with their journals, wallet hold or provider record</p>
+        </div>
+        @if (canRun)
+        {
+            <MudButton OnClick="RunNow" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="@running"
+                       StartIcon="@Icons.Material.Filled.Sync">Reconcile now</MudButton>
+        }
+    </div>
+
+    <div class="p-6 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <MudSelect T="ReconciliationExceptionStatus?" @bind-Value="status" Label="Status" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var s in Enum.GetValues<ReconciliationExceptionStatus>())
+                {
+                    <MudSelectItem T="ReconciliationExceptionStatus?" Value="@s">@s</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="ReconciliationExceptionType?" @bind-Value="type" Label="Exception" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var t in Enum.GetValues<ReconciliationExceptionType>())
+                {
+                    <MudSelectItem T="ReconciliationExceptionType?" Value="@t">@TypeName(t)</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="int?" @bind-Value="unitId" Label="Billing unit" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var u in units)
+                {
+                    <MudSelectItem T="int?" Value="@u.Id">@u.Code - @u.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="PaymentType?" @bind-Value="provider" Label="Provider" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var p in Enum.GetValues<PaymentType>())
+                {
+                    <MudSelectItem T="PaymentType?" Value="@p">@ProviderName(p)</MudSelectItem>
+                }
+            </MudSelect>
+            <MudDatePicker @bind-Date="from" Label="Found from" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudDatePicker @bind-Date="to" Label="Found to" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </div>
+        <div class="flex items-center gap-3">
+            <MudButton OnClick="Load" Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.FilterList">
+                Apply filters
+            </MudButton>
+            <ExportButtons Url="@ListUrl" FileStem="reconciliation-exceptions" />
+        </div>
+
+        <MudTable Items="@items" Hover="true" Dense="true" Striped="true" Elevation="0" Loading="@loading" LoadingProgressColor="Color.Primary"
+                  OnRowClick="@((TableRowClickEventArgs<ReconciliationExceptionDto> e) => Nav.NavigateTo($"/accounting/reconciliation/{e.Item!.Id}"))"
+                  RowStyle="cursor:pointer">
+            <HeaderContent>
+                <MudTh>Request</MudTh><MudTh>Unit</MudTh><MudTh>Provider</MudTh><MudTh>Amount</MudTh><MudTh>Exception</MudTh>
+                <MudTh>Detail</MudTh><MudTh>Age</MudTh><MudTh>Status</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Request">
+                    @context.Reference
+                    <div class="text-xs text-slate-400">@context.PaymentReference</div>
+                </MudTd>
+                <MudTd DataLabel="Unit">@context.BillingUnitCode</MudTd>
+                <MudTd DataLabel="Provider">@(context.PaymentType is { } p ? ProviderName(p) : "")</MudTd>
+                <MudTd DataLabel="Amount">@context.Amount.ToString("N2")</MudTd>
+                <MudTd DataLabel="Exception">@TypeName(context.Type)</MudTd>
+                <MudTd DataLabel="Detail"><span class="text-xs">@context.Detail</span></MudTd>
+                <MudTd DataLabel="Age">
+                    @Age(context.FirstSeenAt)
+                    <div class="text-xs text-slate-400">last seen @context.LastSeenAt.ToLocalTime().ToString("d MMM HH:mm")</div>
+                </MudTd>
+                <MudTd DataLabel="Status">@context.Status</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <div class="py-10 text-center text-slate-500">No exceptions match.</div>
+            </NoRecordsContent>
+        </MudTable>
+    </div>
+</div>

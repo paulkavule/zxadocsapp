@@ -292,6 +292,31 @@
                                 <i class="fa-solid fa-book-open w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
                                 <span class="font-medium whitespace-nowrap sidebar-menu-text">Journals</span>
                             </NavLink>
+                            <NavLink href="/accounting/reports"
+                                     class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                     ActiveClass="bg-[#e0f2df]">
+                                <i class="fa-solid fa-chart-bar w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                <span class="font-medium whitespace-nowrap sidebar-menu-text">Accounting reports</span>
+                            </NavLink>
+                            @if (canReconciliation)
+                            {
+                                <NavLink href="/accounting/reconciliation"
+                                         class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                         ActiveClass="bg-[#e0f2df]">
+                                    <i class="fa-solid fa-scale-balanced w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                    <span class="font-medium whitespace-nowrap sidebar-menu-text">Reconciliation</span>
+                                </NavLink>
+                            }
+                        }
+
+                        @if (canAccounting || canReconciliation || canRequests || canFunding)
+                        {
+                            <NavLink href="/exports"
+                                     class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                     ActiveClass="bg-[#e0f2df]">
+                                <i class="fa-solid fa-file-export w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                <span class="font-medium whitespace-nowrap sidebar-menu-text">My exports</span>
+                            </NavLink>
                         }
 
                         <div class="border-t border-[#d4ead5] my-4"></div>
@@ -514,6 +539,7 @@
     bool canContractTypes;
     bool canPettyCashSetup;
     bool canAccounting;
+    bool canReconciliation;
     bool canFunding;
     bool canRequests;
     bool canOperations;
@@ -551,6 +577,7 @@
             // No implying it from the approval permissions — ViewAudit is granted on its own.
             canAudit = perms.Contains(Permission.ViewAudit);
             canPettyCashSetup = perms.Contains(Permission.FinanceAdmin) || perms.Contains(Permission.ViewPettyCashFinance);
+            canReconciliation = perms.Contains(Permission.ManageAccounting) || perms.Contains(Permission.ViewPettyCashFinance);
             canAccounting = perms.Contains(Permission.ManageAccounting) || perms.Contains(Permission.ReverseJournal)
                          || perms.Contains(Permission.ViewPettyCashFinance);
             canFunding = canPettyCashSetup || perms.Contains(Permission.CreateFundingRequest)

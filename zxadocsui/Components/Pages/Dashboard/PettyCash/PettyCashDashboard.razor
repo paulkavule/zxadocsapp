@@ -1,0 +1,118 @@
+@using zxadocslib.Dtos
+@using zxadocsfe.Helpers
+@using zxadocsfe.Services
+@inject IHttpService Http
+
+@* The petty cash panels on /dashboard (ZD-216). The API fills only the panels the user's permissions allow. *@
+@if (board is not null && (board.Maker ?? board.Approver ?? board.Finance ?? board.Admin ?? (object?)board.Health) is not null)
+{
+    <section class="mb-8 space-y-5">
+        <h2 class="font-semibold text-slate-800 text-lg flex items-center gap-2"><i class="fa-solid fa-wallet text-green-600"></i> Petty cash</h2>
+
+        @if (board.Maker is { } maker)
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-sm text-slate-500 font-medium">My wallet</p>
+                    @if (maker.Wallet is { } wallet)
+                    {
+                        <p class="text-3xl font-bold text-slate-800 mt-1">@wallet.AvailableBalance.ToString("N0") <span class="text-sm font-medium text-slate-500">UGX available</span></p>
+                        <p class="text-xs text-slate-400 mt-4">@wallet.BillingUnitCode · ledger @wallet.LedgerBalance.ToString("N0") · held for approved requests @wallet.ReservedBalance.ToString("N0")</p>
+                    }
+                    else
+                    {
+                        <p class="text-sm text-slate-500 mt-2">You are not assigned to a wallet yet.</p>
+                    }
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm text-slate-500 font-medium">My requests</p>
+                        <a href="/petty-cash/requests" class="text-green-600 text-xs hover:underline">All my requests →</a>
+                    </div>
+                    <div class="flex flex-wrap gap-3 mt-2">
+                        @foreach (var status in maker.Statuses)
+                        {
+                            <span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-semibold">@status.Status @status.Count</span>
+                        }
+                        @if (maker.Statuses.Count == 0)
+                        {
+                            <span class="text-sm text-slate-500">No requests yet.</span>
+                        }
+                    </div>
+                    @foreach (var request in maker.Recent)
+                    {
+                        <a href="/petty-cash/requests/@request.Id" class="flex justify-between text-sm text-slate-700 mt-2 hover:text-green-600">
+                            <span>@request.Reference · @request.Status</span><span>@request.Amount.ToString("N0")</span>
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (board.Approver is { } approver)
+        {
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-slate-500 font-medium">Awaiting my approval</p>
+                        <p class="text-3xl font-bold text-slate-800 mt-1">@approver.Count <span class="text-sm font-medium text-slate-500">worth @approver.Total.ToString("N0") UGX</span></p>
+                    </div>
+                    <a href="/petty-cash/requests" class="text-green-600 text-xs hover:underline">Open the queue →</a>
+                </div>
+                @foreach (var request in approver.Oldest)
+                {
+                    <a href="/petty-cash/requests/@request.Id" class="flex justify-between text-sm text-slate-700 mt-2 hover:text-green-600">
+                        <span>@request.Reference · @request.BillingUnitCode · @request.CreatedBy</span><span>@request.Amount.ToString("N0")</span>
+                    </a>
+                }
+            </div>
+        }
+
+        @if (board.Finance is { } finance)
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <Tile Label="Accounting pending" Value="@finance.AccountingPending.ToString()" Note="approved, waiting for the accounting job" />
+                <Tile Label="Payments in flight" Value="@finance.PaymentsInFlight.ToString()" Note="@($"{finance.PaymentsInFlightAmount:N0} UGX with the provider")" />
+                <Tile Label="Failures" Value="@((finance.AccountingFailed + finance.PaymentsFailed).ToString())" Alert="@(finance.AccountingFailed + finance.PaymentsFailed > 0)"
+                      Note="@($"{finance.AccountingFailed} accounting, {finance.PaymentsFailed} payment")" />
+                <Tile Label="Open reconciliation exceptions" Value="@finance.OpenExceptions.ToString()" Alert="@(finance.OpenExceptions > 0)"
+                      Href="/accounting/reconciliation" Note="review and resolve →" />
+            </div>
+        }
+
+        @if (board.Admin is { } admin)
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <Tile Label="Wallets" Value="@admin.Wallets.ToString()" Href="/petty-cash/wallets"
+                      Note="@($"{admin.TotalAvailable:N0} available of {admin.TotalLedger:N0} UGX")" />
+                <Tile Label="Low balances" Value="@admin.LowBalance.Count.ToString()" Alert="@(admin.LowBalance.Count > 0)" Href="/petty-cash/wallets"
+                      Note="@(admin.LowBalance.Count == 0 ? "every wallet above its threshold" : string.Join(", ", admin.LowBalance.Select(w => w.BillingUnitCode)))" />
+                <Tile Label="Active billing units" Value="@admin.ActiveUnits.ToString()" Href="/petty-cash/billing-units" />
+                <Tile Label="Active users" Value="@admin.ActiveUsers.ToString()" />
+            </div>
+        }
+
+        @if (board.Health is { } health)
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <Tile Label="Open alerts" Value="@health.OpenAlerts.ToString()" Alert="@(health.OpenAlerts > 0)" Href="/operations/alerts" />
+                <Tile Label="Dead letters" Value="@health.OpenDeadLetters.ToString()" Alert="@(health.OpenDeadLetters > 0)" Href="/operations/dead-letters" />
+                <Tile Label="Unpublished messages" Value="@health.OutboxBacklog.ToString()" Alert="@(health.OutboxBacklog > 0)"
+                      Note="@(health.OldestUnpublishedAt is { } at ? $"oldest waiting since {at.ToLocalTime():d MMM HH:mm}" : "none waiting")" />
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private PettyCashDashboardDto? board;
+
+    /// <summary>Loads once the page has a signed-in session; the dashboard page calls it from its own first render.</summary>
+    public async Task LoadAsync()
+    {
+        Http.Initialize(AppConstants.HttpSchemes.Core);
+        var (ok, result, _) = await Http.GetAsync<ApiResponse<PettyCashDashboardDto>>("api/petty-cash/dashboard");
+        board = ok ? result?.Data : null;
+        StateHasChanged();
+    }
+}

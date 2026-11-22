@@ -1,0 +1,17 @@
+@* One dashboard figure (ZD-216); red when it needs attention, a link when there is a screen to act on it. *@
+<a href="@(Href ?? "javascript:void(0)")" class="block bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+    <p class="text-sm text-slate-500 font-medium">@Label</p>
+    <p class="text-3xl font-bold mt-1 @(Alert ? "text-rose-600" : "text-slate-800")">@Value</p>
+    @if (Note is not null)
+    {
+        <p class="text-xs text-slate-400 mt-4">@Note</p>
+    }
+</a>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Value { get; set; } = string.Empty;
+    [Parameter] public string? Note { get; set; }
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public bool Alert { get; set; }
+}

@@ -1,0 +1,163 @@
+@page "/accounting/reconciliation/{Id:int}"
+@layout DashboardLayout
+@using zxadocslib.Dtos
+@using Microsoft.AspNetCore.Components.Forms
+
+<div class="w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-200 flex items-center gap-3 bg-white/90">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" Href="/accounting/reconciliation" aria-label="Back to reconciliation" />
+        <div>
+            <h1 class="text-xl font-semibold text-slate-800 tracking-tight">
+                @(detail is null ? "Reconciliation exception" : $"{ReconciliationList.TypeName(detail.Exception.Type)}: {detail.Exception.Reference}")
+            </h1>
+            @if (detail is not null)
+            {
+                <p class="text-xs text-slate-500">
+                    @detail.Exception.Status, found @detail.Exception.FirstSeenAt.ToLocalTime().ToString("d MMM yyyy HH:mm"),
+                    last seen @detail.Exception.LastSeenAt.ToLocalTime().ToString("d MMM yyyy HH:mm")
+                </p>
+            }
+        </div>
+    </div>
+
+    @if (detail is null)
+    {
+        <div class="p-6 text-slate-500">@(loading ? "Loading..." : "Exception not found.")</div>
+    }
+    else
+    {
+        <div class="p-6 space-y-6">
+            <MudAlert Severity="Severity.Warning" Dense="true">@detail.Exception.Detail</MudAlert>
+
+            @if (detail.Exception.Status == ReconciliationExceptionStatus.Resolved)
+            {
+                var resolved = detail.Exception;
+                <section>
+                    <h2 class="text-sm font-semibold text-slate-700 mb-2">Resolution</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                        <div><span class="text-slate-500">Type</span><div>@resolved.ResolutionType</div></div>
+                        <div><span class="text-slate-500">By</span><div>@resolved.ResolvedBy, @resolved.ResolvedAt?.ToLocalTime().ToString("d MMM yyyy HH:mm")</div></div>
+                        <div><span class="text-slate-500">Request status</span><div>@resolved.RequestStatusBefore to @resolved.RequestStatusAfter</div></div>
+                        <div class="md:col-span-2"><span class="text-slate-500">Comment</span><div>@resolved.ResolutionComment</div></div>
+                        @if (resolved.CorrectionJournalId is { } journalId)
+                        {
+                            <div><span class="text-slate-500">Correcting journal</span><div>@(detail.Journals.FirstOrDefault(j => j.Id == journalId)?.Number ?? $"#{journalId}")</div></div>
+                        }
+                        @if (resolved.EvidenceFileName.Length > 0)
+                        {
+                            <div>
+                                <span class="text-slate-500">Evidence</span>
+                                <div><MudLink OnClick="DownloadEvidence">@resolved.EvidenceFileName</MudLink></div>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+            else if (canResolve)
+            {
+                <section class="border border-slate-200 rounded-xl p-4 space-y-3">
+                    <h2 class="text-sm font-semibold text-slate-700">Resolve</h2>
+                    <MudSelect T="ReconciliationResolutionType?" @bind-Value="resolutionType" Label="Resolution type" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem T="ReconciliationResolutionType?" Value="ReconciliationResolutionType.Explained">Explained: the records are right, evidence attached</MudSelectItem>
+                        <MudSelectItem T="ReconciliationResolutionType?" Value="ReconciliationResolutionType.Corrected">Corrected: a correcting journal has been posted</MudSelectItem>
+                        <MudSelectItem T="ReconciliationResolutionType?" Value="ReconciliationResolutionType.Recheck">Recheck: fixed elsewhere, verify again</MudSelectItem>
+                    </MudSelect>
+                    @if (resolutionType == ReconciliationResolutionType.Corrected)
+                    {
+                        <MudSelect T="int?" @bind-Value="correctionJournalId" Label="Correcting journal" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   HelperText="A journal of this request posted after the exception opened. Reversals are posted from Journals by a ReverseJournal holder.">
+                            @foreach (var journal in CorrectingJournals)
+                            {
+                                <MudSelectItem T="int?" Value="@journal.Id">@journal.Number: @journal.Description</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    <MudTextField T="string" @bind-Value="comment" Label="Comment" Lines="3" MaxLength="500" Counter="500" Variant="Variant.Outlined" />
+                    <div class="flex items-center gap-3">
+                        <MudFileUpload T="IBrowserFile" FilesChanged="PickEvidence" Class="shadow-none">
+                            <CustomContent>
+                                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.AttachFile" OnClick="@context.OpenFilePickerAsync">
+                                    Evidence
+                                </MudButton>
+                            </CustomContent>
+                        </MudFileUpload>
+                        <span class="text-sm text-slate-600">@(evidence?.Name ?? (resolutionType == ReconciliationResolutionType.Explained ? "Required" : "Optional"))</span>
+                    </div>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@busy" OnClick="Resolve">Resolve</MudButton>
+                </section>
+            }
+
+            <section>
+                <h2 class="text-sm font-semibold text-slate-700 mb-2">Request</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                    <div><span class="text-slate-500">Reference</span><div><a class="text-green-700 underline" href="/petty-cash/requests/@detail.Request.Id">@detail.Request.Reference</a></div></div>
+                    <div><span class="text-slate-500">Unit</span><div>@detail.Request.BillingUnitCode</div></div>
+                    <div><span class="text-slate-500">Amount</span><div>@detail.Request.Amount.ToString("N2")</div></div>
+                    <div><span class="text-slate-500">Beneficiary</span><div>@detail.Request.BeneficiaryName @detail.Request.BeneficiaryPhone</div></div>
+                    <div><span class="text-slate-500">Accounting / payment</span><div>@detail.Request.AccountingStatus / @detail.Request.PaymentStatus</div></div>
+                    <div><span class="text-slate-500">Provider reference</span><div>@detail.Request.PaymentReference</div></div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="text-sm font-semibold text-slate-700 mb-2">Journals</h2>
+                <MudTable Items="@detail.Journals" Dense="true" Elevation="0">
+                    <HeaderContent><MudTh>Number</MudTh><MudTh>Date</MudTh><MudTh>Description</MudTh><MudTh>Lines</MudTh></HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Number">@context.Number</MudTd>
+                        <MudTd DataLabel="Date">@context.Date.ToString("d MMM yyyy")</MudTd>
+                        <MudTd DataLabel="Description">@context.Description</MudTd>
+                        <MudTd DataLabel="Lines">
+                            @foreach (var line in context.Lines)
+                            {
+                                <div class="text-xs whitespace-nowrap">
+                                    @(line.Debit > 0 ? "Dr" : "Cr") @line.AccountCode @line.AccountName
+                                    <strong>@((line.Debit > 0 ? line.Debit : line.Credit).ToString("N2"))</strong>
+                                </div>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent><div class="py-4 text-center text-slate-500">No journals.</div></NoRecordsContent>
+                </MudTable>
+            </section>
+
+            <section>
+                <h2 class="text-sm font-semibold text-slate-700 mb-2">Wallet movements</h2>
+                <MudTable Items="@detail.WalletMovements" Dense="true" Elevation="0">
+                    <HeaderContent><MudTh>When</MudTh><MudTh>Type</MudTh><MudTh>Amount</MudTh></HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="When">@context.CreatedAt.ToLocalTime().ToString("d MMM yyyy HH:mm")</MudTd>
+                        <MudTd DataLabel="Type">@context.Type</MudTd>
+                        <MudTd DataLabel="Amount">@context.Amount.ToString("N2")</MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent><div class="py-4 text-center text-slate-500">No wallet movements.</div></NoRecordsContent>
+                </MudTable>
+            </section>
+
+            <section>
+                <h2 class="text-sm font-semibold text-slate-700 mb-2">Provider record</h2>
+                @if (detail.ProviderError.Length > 0)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">@detail.ProviderError</MudAlert>
+                }
+                else
+                {
+                    <MudTable Items="@detail.ProviderPayments" Dense="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Payment</MudTh><MudTh>Status</MudTh><MudTh>Amount</MudTh><MudTh>Transaction</MudTh><MudTh>Reason</MudTh><MudTh>Updated</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Payment">#@context.Id</MudTd>
+                            <MudTd DataLabel="Status">@context.Status</MudTd>
+                            <MudTd DataLabel="Amount">@context.Amount.ToString("N2")</MudTd>
+                            <MudTd DataLabel="Transaction">@(context.FinancialTransactionId.Length > 0 ? context.FinancialTransactionId : context.Receipt)</MudTd>
+                            <MudTd DataLabel="Reason">@context.ReasonCode @context.ReasonMessage</MudTd>
+                            <MudTd DataLabel="Updated">@context.UpdatedAt.ToLocalTime().ToString("d MMM yyyy HH:mm")</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent><div class="py-4 text-center text-slate-500">The payment service has no payment for this request.</div></NoRecordsContent>
+                    </MudTable>
+                }
+            </section>
+        </div>
+    }
+</div>

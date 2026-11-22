@@ -14,14 +14,15 @@
     </div>
 
     <div class="p-6 space-y-6">
-        @if (canInitiate)
-        {
-            <div class="flex justify-end">
+        <div class="flex items-center justify-end gap-3">
+            <ExportButtons Url="api/petty-cash/fundings" FileStem="wallet-fundings" />
+            @if (canInitiate)
+            {
                 <MudButton OnClick="OpenEditor" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
                     New funding
                 </MudButton>
-            </div>
-        }
+            }
+        </div>
 
         <MudTable Items="@fundings" Hover="true" Dense="true" Striped="true" Elevation="0"
                   Loading="@loading" LoadingProgressColor="Color.Primary">

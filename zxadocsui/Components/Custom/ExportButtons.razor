@@ -1,0 +1,59 @@
+@using System.Text.Json
+@using Microsoft.JSInterop
+@using MudBlazor
+@using zxadocsfe.Helpers
+@using zxadocsfe.Services
+@using zxadocslib.Dtos
+@inject IHttpService Http
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+@* Excel and PDF export of a list or report (ZD-339, ZD-230). Small exports download at once; large ones are queued under My exports. *@
+<MudButton OnClick="@(() => Export("xlsx"))" Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+           StartIcon="@Icons.Material.Filled.TableView" Disabled="@busy">Export Excel</MudButton>
+<MudButton OnClick="@(() => Export("pdf"))" Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+           StartIcon="@Icons.Material.Filled.PictureAsPdf" Disabled="@busy">Export PDF</MudButton>
+
+@code {
+    /// <summary>The endpoint with the screen's filters as its query string; format is appended here.</summary>
+    [Parameter, EditorRequired] public string Url { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public string FileStem { get; set; } = string.Empty;
+
+    /// <summary>When set, exporting is refused with this message, e.g. a required filter is missing.</summary>
+    [Parameter] public string? Blocked { get; set; }
+
+    private bool busy;
+
+    private async Task Export(string format)
+    {
+        if (Blocked is not null)
+        {
+            Snackbar.Add(Blocked, Severity.Info);
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            Http.Initialize(AppConstants.HttpSchemes.Core);
+            var (ok, status, contentType, bytes, error) = await Http.GetFileAsync(Url + (Url.Contains('?') ? "&" : "?") + $"format={format}");
+            if (!ok || bytes is null)
+            {
+                Snackbar.Add(ErrorMessage.Extract(error) ?? "The export failed.", Severity.Error);
+                return;
+            }
+            if (status == 202)
+            {
+                var queued = JsonSerializer.Deserialize<ApiResponse<ExportJobDto>>(bytes, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                Snackbar.Add(queued?.Message ?? "The export is being prepared under My exports.", Severity.Info);
+                return;
+            }
+            await JS.InvokeVoidAsync("zxFiles.save", $"{FileStem}-{DateTime.Now:yyyyMMdd-HHmm}.{format}", Convert.ToBase64String(bytes), contentType);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}
