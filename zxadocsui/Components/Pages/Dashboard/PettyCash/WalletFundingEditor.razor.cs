@@ -16,7 +16,8 @@ public partial class WalletFundingEditor
 
     private WalletFundingDto funding = new();
     private WalletDto? wallet;
-    private DateTime? date = DateTime.Today;
+    // UTC: accounting dates are UTC throughout.
+    private DateTime? date = DateTime.UtcNow.Date;
     private bool busy;
 
     protected override async Task OnInitializedAsync()

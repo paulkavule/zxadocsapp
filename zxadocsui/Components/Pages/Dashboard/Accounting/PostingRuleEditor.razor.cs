@@ -17,7 +17,8 @@ public partial class PostingRuleEditor
     private PostingRuleDto rule = new();
     private List<GlAccountDto> accounts = new();
     private List<SpendingCategoryDto> categories = new();
-    private DateTime? from = DateTime.Today;
+    // UTC: the server resolves rules by the UTC date.
+    private DateTime? from = DateTime.UtcNow.Date;
     private bool busy;
 
     protected override async Task OnInitializedAsync()

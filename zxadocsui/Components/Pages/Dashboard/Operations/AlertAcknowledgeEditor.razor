@@ -1,0 +1,10 @@
+@using zxadocslib.Dtos
+
+<div class="space-y-4">
+    <p class="text-sm text-slate-600">@Alert.Type @(Alert.Reference.Length > 0 ? $"for {Alert.Reference}" : ""): @Alert.Message</p>
+    <MudTextField @bind-Value="note" Label="Note (optional)" Lines="3" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="500" />
+    <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Disabled="@busy"
+               StartIcon="@Icons.Material.Filled.DoneAll">
+        Acknowledge
+    </MudButton>
+</div>
