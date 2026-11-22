@@ -3,6 +3,7 @@ using MudBlazor;
 using zxadocsfe.Helpers;
 using zxadocsfe.Services;
 using zxadocslib.Dtos;
+using zxadocslib.Helpers;
 using zxadocsui.State;
 
 namespace zxadocsui.Components.Pages.Dashboard.PettyCash;
@@ -15,6 +16,7 @@ public partial class RequestDetail
 {
     [Inject] private IHttpService Http { get; set; } = default!;
     [Inject] private IUserSession Session { get; set; } = default!;
+    [Inject] private IPermissionClientService Permissions { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
@@ -23,11 +25,13 @@ public partial class RequestDetail
     private RequestReviewDto? review;
     private string comment = string.Empty;
     private bool busy;
+    private bool canRetryAccounting;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
         await Session.GetCurrentUser();
+        canRetryAccounting = await Permissions.HasAny(Permission.ManageAccounting, Permission.ManagePettyCashOperations);
         await Load();
         StateHasChanged();
     }
@@ -46,6 +50,8 @@ public partial class RequestDetail
     }
 
     private Task Approve() => Decide("approve", "Approved.");
+
+    private Task RetryAccounting() => Decide("retry-accounting", "Sent back to accounting.");
 
     private Task Return() => Decide("return", "Returned to the maker.");
 

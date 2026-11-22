@@ -21,6 +21,18 @@
     {
         var r = review.Request;
         <div class="p-6 grid gap-6 max-w-3xl">
+            @if (r.AccountingStatus == AccountingStatus.Failed)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">
+                    Accounting failed: @r.AccountingError
+                    @if (canRetryAccounting)
+                    {
+                        <MudButton OnClick="RetryAccounting" Disabled="@busy" Size="Size.Small" Variant="Variant.Outlined" Class="ml-2">
+                            Retry accounting
+                        </MudButton>
+                    }
+                </MudAlert>
+            }
             @foreach (var warning in review.Warnings)
             {
                 <MudAlert Severity="Severity.Warning" Dense="true">@warning</MudAlert>
