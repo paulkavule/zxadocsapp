@@ -43,7 +43,7 @@
                 <MudTd DataLabel="Amount">@context.Amount.ToString("N0")</MudTd>
                 <MudTd DataLabel="Maker">@context.CreatedBy</MudTd>
                 <MudTd DataLabel="Status">
-                    <MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)">@StatusText(context)</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="@StatusColor(context)">@StatusText(context)</MudChip>
                 </MudTd>
             </RowTemplate>
             <NoRecordsContent>

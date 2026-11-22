@@ -33,6 +33,18 @@
                     }
                 </MudAlert>
             }
+            @if (r.PaymentStatus == PaymentStatus.Failed)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">
+                    Payment failed: @r.PaymentError. The funds were released and the expense reversed.
+                </MudAlert>
+            }
+            else if (r.PaymentStatus == PaymentStatus.Paid)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true">
+                    Paid @r.PaidAt?.ToLocalTime().ToString("dd MMM yyyy HH:mm"), provider reference @r.PaymentReference
+                </MudAlert>
+            }
             @foreach (var warning in review.Warnings)
             {
                 <MudAlert Severity="Severity.Warning" Dense="true">@warning</MudAlert>

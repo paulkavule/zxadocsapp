@@ -78,6 +78,12 @@ public partial class RequestDetail
     private string StatusLine() => review?.Request is not { } r ? "" : r.Status switch
     {
         RequestStatus.UnderApproval => $"awaiting approval at level {r.CurrentLevel}",
+        RequestStatus.Approved when r.PaymentStatus != PaymentStatus.NotRequested => r.PaymentStatus switch
+        {
+            PaymentStatus.Requested => "approved; payment in progress",
+            PaymentStatus.Paid => "paid",
+            _ => "approved; payment failed",
+        },
         RequestStatus.Approved => $"approved; accounting {r.AccountingStatus.ToString().ToLowerInvariant()}",
         _ => r.Status.ToString().ToLowerInvariant(),
     };

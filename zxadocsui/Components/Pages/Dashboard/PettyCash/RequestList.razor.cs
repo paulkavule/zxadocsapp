@@ -77,11 +77,18 @@ public partial class RequestList
             ? $"/petty-cash/requests/{request.Id}/edit"
             : $"/petty-cash/requests/{request.Id}");
 
-    private static string StatusText(PettyCashRequestDto request) =>
-        request.Status == RequestStatus.UnderApproval ? $"Level {request.CurrentLevel}" : request.Status.ToString();
-
-    private static Color StatusColor(RequestStatus status) => status switch
+    private static string StatusText(PettyCashRequestDto request) => (request.Status, request.PaymentStatus) switch
     {
+        (RequestStatus.UnderApproval, _) => $"Level {request.CurrentLevel}",
+        (RequestStatus.Approved, PaymentStatus.Requested) => "Paying",
+        (RequestStatus.Approved, PaymentStatus.Paid) => "Paid",
+        (RequestStatus.Approved, PaymentStatus.Failed) => "Payment failed",
+        _ => request.Status.ToString(),
+    };
+
+    private static Color StatusColor(PettyCashRequestDto request) => request.Status switch
+    {
+        RequestStatus.Approved when request.PaymentStatus == PaymentStatus.Failed => Color.Error,
         RequestStatus.Approved => Color.Success,
         RequestStatus.Rejected => Color.Error,
         RequestStatus.Returned => Color.Warning,
