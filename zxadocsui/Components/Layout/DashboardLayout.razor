@@ -250,6 +250,16 @@
                             </NavLink>
                         }
 
+                        @if (canOperations)
+                        {
+                            <NavLink href="/operations/dead-letters"
+                                     class="flex items-center space-x-3 text-[#1e4a33] hover:bg-[#e0f2df] px-4 py-3 rounded-xl transition group menu-item"
+                                     ActiveClass="bg-[#e0f2df]">
+                                <i class="fa-solid fa-triangle-exclamation w-5 text-[#2a7f4f] group-hover:text-[#1d673e] flex-shrink-0"></i>
+                                <span class="font-medium whitespace-nowrap sidebar-menu-text">Dead letters</span>
+                            </NavLink>
+                        }
+
                         @if (canAccounting)
                         {
                             <NavLink href="/accounting/accounts"
@@ -500,6 +510,7 @@
     bool canAccounting;
     bool canFunding;
     bool canRequests;
+    bool canOperations;
     bool showContracts => canTemplates || canDrafts || canContractTypes;
 
     // Settings is platform administration, so it hangs off the system roles rather than a
@@ -538,6 +549,7 @@
                          || perms.Contains(Permission.ViewPettyCashFinance);
             canFunding = canPettyCashSetup || perms.Contains(Permission.CreateFundingRequest)
                       || perms.Contains(Permission.ApproveFundingRequest);
+            canOperations = perms.Contains(Permission.ManagePettyCashOperations);
             canRequests = canPettyCashSetup || perms.Contains(Permission.CreatePettyCashRequest)
                        || perms.Contains(Permission.ApprovePettyCashRequest);
             canRoles = perms.Contains(Permission.CreateRole) || perms.Contains(Permission.ManageRole);

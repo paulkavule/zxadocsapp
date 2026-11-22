@@ -1,0 +1,10 @@
+@using zxadocslib.Dtos
+
+<div class="space-y-4">
+    <p class="text-sm text-slate-600">@Item.Type for @Item.TransactionId failed: @Item.Reason</p>
+    <MudTextField @bind-Value="note" Label="How it was resolved" Lines="3" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="500" />
+    <MudButton OnClick="Save" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+               Disabled="@(busy || string.IsNullOrWhiteSpace(note))" StartIcon="@Icons.Material.Filled.DoneAll">
+        Mark resolved
+    </MudButton>
+</div>
