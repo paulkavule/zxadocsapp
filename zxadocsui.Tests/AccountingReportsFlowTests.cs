@@ -59,7 +59,9 @@ public class AccountingReportsFlowTests(AppFixture app)
         await page.GetByLabel("Reference").FillAsync(reference);
         await page.GetByRole(AriaRole.Button, new() { Name = "Run report" }).ClickAsync();
         var link = page.GetByRole(AriaRole.Link, new() { Name = reference });
-        await Assertions.Expect(link.First).ToBeVisibleAsync(new() { Timeout = 15_000 });
+        // The unfiltered list already holds this reference, so wait for the filtered row count rather than the link.
+        var filtered = (await DataAsync(api, $"/api/accounting/reports/journals?reference={reference}")).GetArrayLength();
+        await Assertions.Expect(page.Locator("tbody tr")).ToHaveCountAsync(filtered, new() { Timeout = 15_000 });
         Assert.All(await page.Locator("tbody tr").AllInnerTextsAsync(), row => Assert.Contains(reference, row));
 
         var unitCode = request.GetProperty("billingUnitCode").GetString()!;
